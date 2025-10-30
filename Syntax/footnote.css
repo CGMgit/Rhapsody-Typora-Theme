@@ -1,0 +1,311 @@
+/* =======================================================================================
+   Rhapsody · Footnotes（正文脚注系统 · 上标 / 文末卡片 / 浮窗提示）
+   设计理念 / Design Concept
+   - 使用 --fn-* 局部变量集中维护脚注色彩、间距、阴影，避免散点硬编码。
+   - 保持 Typora 原生 DOM 结构不变，所有装饰与浮窗均以选择器约束实现。
+   - 交互层分三类：上标（sup.md-footnote）、文末卡片（.footnotes）、浮窗提示（.code-tooltip）。
+   - 浮窗严格限定为“纯文本脚注”，显式排除数学节点，防止样式串扰。
+   - 提供 prefers-reduced-motion 兜底，禁用动画/过渡以降低性能消耗。
+   ======================================================================================= */
+
+/* ========================================================================== */
+/* REGION A — FOOTNOTE ROOT VARIABLES                                         */
+/* Scope: #write                                                              */
+/* Function: 脚注上标、文末卡片、圆点编号、返回箭头的核心变量                   */
+/* Adjustable Params: 色彩、尺寸、阴影、过渡                                  */
+/* ========================================================================== */
+#write {
+  /* 上标 */
+  --fn-sup-fs: .78em;
+  --fn-sup-fw: 500;
+  --fn-sup-lh: 1.1;
+  --fn-sup-pad-y: .04em;
+  --fn-sup-pad-x: .3em;
+  --fn-sup-mx: .1em;
+  --fn-sup-radius: .45em;
+  --fn-sup-fg: #a86a74;
+  --fn-sup-bg: rgba(220,100,110,.12);
+  --fn-sup-bd: #e49ca3;
+  --fn-sup-hover-bg: #f5d6b8;
+  --fn-sup-hover-fg: #a86a74;
+  --fn-sup-hover-bd: #f5d6b8;
+  --fn-sup-hover-bs: 0 0 4px #e49ca344,0 0 8px #f5d6b866;
+  --fn-sup-hover-ts: 0 0 2px #fff;
+
+  /* 文末卡片 */
+  --fn-card-bg: #fff7f7;
+  --fn-card-bd-left: #e49ca3;
+  --fn-card-radius: .9em;
+  --fn-card-pad: 1em 1.2em 1em 2.2em;
+  --fn-card-my: 1.4em;
+  --fn-card-bs: 0 1px 2px rgba(180,90,110,.05), 0 0 9px #e49ca315;
+  --fn-card-gap: 1em;
+  --fn-card-text: #8c4c5a;
+
+  /* 编号圆点 */
+  --fn-num-bg: #e49ca3;
+  --fn-num-fg: #fff;
+  --fn-num-fs: .8rem;
+  --fn-num-box: 1.65em;
+  --fn-num-bs: 0 0 4px #e49ca344;
+
+  /* 返回箭头 */
+  --fn-back-fg: #e49ca3;
+  --fn-back-hover-fg: #a86a74;
+  --fn-back-pos-x: 1em;
+  --fn-back-pos-y: .65em;
+  --fn-back-scale: 1.2;
+
+  /* 动画 */
+  --fn-tr-slow: .25s ease;
+  --fn-tr-fast: .2s ease;
+
+  /* 装饰 emoji */
+  --fn-emoji: "🍷";
+  --fn-emoji-left: .65em;
+  --fn-emoji-top: .65em;
+  --fn-emoji-fs: 1.18em;
+  --fn-emoji-op: .68;
+}
+
+/* Scope: #write sup.md-footnote */
+#write sup.md-footnote {
+  display:inline-block;
+  font-size:var(--fn-sup-fs);
+  font-weight:var(--fn-sup-fw);
+  line-height:var(--fn-sup-lh);
+  padding:var(--fn-sup-pad-y) var(--fn-sup-pad-x);
+  margin:0 var(--fn-sup-mx);
+  border-radius:var(--fn-sup-radius);
+
+  vertical-align:baseline;
+  color:var(--fn-sup-fg);
+  background:var(--fn-sup-bg);
+  border:1px dashed var(--fn-sup-bd);
+
+  text-decoration:none;
+  position:relative;
+  cursor:pointer;
+
+  transition:
+    color var(--fn-tr-slow),
+    background-color var(--fn-tr-slow),
+    border-color var(--fn-tr-slow),
+    box-shadow var(--fn-tr-slow),
+    text-shadow var(--fn-tr-slow);
+}
+#write sup.md-footnote:hover {
+  background:var(--fn-sup-hover-bg);
+  color:var(--fn-sup-hover-fg);
+  border-color:var(--fn-sup-hover-bd);
+  box-shadow:var(--fn-sup-hover-bs);
+  text-shadow:var(--fn-sup-hover-ts);
+}
+#write sup.md-footnote:focus-visible {
+  outline:2px solid currentColor;
+  outline-offset:2px;
+  text-decoration:underline;
+}
+
+
+/* Scope: #write .footnotes.md-def-footnote*/
+#write .footnotes.md-def-footnote {
+  background:var(--fn-card-bg);
+  border-left:4px solid var(--fn-card-bd-left);
+  border-radius:var(--fn-card-radius);
+  padding:var(--fn-card-pad);
+  margin:var(--fn-card-my) 0;
+  box-shadow:var(--fn-card-bs);
+  display:flex;
+  align-items:flex-start;
+  gap:var(--fn-card-gap);
+  position:relative;
+}
+#write .footnotes.md-def-footnote::before {
+  content:var(--fn-emoji);
+  position:absolute;
+  left:var(--fn-emoji-left);
+  top:var(--fn-emoji-top);
+  font-size:var(--fn-emoji-fs);
+  opacity:var(--fn-emoji-op);
+  filter:blur(.1px);
+  pointer-events:none;
+}
+#write .footnotes .md-def-name {
+  display:inline-block;
+  background:var(--fn-num-bg);
+  color:var(--fn-num-fg);
+  font-weight:bold;
+  font-size:var(--fn-num-fs);
+  width:var(--fn-num-box);
+  height:var(--fn-num-box);
+  text-align:center;
+  line-height:var(--fn-num-box);
+  border-radius:50%;
+  flex-shrink:0;
+  box-shadow:var(--fn-num-bs);
+}
+#write .footnotes .md-def-content {
+  font-size:.97em;
+  line-height:1.7;
+  color:var(--fn-card-text);
+  flex:1;
+  word-break:break-word;
+}
+#write .footnotes .md-footnote-backref {
+  position:absolute;
+  bottom:var(--fn-back-pos-y);
+  right:var(--fn-back-pos-x);
+  font-size:.9em;
+  color:var(--fn-back-fg);
+  text-decoration:none;
+  opacity:.82;
+  transition:color var(--fn-tr-fast), transform var(--fn-tr-fast), opacity var(--fn-tr-fast);
+}
+#write .footnotes .md-footnote-backref:hover {
+  color:var(--fn-back-hover-fg);
+  transform:scale(var(--fn-back-scale));
+  opacity:1;
+}
+#write .footnotes .md-footnote-backref:focus-visible {
+  outline:2px solid currentColor;
+  outline-offset:2px;
+}
+
+/* ========================================================================== */
+/* REGION B — FOOTNOTE TOOLTIP (Lite Strict)                                   */
+/* Scope: 仅“脚注触发 + 纯文本内容”，显式排除数学；保持原交互与视觉               */
+/* Notes: 合并选择器，减少重复；不更改 DOM 与语义。                              */
+/* 触发条件（A）：页面上存在“获得焦点/悬停”的脚注上标，且目标浮窗必须：                   */
+/*   1) .code-tooltip（Typora 原生）                                                       */
+/*   2) 含 .md-plain（脚注纯文本）                                                         */
+/*   3) 不包含任意数学相关节点（mjx-container/.MathJax/.md-inline-math/.md-math-block等） */
+/* ========================================================================== */
+
+html:has(#write sup.md-footnote:is(:hover,:focus,:focus-visible))
+  .code-tooltip:has(.code-tooltip-content .md-plain):not(:has(
+    mjx-container, .MathJax, .md-inline-math, .md-math-block,
+    .md-mathjax-preview, #math-inline-preview-content
+  )){
+  background:#f8ecec !important;
+  border-radius:.85em;
+  box-shadow:0 2px 12px #e49ca322;
+  padding:.95em 1.25em;
+  max-width:min(36rem,90vw);
+  transform:translateY(var(--fn-tip-offset-y,0));
+  outline:none;
+}
+
+/* 箭头同色（同样限定为“纯文本脚注浮窗”，并排除数学） */
+html:has(#write sup.md-footnote:is(:hover,:focus,:focus-visible))
+  .code-tooltip.md-hover-tip:has(.code-tooltip-content .md-plain):not(:has(
+    mjx-container, .MathJax, .md-inline-math, .md-math-block,
+    .md-mathjax-preview, #math-inline-preview-content
+  )) .md-arrow::after{
+  background:#f8ecec !important;
+  box-shadow:0 1px 6px rgba(228,156,163,.35);
+  border-radius:2px;
+}
+
+/* A 文本着色（同样严格限定为“脚注纯文本浮窗”） */
+html:has(#write sup.md-footnote:is(:hover,:focus,:focus-visible))
+  .code-tooltip:has(.code-tooltip-content .md-plain):not(:has(
+    mjx-container, .MathJax, .md-inline-math, .md-math-block,
+    .md-mathjax-preview, #math-inline-preview-content
+  )) .code-tooltip-content .md-plain{
+  color:#a86a74;
+  font-size:1.06em;
+  font-weight:600;
+  text-shadow:0 0 6px #e49ca328;
+  letter-spacing:.02em;
+}
+
+/* B) 允许鼠标移入浮窗本身而不中断样式（仍仅限“纯文本脚注浮窗”） */
+.code-tooltip:has(.code-tooltip-content .md-plain):not(:has(
+  mjx-container, .MathJax, .md-inline-math, .md-math-block,
+  .md-mathjax-preview, #math-inline-preview-content
+)):hover,
+.code-tooltip:has(.code-tooltip-content .md-plain):not(:has(
+  mjx-container, .MathJax, .md-inline-math, .md-math-block,
+  .md-mathjax-preview, #math-inline-preview-content
+)):focus-within{
+  background:#f8ecec !important;
+  border-radius:.85em;
+  box-shadow:0 2px 12px #e49ca322;
+  padding:.95em 1.25em;
+  max-width:min(36rem,90vw);
+  outline:none;
+}
+.code-tooltip.md-hover-tip:has(.code-tooltip-content .md-plain):not(:has(
+  mjx-container, .MathJax, .md-inline-math, .md-math-block,
+  .md-mathjax-preview, #math-inline-preview-content
+)):is(:hover,:focus-within) .md-arrow::after{
+  background:#f8ecec !important;
+  box-shadow:0 1px 6px rgba(228,156,163,.35);
+  border-radius:2px;
+}
+.code-tooltip:has(.code-tooltip-content .md-plain):not(:has(
+  mjx-container, .MathJax, .md-inline-math, .md-math-block,
+  .md-mathjax-preview, #math-inline-preview-content
+)) :is(.code-tooltip-content .md-plain){
+  color:#a86a74;
+  font-size:1.06em;
+  font-weight:600;
+  text-shadow:0 0 6px #e49ca328;
+  letter-spacing:.02em;
+}
+
+/* C) 复原：当上标未激活且浮窗也未被 hover/focus-within 时，且仅限“纯文本脚注浮窗” */
+html:not(:has(#write sup.md-footnote:is(:hover,:focus,:focus-visible)))
+  .code-tooltip:has(.code-tooltip-content .md-plain):not(:has(
+    mjx-container, .MathJax, .md-inline-math, .md-math-block,
+    .md-mathjax-preview, #math-inline-preview-content
+  )):not(:hover):not(:focus-within){
+  background:revert !important;
+  border-radius:revert;
+  box-shadow:none;
+  padding:revert;
+  transform:none;
+  outline:none;
+}
+html:not(:has(#write sup.md-footnote:is(:hover,:focus,:focus-visible)))
+  .code-tooltip.md-hover-tip:has(.code-tooltip-content .md-plain):not(:has(
+    mjx-container, .MathJax, .md-inline-math, .md-math-block,
+    .md-mathjax-preview, #math-inline-preview-content
+  )):not(:hover):not(:focus-within) .md-arrow::after{
+  background:revert !important;
+  box-shadow:none;
+  border-radius:0;
+}
+
+/* === 兜底：任何“含数学内容”的 tooltip 一律强制复原，防止黑菱形等串样式 ================= */
+.code-tooltip:has(
+  mjx-container, .MathJax, .md-inline-math, .md-math-block,
+  .md-mathjax-preview, #math-inline-preview-content
+){
+  background:revert !important;
+  border-radius:revert;
+  box-shadow:none;
+  padding:revert;
+  outline:none;
+}
+.code-tooltip:has(
+  mjx-container, .MathJax, .md-inline-math, .md-math-block,
+  .md-mathjax-preview, #math-inline-preview-content
+) .md-arrow::after{
+  background:revert !important;
+  box-shadow:none;
+  border-radius:0;
+}
+
+/* 减少动态偏好：脚注相关动画停用 */
+@media (prefers-reduced-motion: reduce){
+  #write .footnotes .md-footnote-backref{ transition:none; transform:none; }
+  #write sup.md-footnote{ transition:none; }
+  html:has(#write sup.md-footnote:is(:hover,:focus,:focus-visible))
+    .code-tooltip:has(.code-tooltip-content .md-plain){ transition:none; transform:none; }
+  .code-tooltip:has(.code-tooltip-content .md-plain):is(:hover,:focus-within){
+    transition:none; transform:none;
+  }
+}
+/* =============================== END OF PACKAGE ============================ */

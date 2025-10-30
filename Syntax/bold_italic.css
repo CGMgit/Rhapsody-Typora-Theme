@@ -1,0 +1,69 @@
+/* =======================================================================================
+   Rhapsody · Inline Emphasis Core （正文内联强调/斜体样式）
+   设计理念 / Design Concept
+   - 统一正文中 b/strong/em/i/dfn/cite 的强调与斜体配色，避免侧栏/菜单/代码块受影响；
+   - 粗体强调用「红 → 金」的配色转变，体现警示与强调效果；
+   - 斜体强调用「紫蓝 → 粉紫」的配色转变，突出柔性与文艺感；
+   - Hover 提供轻度发光反馈，仅在鼠标环境启用；触控环境不制造干扰；
+   - 明确排除 code/kbd/samp/pre，保持代码环境的可读性；
+   - 尊重 prefers-reduced-motion，关闭阴影与过渡，保证可达性与稳定性。
+   ======================================================================================= */
+
+/* ========================================================================== */
+/* REGION A — INLINE EMPHASIS CORE（正文内联强调/斜体，仅 #write）              */
+/* Scope: #write 内的 b/strong/em/i/dfn/cite；不影响侧栏/菜单/代码块             */
+/* Function: 统一强调/斜体的配色与 hover 提示；可单独定义斜体初始色              */
+/* Adjustable: 颜色（--emp-red/--emp-red-hover/--emp-italic/--emp-vio）、阴影强度*/
+/* Notes: 排除 code/kbd/samp/pre，尊重减少动态偏好                              */
+/* ========================================================================== */
+
+#write{
+  /* 可调色盘（需要硬编码可把 var(...) 换成字面量色值） */
+  --emp-red:        #ff0303;   /* 强调红（初始） */
+  --emp-red-hover:  #ffb300;   /* 强调 hover 金色 */
+  --emp-italic:     #7b2cff;   /* 斜体默认紫蓝色 */
+  --emp-vio:        #ff00fd;   /* 斜体 hover 粉紫色 */
+  --emp-glow-a:     rgba(255,180,80,.45);
+  --emp-glow-b:     rgba(255,220,120,.25);
+}
+
+/* 粗体/强调 */
+#write :is(b, strong){
+  font-weight: 700;
+  color: var(--emp-red);
+  text-decoration: none;
+  transition: color .22s ease, text-shadow .25s ease;
+}
+
+/* 斜体族（排除代码相关） */
+#write :is(em, i, dfn, cite):not(code, kbd, samp, pre){
+  font-style: italic;
+  font-family: 'ZCOOLAddictItalic','AliPuHuiTi',sans-serif;
+  color: var(--emp-italic); /* 默认自定义色 */
+  transition: color .22s ease, text-shadow .25s ease;
+}
+
+/* Hover（仅鼠标设备；触控不加干扰） */
+@media (hover: hover){
+  #write :is(b, strong):hover{
+    color: var(--emp-red-hover);
+    text-shadow:
+      0 0 8px var(--emp-glow-a),
+      0 0 16px var(--emp-glow-b);
+  }
+  #write :is(em, i, dfn, cite):not(code, kbd, samp, pre):hover{
+    color: var(--emp-vio);
+    text-shadow:
+      0 0 12px rgba(255,0,253,.5),
+      0 0 22px rgba(255,0,253,.28);
+  }
+}
+
+/* 减少动态偏好：关闭动画阴影与过渡 */
+@media (prefers-reduced-motion: reduce){
+  #write :is(b, strong, em, i, dfn, cite){
+    transition: none !important;
+    text-shadow: none !important;
+  }
+}
+/* =============================== END OF PACKAGE ============================ */

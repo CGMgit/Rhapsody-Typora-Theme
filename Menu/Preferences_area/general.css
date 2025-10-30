@@ -1,0 +1,321 @@
+/* =======================================================================================
+   Rhapsody · Preferences · General Tab — 月河童梦  (无模糊 · 性能友好)
+   设计理念 / Design Concept
+   - 作用域限定：仅当左侧 Sidebar 的 General 选项处于激活态（data-index="6"）时启用整套视觉。
+   - 视觉语言：深夜紫底 + 月光粉紫文字；分层采用线性渐变与透明度，不使用 blur/backdrop-filter。
+   - 代码纪律：不更改 DOM 结构与选择器写法，不合并/精简你的属性；仅做“分区域 + 区域内变量化 + 注释补全”。
+   - 可访问性：统一字体权重；按钮提供 :focus-visible 可视环；适配 prefers-contrast / prefers-reduced-motion。
+   ======================================================================================= */
+
+
+/* ========================================================================== */
+/* REGION A — GLOBAL FONTS（全局字体统一 · 仅 General 激活时）                  */
+/* Scope: 左侧 Sidebar、右侧 Pane 的常见文本与控件                             */
+/* Function: 统一 UI 字体族与字重，避免跨区不一致；保持你原始数值不变           */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="6"]) {
+    .ty-preferences .pane-sm.sidebar,
+    .ty-preferences .pane-sm.sidebar .nav-group-item,
+    .ty-preferences .pane-sm.sidebar .search-input,
+    .ty-preferences .pane .content,
+    .ty-preferences .pane .content h3,
+    .ty-preferences .pane .content label,
+    .ty-preferences .pane .content td,
+    .ty-preferences .pane .content span,
+    .ty-preferences .pane .content a,
+    .ty-preferences .pane .content input,
+    .ty-preferences .pane .content select,
+    .ty-preferences .pane .content button {
+      font-family: 'AliPuHuiTi','Microsoft YaHei',sans-serif;
+      font-weight: 600;
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION B — THEME TOKENS（主题令牌 · 仅 General 激活时挂载）                  */
+/* Scope: body:has(... data-index="6") .ty-preferences                        */
+/* Function: 集中维护墨色/描边/强调/层面背景等变量，供后续区域内复用             */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="6"]) .ty-preferences{
+    --fairy-ink: #F4E8FF;                  /* 主文字：月光粉紫 */
+    --fairy-ink-weak: #DCCAF7;             /* 次要文字 */
+    --fairy-ink-hint: #C1ACEA;             /* hint/说明 */
+    --fairy-border: rgba(162,110,245,.30); /* 紫罗兰边框 */
+    --fairy-border-strong: rgba(162,110,245,.40);
+    --fairy-accent: #B78CFF;               /* 强调：童话月光紫 */
+    --fairy-bg-deep: rgba(18,6,36,.70);    /* 深夜紫底 */
+    --fairy-bg-soft: rgba(18,6,36,.45);    /* 柔和过渡 */
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION C — BACKGROUND MOUNT（整窗背景挂载 · 单层贴图）                        */
+/* Scope: .ty-preferences .window / ::before                                   */
+/* Function: 不改动内容层，仅在最底铺设“月河童梦”背景；禁用交互（pointer-events） */
+/* ========================================================================== */
+body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="6"]) .ty-preferences .window{
+  position: relative; overflow: hidden; min-height: 100vh; background: none;
+}
+body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="6"]) .ty-preferences .window::before{
+  content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+  background:#120624 url("../../assets/Preference/月河童梦.png") center/cover no-repeat; /* ← 按需替换路径 */
+}
+
+
+/* ========================================================================== */
+/* REGION D — SYSTEM CHROME（系统框架：Header / Sidebar / Pane / 等）           */
+/* Scope: General 激活态下的 Header、Sidebar、Pane 及其内的控件与文本           */
+/* Function: 以渐变与描边建立层次；不使用滤镜；包含交互/焦点/滚动条的一致性       */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="6"]) {
+
+    /* ---------------------------------------------------------------------- */
+    /* D-1 · HEADER（顶栏）                                                   */
+    /* Scope: .ty-preferences .window-header                                  */
+    /* Function: 顶栏做顶部压暗渐变与底部分隔线；返回/关闭图标 hover 轻动效       */
+    /* ---------------------------------------------------------------------- */
+    .ty-preferences .window-header{
+      background: linear-gradient(to bottom, rgba(18,6,36,.82), rgba(18,6,36,.55));
+      border-bottom: 1px solid var(--fairy-border);
+      contain: paint;
+    }
+    .ty-preferences .window-header h2{ color: var(--fairy-ink); }
+    .ty-preferences .window-header .window-header-back .icon svg path,
+    .ty-preferences .window-header .header-close .icon svg path{
+      fill: var(--fairy-ink); opacity:.9;
+      transition: opacity .15s ease, transform .12s ease;
+    }
+    .ty-preferences .window-header button:hover .icon svg path{
+      opacity:1; transform: translateY(-1px);
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* D-2 · SIDEBAR（左侧导航）                                              */
+    /* Scope: .pane-sm.sidebar / .search-input / .nav-group-item[.active]     */
+    /* Function: 侧栏纵向渐变与右分隔线；搜索框深色适配；列表 hover/active 层次   */
+    /* ---------------------------------------------------------------------- */
+    .ty-preferences .pane-sm.sidebar{
+      background: linear-gradient(180deg, rgba(28,10,60,.72), rgba(28,10,60,.30));
+      border-right: 1px solid var(--fairy-border);
+      contain: paint; /* 性能隔离：避免重绘扩散 */
+    }
+    .ty-preferences .pane-sm.sidebar .search-input{
+      background: rgba(255,255,255,.06);
+      color: var(--fairy-ink);
+      border: 1px solid var(--fairy-border-strong);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
+    }
+    .ty-preferences .pane-sm.sidebar .search-input::placeholder{ color: rgba(220,202,247,.82); }
+    .ty-preferences .pane-sm.sidebar .search-input:focus{
+      border-color: var(--fairy-accent);
+      box-shadow: 0 0 0 2px rgba(183,140,255,.30);
+      outline: none;
+    }
+    .ty-preferences .pane-sm.sidebar .nav-group-item{
+      display:block; padding:8px 10px; border-radius:8px;
+      color: rgba(220,202,247,.86); background: transparent;
+      transition: transform .15s ease, color .15s ease, background-color .15s ease;
+    }
+    .ty-preferences .pane-sm.sidebar .nav-group-item:hover{
+      background: rgba(36,14,76,.45); color: var(--fairy-ink);
+    }
+    .ty-preferences .pane-sm.sidebar .nav-group-item.active{
+      background: linear-gradient(180deg, rgba(183,140,255,.20), rgba(183,140,255,.10));
+      box-shadow: 0 0 0 1px var(--fairy-border) inset;
+      color:#fff; transform: translateY(-1px);
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* D-3 · PANE（右侧主体面板）                                             */
+    /* Scope: .ty-preferences .pane                                           */
+    /* Function: 深浅两层叠加并以左侧描边与 Sidebar 协同形成结构分隔             */
+    /* ---------------------------------------------------------------------- */
+    .ty-preferences .pane{
+      background: linear-gradient(180deg, var(--fairy-bg-deep), var(--fairy-bg-soft));
+      border-left: 1px solid var(--fairy-border);
+      contain: paint; /* 性能隔离：大区块绘制 */
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* D-4 · TYPOGRAPHY（文本层级）                                           */
+    /* Scope: Pane 内容区的标题/说明/链接等                                   */
+    /* Function: 统一墨色；hint 行为弱化；大标题加粗并使用纯白提亮               */
+    /* ---------------------------------------------------------------------- */
+    .ty-preferences .pane .content,
+    .ty-preferences .pane .content h3.panel-header,
+    .ty-preferences .pane .content .input-group-header-title,
+    .ty-preferences .pane .content label,
+    .ty-preferences .pane .content td,
+    .ty-preferences .pane .content span,
+    .ty-preferences .pane .content a{
+      color: var(--fairy-ink); text-shadow: none;
+    }
+    .ty-preferences .pane .content .panel-content-hint,
+    .ty-preferences .pane .content .input-group-header-hint,
+    .ty-preferences .pane .content .label-hint,
+    .ty-preferences .pane .content .row[style*="opacity"]{
+      color: var(--fairy-ink-hint) !important;
+    }
+    .ty-preferences .pane .content h3.panel-header{ letter-spacing:.2px; font-weight:700; color:#fff; }
+
+    /* ---------------------------------------------------------------------- */
+    /* D-5 · FORMS（表单：输入/选择）                                         */
+    /* Scope: select / input / .ty-text-input / .file-input                   */
+    /* Function: 深色底、描边与 hover/focus 提示；遵循你原始半径与过渡节奏        */
+    /* ---------------------------------------------------------------------- */
+    .ty-preferences .pane .content select,
+    .ty-preferences .pane .content input[type="text"],
+    .ty-preferences .pane .content input[type="number"],
+    .ty-preferences .pane .content .ty-text-input input,
+    .ty-preferences .pane .content .file-input input{
+      background: rgba(255,255,255,.06);
+      color: var(--fairy-ink);
+      border: 1px solid var(--fairy-border-strong);
+      border-radius: 10px; padding: 6px 8px;
+      transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+    }
+    .ty-preferences .pane .content select:hover,
+    .ty-preferences .pane .content input:hover{
+      background: rgba(255,255,255,.10); border-color: rgba(162,110,245,.48);
+    }
+    .ty-preferences .pane .content select:focus,
+    .ty-preferences .pane .content input:focus{
+      border-color: var(--fairy-accent);
+      box-shadow: 0 0 0 2px rgba(183,140,255,.28);
+      outline: none;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* D-6 · BUTTONS（按钮 · 增强对比版）                                     */
+    /* Scope: .btn.btn-default                                                */
+    /* Function: 通过亮面渐变与外发光 hover 阴影强化层次；增加 :focus-visible    */
+    /* ---------------------------------------------------------------------- */
+    .ty-preferences .pane .content .btn.btn-default{
+      background: linear-gradient(180deg, rgba(255,240,255,.18), rgba(255,240,255,.10));
+      color: var(--fairy-ink);
+      border: 1px solid rgba(183,140,255,.55);
+      border-radius: 10px;
+      padding: 6px 10px;
+      transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease, border-color .15s ease;
+    }
+    .ty-preferences .pane .content .btn.btn-default:hover{
+      background: linear-gradient(180deg, rgba(255,250,255,.28), rgba(255,240,255,.18));
+      border-color: rgba(183,140,255,.75);
+      box-shadow: 0 4px 14px rgba(183,140,255,.35);
+      transform: translateY(-1px);
+    }
+    .ty-preferences .pane .content .btn.btn-default:active{
+      transform: translateY(0);
+      box-shadow: inset 0 2px 8px rgba(0,0,0,.25);
+      background: linear-gradient(180deg, rgba(200,160,255,.25), rgba(160,120,240,.20));
+    }
+    /* 键盘无障碍：可视焦点环（不改变你的按钮色值，仅新增可见反馈） */
+    .ty-preferences .pane .content .btn.btn-default:focus-visible{
+      outline:2px solid #fff; outline-offset:2px;
+      box-shadow:0 0 0 3px rgba(183,140,255,.45);
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* D-7 · CHECKS（复选/单选）                                              */
+    /* Scope: input[type=checkbox|radio]                                      */
+    /* Function: 使用主题强调色作为 accent-color；描边与表单保持一致            */
+    /* ---------------------------------------------------------------------- */
+    .ty-preferences .pane .content input[type="checkbox"],
+    .ty-preferences .pane .content input[type="radio"]{
+      accent-color: var(--fairy-accent);
+      border-color: var(--fairy-border-strong);
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* D-8 · CODE BLOCKS（代码块）                                            */
+    /* Scope: pre                                                             */
+    /* Function: 深色面板 + 边框 + 圆角；与整体深夜紫调和                        */
+    /* ---------------------------------------------------------------------- */
+    .ty-preferences .pane .content pre{
+      background: rgba(0,0,0,.25);
+      border: 1px solid var(--fairy-border-strong);
+      border-radius: 10px; color: var(--fairy-ink);
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* D-9 · SCROLLBARS（滚动条 · 仅 Preferences 内）                          */
+    /* Scope: .window / .pane / .pane-sm.sidebar                              */
+    /* Function: 细滚动条、渐变色拇指与轻描边；保持与主题变量一致                */
+    /* ---------------------------------------------------------------------- */
+    .ty-preferences .window,
+    .ty-preferences .pane,
+    .ty-preferences .pane-sm.sidebar{
+      scrollbar-width: thin; scrollbar-color: rgba(244,232,255,.62) transparent;
+    }
+    .ty-preferences .window::-webkit-scrollbar,
+    .ty-preferences .pane::-webkit-scrollbar,
+    .ty-preferences .pane-sm.sidebar::-webkit-scrollbar{ width:10px; height:10px; }
+    .ty-preferences .window::-webkit-scrollbar-thumb,
+    .ty-preferences .pane::-webkit-scrollbar-thumb,
+    .ty-preferences .pane-sm.sidebar::-webkit-scrollbar-thumb{
+      border-radius:10px;
+      background: linear-gradient(180deg, rgba(244,232,255,.92), rgba(220,202,247,.92));
+      border:2px solid transparent; background-clip: padding-box;
+      box-shadow: inset 0 0 0 1px rgba(162,110,245,.18);
+      transition: background-color .12s ease, box-shadow .12s ease;
+    }
+    .ty-preferences .window::-webkit-scrollbar-thumb:hover,
+    .ty-preferences .pane::-webkit-scrollbar-thumb:hover,
+    .ty-preferences .pane-sm.sidebar::-webkit-scrollbar-thumb:hover{
+      background: linear-gradient(180deg, rgba(244,232,255,1), rgba(220,202,247,1));
+      box-shadow: inset 0 0 0 1px rgba(162,110,245,.28);
+    }
+    .ty-preferences .window::-webkit-scrollbar-track,
+    .ty-preferences .pane::-webkit-scrollbar-track,
+    .ty-preferences .pane-sm.sidebar::-webkit-scrollbar-track{
+      background: linear-gradient(180deg, rgba(18,6,36,.12), rgba(18,6,36,0));
+      border-radius: 10px;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* D-10 · SELECT ARROW（Select 箭头深色适配）                              */
+    /* Scope: .pane .content select / ::-ms-expand / option                    */
+    /* Function: 以内联 SVG 自绘下拉箭头；维持深色面板与色彩一致性               */
+    /* ---------------------------------------------------------------------- */
+    .ty-preferences .pane .content select{
+      -webkit-appearance:none; appearance:none;
+      background: rgba(255,255,255,.06) no-repeat right 10px center/14px;
+      background-image: url('data:image/svg+xml;utf8,\
+<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24">\
+<path fill="none" stroke="rgba(244,232,255,0.92)" stroke-width="2" d="M6 9l6 6 6-6"/></svg>');
+      padding-right:36px; color-scheme: dark;
+    }
+    .ty-preferences .pane .content select::-ms-expand{ display:none; }
+    .ty-preferences .pane .content select option{
+      background-color: rgba(18,6,36,.96);
+      color: var(--fairy-ink);
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* D-11 · ACCESSIBILITY（高对比 & 减少动效）                               */
+    /* Scope: prefers-contrast: more / prefers-reduced-motion: reduce         */
+    /* Function: 在高对比模式强化边线与焦点环；在减少动效模式停用过渡/动画        */
+    /* ---------------------------------------------------------------------- */
+    @media (prefers-contrast: more){
+      .ty-preferences .pane,
+      .ty-preferences .pane-sm.sidebar,
+      .ty-preferences .window-header{ border-color: rgba(244,232,255,.45); }
+      .ty-preferences .pane .content .btn.btn-default{ border-color: rgba(183,140,255,.85); }
+      .ty-preferences .pane .content input:focus,
+      .ty-preferences .pane .content select:focus{
+        box-shadow: 0 0 0 3px rgba(183,140,255,.45);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .ty-preferences .window *{ transition-duration:0s !important; animation:none !important; }
+    }
+  }
+}
+/* =============================== END · PREFERENCES · GENERRAL · MOONLIT REBERIE ==== */

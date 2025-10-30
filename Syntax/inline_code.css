@@ -1,0 +1,117 @@
+/* =======================================================================================
+   Rhapsody · Inline Code · Geek Neon（行内代码 · 黑色极客霓虹版）
+   设计理念 / Design Concept
+   - 仅在 #write 区域内为“行内 <code>”上色，**精准排除** 代码块（pre/.md-fences）、工具提示与数学预览。
+   - 一键换色：只改 --ic-rgb，其它衍生变量联动生成，降低维护成本。
+   - 性能优先：常态静止；仅鼠标设备 hover 时启用过渡；尊重 prefers-reduced-motion。
+   - GPU 友好：使用 filter/box-shadow 做轻微霓虹发光，避免布局抖动（默认给 1px 边框占位）。
+   - 限域重绘：必要处添加 contain:paint 与 isolation:isolate，不改动任何 HTML 结构（兼容 Typora 限制）。
+   ======================================================================================= */
+
+/* ========================================================================== */
+/* REGION A — INLINE CODE CORE（行内 code 核心 · Geek Neon）                  */
+/* Scope:                                                                     */
+/*   - #write 内的纯“行内 <code>”                                             */
+/*   - 排除：pre code、.md-fences code、.code-tooltip-content、#math-inline-preview-content */
+/* Function:                                                                  */
+/*   - 定义行内代码的霓虹发光、可读配色与交互反馈（hover 轻滤镜+外发光）       */
+/* Adjustable Params:                                                         */
+/*   - --ic-rgb 主色；--ic-radius/--ic-pad-* 形状间距；--ic-* 衍生发光与边框   */
+/* Compatibility:                                                             */
+/*   - 现代 Chromium/Electron (Typora)；旧内核降级为静态样式                   */
+/* ========================================================================== */
+
+
+/* —— 变量（仅本区使用）—— */
+#write{
+  /* 主色（RGB）— 黑色极客：0,173,255 | 霓虹粉：255,94,247 | 翡翠绿：16,233,128 */
+  --ic-rgb: 0.0.0;
+
+  /* 形状/间距 */
+  --ic-radius: .75em;
+  --ic-pad-y: .10em;
+  --ic-pad-x: .50em;
+
+  /* 暗/浅背景混合强度（霓虹底，按需可用） */
+  --ic-bg-deep: rgba(0,0,0,.72);
+  --ic-bg-shallow: rgba(0,0,0,.35);
+
+  /* 衍生色（随主色联动） */
+  --ic-text: rgb(var(--ic-rgb));
+  --ic-border: rgba(var(--ic-rgb), .18);
+  --ic-border-hover: rgba(var(--ic-rgb), .28);
+  --ic-glow-outer: rgba(var(--ic-rgb), .22);
+  --ic-glow-outer-hover: rgba(var(--ic-rgb), .32);
+  --ic-glow-text-1: rgba(255,255,255,.15);
+  --ic-glow-text-2: rgba(var(--ic-rgb), .55);
+  --ic-glow-text-2-link: rgba(var(--ic-rgb), .45);
+}
+
+
+/* —— 目标选择器（精准排除 pre/.md-fences/tooltip/math preview）—— */
+#write code:not(:is(pre code, .md-fences code, .code-tooltip-content, #math-inline-preview-content)){
+  display: inline-block;
+  padding: var(--ic-pad-y) var(--ic-pad-x);
+  margin: 0 .06em;
+  border-radius: var(--ic-radius);
+
+  /* 文本与发光（常态降一层，减重绘） */
+  color: var(--ic-text);
+  text-shadow: 0 0 1px var(--ic-glow-text-1);
+
+  /* 字体/排版 */
+  font-family: 'JetBrainsMonoNL','RobotoMono',monospace;
+  font-size: .95em;
+  line-height: 1.35;
+  white-space: break-spaces;
+  tab-size: 2;
+
+  /* 稳定边框避免 hover 新增边框触发布局 */
+  border: 1px solid var(--ic-border);
+
+  /* 重绘限域（大文档更稳） */
+  contain: paint;
+  isolation: isolate;
+
+  /* 默认不设过渡（触屏更省） */
+  transition: none;
+}
+
+/* —— 交互态（仅鼠标设备启用过渡与增强发光）—— */
+@media (hover:hover){
+  #write code:not(:is(pre code, .md-fences code, .code-tooltip-content, #math-inline-preview-content)){
+    transition: filter .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  #write code:not(:is(pre code, .md-fences code, .code-tooltip-content, #math-inline-preview-content)):hover{
+    filter: brightness(1.06) saturate(1.08);
+    text-shadow:
+      0 0 1px var(--ic-glow-text-1),
+      0 0 6px var(--ic-glow-text-2);
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,.06),
+      0 0 18px var(--ic-glow-outer-hover),
+      0 3px 14px rgba(0,0,0,.28);
+    border-color: var(--ic-border-hover);
+  }
+  #write code:not(:is(pre code, .md-fences code, .code-tooltip-content, #math-inline-preview-content)):active{
+    filter: brightness(.95);
+  }
+}
+
+/* —— 链接中的行内 code：维持可读性 —— */
+#write a code{
+  color: var(--ic-text);
+  text-shadow:
+    0 0 1px rgba(255,255,255,.12),
+    0 0 5px var(--ic-glow-text-2-link);
+  border-color: var(--ic-border-hover);
+}
+
+/* —— 减少动态偏好：关闭滤镜/过渡 —— */
+@media (prefers-reduced-motion: reduce){
+  #write code:not(:is(pre code, .md-fences code, .code-tooltip-content, #math-inline-preview-content)){
+    transition: none !important;
+  }
+}
+
+/* =============================== END OF PACKAGE ============================ */

@@ -1,0 +1,123 @@
+/* =======================================================================================
+   Rhapsody · Mark Highlight （正文 mark：静态彩虹底 + 动态彩虹文字）
+   设计理念 / Design Concept
+   - mark 背景使用硬切分的静态彩虹色带，保证跨行连续性与视觉稳定。
+   - mark 内文字叠加平滑渐变，并通过背景裁剪实现动态流动效果。
+   - 减少动态偏好时尊重用户设置：动画关闭，仅保留静态渐变。
+   - 不改动 DOM 结构；范围严格限制在 #write mark；数学公式与 tooltip 不受影响。
+   - 通过 box-shadow 与 text-shadow 增强可读性，确保不同彩虹底色上文字清晰。
+   ======================================================================================= */
+
+/* ========================================================================== */
+/* REGION A — MARK HIGHLIGHT（正文 mark：静态彩虹底 + 动态彩虹文字）          */
+/* Scope: #write mark（不改 DOM，不做数学/tooltip 排除）                        */
+/* Function: 背景为静态彩虹色带；文字使用渐变并带流动动画；尊重减少动态设置    */
+/* Adjustable: 色带顺序、动画时长、圆角、光影                                  */
+/* ========================================================================== */
+
+/* —— Region Root Vars —— */
+#write {
+  /* 视觉细节 */
+  --mk-radius: 0.12em;
+  --mk-inner-light: rgba(255,255,255,0.15);
+  --mk-outer-glow: rgba(255,255,255,0.08);
+  --mk-text-sharp: rgba(0,0,0,0.25);
+  --mk-hover-inner-light: rgba(255,255,255,0.25);
+  --mk-hover-outer-glow: rgba(255,255,255,0.15);
+
+  /* 动态文字渐变速度（越小越快） */
+  --mk-text-anim-duration: 6s;
+
+  /* 静态彩虹条（硬切色带，不平滑过渡） */
+  --mk-rainbow-static: linear-gradient(
+    90deg,
+    #ff0000 0% 14.2857%,
+    #ff7f00 14.2857% 28.5714%,
+    #ffff00 28.5714% 42.8571%,
+    #00ff00 42.8571% 57.1428%,
+    #0000ff 57.1428% 71.4285%,
+    #4b0082 71.4285% 85.7142%,
+    #8b00ff 85.7142% 100%
+  );
+
+  /* 文字用的平滑彩虹（可改为与你喜好的三色） */
+  --mk-text-gradient: linear-gradient(90deg,
+    #ff4d4f, #ffd700, #23b3fc, #8b00ff, #ff4d4f
+  );
+}
+
+/* —— 基础态：静态彩虹底 + 动态彩虹文字 —— */
+#write mark{
+  position: relative;
+  display: inline;
+  font-weight: 600;
+  padding: 0 0.05em;
+  margin: 0;
+  line-height: inherit;
+  border-radius: var(--mk-radius);
+
+  /* 跨行连续性 */
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+
+  /* 两层背景：第1层=盒子静态彩虹；第2层=文字渐变（会动） */
+  background-image:
+    var(--mk-rainbow-static),
+    var(--mk-text-gradient);
+  background-size:
+    100% 100%,           /* 盒子层：不缩放 */
+    300% 100%;           /* 文字层：放大用来流动 */
+  background-position:
+    0 0,                 /* 盒子层：固定 */
+    0% 50%;              /* 文字层：从左到右 */
+  background-repeat: no-repeat;
+
+  /* 将第二层裁剪到文字里，实现“渐变字色”；第一层只在盒子范围内 */
+  -webkit-background-clip: padding-box, text;
+  background-clip: padding-box, text;
+  color: transparent; /* 让文字显示为第二层渐变 */
+
+  /* 贴字发光 + 描边兜底（提高任意彩虹底上的可读性） */
+  box-shadow:
+    inset 0 -0.1em 0.3em var(--mk-inner-light),
+    0 0 0.3em var(--mk-outer-glow);
+  text-shadow:
+    0   0.5px 0 #000,    /* 黑色近描边：亮底更清晰 */
+    0  -0.5px 0 #fff,    /* 白色近描边：暗底更清晰 */
+    0.5px 0   0 #fff,
+   -0.5px 0   0 #fff,
+    0   0     3px rgba(0,0,0,.6); /* 远阴影：整体分离度 */
+
+  /* 仅让“文字那层”动：通过改变第二层的 background-position */
+  animation: mkTextFlow var(--mk-text-anim-duration) linear infinite;
+  transition: box-shadow .3s ease, text-shadow .3s ease, filter .3s ease;
+}
+
+/* —— 键盘可访问性 —— */
+#write mark:focus-visible{
+  outline: 2px solid rgba(0,0,0,0.22);
+  outline-offset: 2px;
+  border-radius: calc(var(--mk-radius) + 0.02em);
+}
+
+/* —— mark 内链接颜色继承 —— */
+#write mark a{
+  color: inherit;
+  text-decoration-color: currentColor;
+}
+
+/* —— 仅驱动“第二层=文字渐变”的流动 —— */
+@keyframes mkTextFlow{
+  0%   { background-position: 0 0,   0% 50%; }
+  50%  { background-position: 0 0, 100% 50%; }
+  100% { background-position: 0 0,   0% 50%; }
+}
+
+/* —— 减少动态偏好：静止文字渐变 —— */
+@media (prefers-reduced-motion: reduce){
+  #write mark{
+    animation: none !important;
+    background-position: 0 0, 50% 50%;
+  }
+}
+/* =============================== END OF PACKAGE ============================ */

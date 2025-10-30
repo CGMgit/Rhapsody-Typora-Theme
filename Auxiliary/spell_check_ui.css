@@ -1,0 +1,220 @@
+/* =======================================================================================
+   Rhapsody · SPELL CHECK PANEL · 橘猫吃鸡（暖橙·木质）
+   Scope : <ul id="spell-check-panel" class="dropdown-menu">（Typora 内置拼写语言面板）
+   Design Concept
+   - 主题取自“胖橘 + 烤鸡 + 木质餐桌”：深木色作底，暖橙与蜂蜜金为主色，局部金色高光提示交互。
+   - 背景图只作氛围层：极低不透明度 + 软光混合 + 轻微暗角（vignette），始终不干扰文字与焦点。
+   - 常态静止、性能优先；hover 仅做微亮与金色描边增益；尊重 prefers-reduced-motion。
+   - 不改 DOM、严格限域于本面板；允许列表滚动；导出时可按需关闭或降低背景层可见度。
+   ======================================================================================= */
+
+ /* ========================================================================== */
+/* REGION A — PANEL ROOT（面板根样式）                                         */
+/* Scope: ul#spell-check-panel.dropdown-menu                                  */
+/* Function: Typora 拼写语言面板的皮肤与布局：固定定位、三层背景（暗角/遮罩/主图）*/
+/*           与内容层分离；常态静止；hover 仅微亮与金色描边；不改 DOM；可滚动。  */
+/* Adjustable Params:                                                          */
+/*   颜色：--sp-bg, --sp-fg, --sp-muted, --sp-border                           */
+/*   渐变：--sp-g1, --sp-g2, --sp-g3                                           */
+/*   点缀：--sp-gold, --sp-gold-soft                                           */
+/*   形态：--sp-radius, --sp-shadow                                            */
+/*   背景：--sp-bg-img, --sp-img-opacity, --sp-scrim, --sp-vignette            */
+/* Compatibility: 现代浏览器 / Typora(Electron)；尊重 prefers-reduced-motion；  */
+/*                导出场景可下调 --sp-img-opacity 以减渲染与压缩伪影。          */
+/* ========================================================================== */
+
+ul#spell-check-panel.dropdown-menu{
+  /* —— 局部变量（可调）—— */
+  /* 基础底色与文字 */
+  --sp-bg: #1d1713;                       /* 深木色底（降低对比刺眼度） */
+  --sp-fg: #F6F1E9;                       /* 乳白前景（接近桌面高光） */
+  --sp-muted: #C9C0B6;                    /* 次级说明（淡麻色） */
+  --sp-border: rgba(247, 214, 160, .28);  /* 蜂蜜金描边（低强度） */
+  --sp-radius: 12px;
+  --sp-shadow: 0 18px 36px rgba(0,0,0,.42);
+
+  /* 暖橙梯度（Hover 用） */
+  --sp-g1: #7b3f17;   /* 焦糖棕 */
+  --sp-g2: #c56a1f;   /* 橘焦糖 */
+  --sp-g3: #f1a43c;   /* 蜂蜜橙 */
+
+  /* 金色点缀 */
+  --sp-gold: #E8BB55;                     /* 蜂蜜金高光 */
+  --sp-gold-soft: rgba(232,187,85,.30);
+
+  /* 背景主图（替换为你的相对路径） */
+  --sp-bg-img: url('../Assets/UI/超级大肥橘.png');
+
+  /* 背景遮罩/暗角（可按需微调） */
+  --sp-img-opacity: .99;                  /* 背景图整体透明度 */
+  --sp-scrim: rgba(0,0,0,.28);            /* 全局轻遮罩：提可读性 */
+  --sp-vignette: radial-gradient(120% 140% at 50% 35%,
+                     rgba(0,0,0,.00) 0%,
+                     rgba(0,0,0,.10) 55%,
+                     rgba(0,0,0,.22) 100%);
+
+  position: fixed;                         /* 交给内联 top/left 定位 */
+  z-index: 2147483647;
+  isolation: isolate;
+  padding: 8px 0 6px;
+  min-width: 300px;
+  max-width: 520px;
+  max-height: calc(68vh);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
+  color: var(--sp-fg);
+  background: var(--sp-bg);
+  border: 1px solid var(--sp-border);
+  border-radius: var(--sp-radius);
+  box-shadow: var(--sp-shadow);
+  font-family: 'AliPuHuiTi','Microsoft YaHei',sans-serif;
+}
+
+/* —— 背景层：橘猫主图 + 暗角 + 软光混合（低干扰） —— */
+ul#spell-check-panel.dropdown-menu::before{
+  content:"";
+  position:absolute; inset:0; z-index:0; border-radius: var(--sp-radius);
+  background:
+    var(--sp-vignette),
+    linear-gradient(var(--sp-scrim), var(--sp-scrim)),
+    var(--sp-bg-img);
+  background-size: cover, cover, cover;
+  background-position: center 40%, center, center; /* 适度上提，突出猫脸 */
+  background-blend-mode: normal, multiply, soft-light;
+  opacity: var(--sp-img-opacity);
+  filter: saturate(1) contrast(1.02);     /* 轻微增强但不晃眼 */
+  pointer-events:none;
+}
+
+/* —— 内容层基线 —— */
+ul#spell-check-panel > *{ position:relative; z-index:1; }
+
+/* 顶部控制区（搜索/全局设置所在块） */
+ul#spell-check-panel .ty-lang-control{
+  display:block; padding: 0 12px;
+}
+
+/* 搜索输入框（木桌+蜂蜜金视觉） */
+ul#spell-check-panel #ty-spell-check-panel-item-label{
+  width: 100%;
+  height: 34px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(232,187,85,.35);
+  background: linear-gradient(180deg, rgba(28,22,18,.92), rgba(35,28,23,.94));
+  color: var(--sp-fg);
+  outline: none;
+  transition: border .18s ease, box-shadow .18s ease, background .18s ease, filter .18s ease;
+}
+ul#spell-check-panel #ty-spell-check-panel-item-label::placeholder{
+  color: var(--sp-muted);
+}
+ul#spell-check-panel #ty-spell-check-panel-item-label:focus{
+  border-color: var(--sp-gold);
+  box-shadow: 0 0 0 2px var(--sp-gold-soft), inset 0 0 0 1px rgba(255,255,255,.06);
+  filter: brightness(1.04);
+}
+
+/* 语言列表容器 */
+ul#spell-check-panel .ty-lang-list{
+  display:block; padding: 4px 0;
+}
+
+/* 分隔线（淡金渐变） */
+ul#spell-check-panel .divider{
+  height: 1px; margin: 8px 0;
+  background: linear-gradient(90deg, transparent, rgba(232,187,85,.40), transparent);
+}
+
+/* 语言项（li.ty-spell-check-panel-item） */
+ul#spell-check-panel .ty-spell-check-panel-item{
+  display:flex; align-items:center; gap:8px;
+  height: 34px; padding: 0 12px;
+  color: var(--sp-fg); white-space: nowrap; text-decoration: none;
+  transition: background .26s ease, color .18s ease, box-shadow .26s ease, transform .06s ease, filter .18s ease;
+  border-left: 2px solid transparent;     /* 供激活/选中显示金线 */
+}
+
+/* Hover：暖橙流动渐变 + 蜂蜜金微光 */
+ul#spell-check-panel .ty-spell-check-panel-item:hover{
+  background: linear-gradient(135deg, var(--sp-g1), var(--sp-g2), var(--sp-g3));
+  background-size: 320% 320%;
+  color: #FFF7EA;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.06),
+    0 0 10px rgba(197,106,31,.28),
+    0 0 16px rgba(241,164,60,.20);
+  animation: spWarmFlow 8s ease infinite;
+  filter: saturate(1.06);
+}
+
+/* 当前选中（.ty-checked）：金线 + 蜂蜜金徽点 + 半高亮底 */
+ul#spell-check-panel .ty-spell-check-panel-item.ty-checked{
+  border-left-color: var(--sp-gold);
+  background: linear-gradient(135deg, rgba(123,63,23,.55), rgba(197,106,31,.38));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+  font-weight: 700;
+}
+ul#spell-check-panel .ty-spell-check-panel-item.ty-checked .ty-spell-check-panel-item-status{
+  position: relative;
+}
+ul#spell-check-panel .ty-spell-check-panel-item-status::before{
+  content:""; display:inline-block;
+  width:.6em; height:.6em; border-radius:999px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.35), 0 0 8px var(--sp-gold-soft);
+  background: radial-gradient(circle at 40% 35%, #FFE8B8 0%, #E8BB55 55%, #A7772D 100%);
+  opacity: .90;
+}
+
+/* 标签/代码（右对齐的语言 code） */
+ul#spell-check-panel .ty-spell-check-panel-item-label{
+  color: var(--sp-fg);
+}
+ul#spell-check-panel .ty-spell-check-panel-item-code{
+  margin-left: auto;
+  padding: 2px 8px; border-radius: 6px;
+  font-size: .88em; color: #FFF0DA;
+  background: linear-gradient(180deg, rgba(92,52,26,.55), rgba(71,41,22,.55));
+  border: 1px solid rgba(232,187,85,.26);
+}
+
+/* 顶部“Auto/Disable/Global Setting”也作为通用项处理 */
+ul#spell-check-panel #ty-spell-check-global-setting.ty-spell-check-panel-item{
+  border-left: 2px solid transparent;
+}
+ul#spell-check-panel #ty-spell-check-global-setting.ty-spell-check-panel-item:hover{
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), 0 0 12px var(--sp-gold-soft);
+}
+
+/* 禁用/不可用（如有） */
+ul#spell-check-panel .ty-spell-check-panel-item.disabled{
+  opacity:.55; cursor:not-allowed;
+  background: transparent !important; box-shadow: none !important;
+}
+
+/* 列表滚动条（细、暖棕） */
+ul#spell-check-panel::-webkit-scrollbar{ width: 10px; }
+ul#spell-check-panel::-webkit-scrollbar-thumb{
+  background: linear-gradient(180deg, #6b4a2e, #3e2a1e);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
+}
+ul#spell-check-panel::-webkit-scrollbar-track{
+  background: transparent;
+}
+
+/* 动画关键帧（暖橙流动） */
+@keyframes spWarmFlow{
+  0%{   background-position: 0% 50%; }
+  50%{  background-position: 100% 50%; }
+  100%{ background-position: 0% 50%; }
+}
+
+/* 减少动态偏好：停用动画/过渡 */
+@media (prefers-reduced-motion: reduce){
+  ul#spell-check-panel *{ animation: none !important; transition: none !important; }
+}
+/* =============================== END OF PACKAGE ============================ */

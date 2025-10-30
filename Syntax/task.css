@@ -1,0 +1,352 @@
+/* =======================================================================================
+   Rhapsody · Task Lists & Checkboxes（任务列表与复选框 · 牛仔皮革 + 黄铜）
+   设计理念 / Design Concept
+   - 材质叙事：皮革底 + 斜向织纹 + 沙尘颗粒 + 顶部日晒褪色 + 内暗角；黄铜细节（缝线/铆钉/描边）。
+   - 限域与兼容：仅 #write 内的任务列表与任务项；极小范围 :has 作为兜底，并用 @supports 守卫。
+   - 轻交互：常态静止，Hover/Active 才有轻微反馈；尊重 prefers-reduced-motion。
+   - 变量集中：A 区统一维护 --tk-* 变量，B/C/D 区只消费变量，便于主题横向换肤与调参。
+   - 不改 DOM：完全遵循 Typora 限制，仅用选择器与伪元素实现装饰与交互。
+   ======================================================================================= */
+
+
+/* =======================================================================================
+   REGION A — ROOT VARS（包内变量，仅 #write 生效）
+   Scope: #write
+   Function: 统一管理本包所有尺寸/配色/材质/阴影/交互参数
+   ======================================================================================= */
+#write{
+  /* 复选框 */
+  --tk-size: 0.95rem;
+  --tk-radius: 0.22rem;
+  --tk-brass: #c08a53;
+  --tk-brass-hover: #d9a063;
+  --tk-brass-checked: #8d6236;
+  --tk-bg-leather: linear-gradient(135deg, #6b3e2e, #533026);
+  --tk-bg-leather-checked: linear-gradient(135deg, #7a4a37, #5b362a);
+
+  /* 面板（任务列表容器） */
+  --tk-panel-radius: 10px;
+
+  /* —— 背景层配方（从上到下：暗角 → 日晒 → 沙尘 → 织纹 → 皮革底） —— */
+  --tk-panel-base: linear-gradient(180deg, rgba(55,40,28,.24), rgba(40,34,28,.18));
+  --tk-panel-weave:
+    repeating-linear-gradient(45deg,
+      rgba(255,240,220,.045) 0 2px,
+      rgba(0,0,0,.05)        2px 3.5px);
+  --tk-panel-dust:
+    radial-gradient(circle at 20% 30%, rgba(255,231,170,.06) 0 12%, #0000 13%),
+    radial-gradient(circle at 70% 65%, rgba(255,231,170,.05) 0 10%, #0000 12%),
+    radial-gradient(circle at 35% 80%, rgba(255,231,170,.04) 0 8%,  #0000 10%);
+  --tk-panel-sun: linear-gradient(180deg, rgba(255,235,185,.10), rgba(255,235,185,0) 40%);
+  --tk-panel-vignette: radial-gradient(120% 140% at 50% 0%, #0000 40%, rgba(0,0,0,.18) 95%);
+
+  --tk-panel-stroke: 1px solid rgba(0,0,0,.15);
+  --tk-panel-shadow: 0 8px 20px rgba(0,0,0,.18);
+  --tk-item-gap: .35rem;
+  --tk-inner-pad: .6rem .8rem .6rem .6rem;
+
+  /* 牛仔工艺细节 */
+  --tk-stitch-color: rgba(255,235,205,.6);   /* 奶油色缝线 */
+  --tk-stitch-gap: 8px;                       /* 针脚间距 */
+  --tk-rivet: radial-gradient(circle at 35% 35%, #f7e2b5 0 35%, #b07a3b 36% 60%, #3d2a1e 61% 100%);
+  --tk-rivet-size: 8px;                       /* 角铆钉尺寸 */
+
+  /* 文本与状态 */
+  --tk-text-checked: rgb(255 159 0);          /* 完成项文字色（深背景上） */
+  --tk-text-muted: rgba(255,255,255,.55);     /* 次级说明 */
+  --tk-strike-color: rgba(255,255,255,.35);   /* 划线颜色 */
+  --tk-focus-ring: 0 0 0 3px rgba(192,138,83,.35); /* 键盘焦点环（黄铜色） */
+}
+
+
+/* =======================================================================================
+   REGION B — PANELS（容器面板、缝线、铆钉、嵌套轻配方）
+   Scope: #write :is(ul.task-list, ol.task-list) 及兼容兜底
+   Function:
+     - 清空列表视觉，替换为牛仔皮革面板（多层背景）
+     - 顶/底缝线与角铆钉装饰；嵌套列表使用更轻配方
+     - :has 兜底逻辑加 @supports 守卫，旧内核回退为仅 .task-list 容器路径
+   ======================================================================================= */
+
+/* 基础：仅 .task-list 容器（兼容无 :has 的内核） */
+#write :is(ul.task-list, ol.task-list){
+  list-style: none;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding-left: 0;
+  margin: 1rem 0;
+
+  /* 皮革面板（多层背景） */
+  position: relative;
+  background:
+    var(--tk-panel-vignette),
+    var(--tk-panel-sun),
+    var(--tk-panel-dust),
+    var(--tk-panel-weave),
+    var(--tk-panel-base);
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat, no-repeat;
+  background-size: 100% 100%, 100% 28px, 100% 100%, 22px 22px, 100% 100%;
+  background-position: center, top left, center, center, center;
+
+  border: var(--tk-panel-stroke);
+  border-radius: var(--tk-panel-radius);
+  box-shadow: var(--tk-panel-shadow);
+  padding: var(--tk-inner-pad);
+}
+
+/* 兜底：容器无 .task-list，但直接子项是任务项 —— 用 supports 守卫 */
+@supports selector(:has(*)) {
+  #write :is(ul, ol):not(.task-list):has(> li.md-task-list-item){
+    list-style: none;
+    position: relative;
+    background:
+      var(--tk-panel-vignette),
+      var(--tk-panel-sun),
+      var(--tk-panel-dust),
+      var(--tk-panel-weave),
+      var(--tk-panel-base);
+    background-repeat: no-repeat, no-repeat, no-repeat, repeat, no-repeat;
+    background-size: 100% 100%, 100% 28px, 100% 100%, 22px 22px, 100% 100%;
+    background-position: center, top left, center, center, center;
+
+    border: var(--tk-panel-stroke);
+    border-radius: var(--tk-panel-radius);
+    box-shadow: var(--tk-panel-shadow);
+    padding: var(--tk-inner-pad);
+    margin: 1rem 0;
+  }
+}
+
+/* 面板缝线：为伪元素定位预留可见溢出范围（基础路径） */
+#write :is(ul.task-list, ol.task-list){
+  overflow: visible; /* 为伪元素定位 */
+}
+
+/* 兜底路径仅在支持 :has 的内核里启用（不要与上面用逗号合并） */
+@supports selector(:has(*)) {
+  #write :is(ul, ol):not(.task-list):has(> li.md-task-list-item){
+    overflow: visible; /* 为伪元素定位 */
+  }
+}
+
+#write :is(ul.task-list, ol.task-list)::before{
+  content: "";
+  position: absolute;
+  inset: 6px 10px auto 10px;               /* 顶部内侧缝线 */
+  height: 0;
+  border-top: 2px dashed var(--tk-stitch-color);
+  mask: linear-gradient(90deg,#0000 0 6px,#000 6px calc(6px + var(--tk-stitch-gap)));
+}
+#write :is(ul.task-list, ol.task-list)::after{
+  content: "";
+  position: absolute;
+  inset: auto 10px 6px 10px;               /* 底部内侧缝线 */
+  height: 0;
+  border-bottom: 2px dashed var(--tk-stitch-color);
+  mask: linear-gradient(90deg,#0000 0 6px,#000 6px calc(6px + var(--tk-stitch-gap)));
+}
+@supports selector(:has(*)) {
+  #write :is(ul, ol):not(.task-list):has(> li.md-task-list-item)::before{
+    content: "";
+    position: absolute;
+    inset: 6px 10px auto 10px;
+    height: 0;
+    border-top: 2px dashed var(--tk-stitch-color);
+    mask: linear-gradient(90deg,#0000 0 6px,#000 6px calc(6px + var(--tk-stitch-gap)));
+  }
+  #write :is(ul, ol):not(.task-list):has(> li.md-task-list-item)::after{
+    content: "";
+    position: absolute;
+    inset: auto 10px 6px 10px;
+    height: 0;
+    border-bottom: 2px dashed var(--tk-stitch-color);
+    mask: linear-gradient(90deg,#0000 0 6px,#000 6px calc(6px + var(--tk-stitch-gap)));
+  }
+}
+
+/* 角铆钉（四角小圆钉） */
+#write :is(ul.task-list, ol.task-list) > li:first-child::before,
+#write :is(ul.task-list, ol.task-list) > li:first-child::after{
+  content: "";
+  position: absolute;
+  width: var(--tk-rivet-size);
+  height: var(--tk-rivet-size);
+  background: var(--tk-rivet);
+  border-radius: 50%;
+  top: 6px;
+}
+#write :is(ul.task-list, ol.task-list) > li:first-child::before{ left: 8px; }
+#write :is(ul.task-list, ol.task-list) > li:first-child::after{ right: 8px; }
+@supports selector(:has(*)) {
+  #write :is(ul, ol):not(.task-list):has(> li.md-task-list-item) > li:first-child::before,
+  #write :is(ul, ol):not(.task-list):has(> li.md-task-list-item) > li:first-child::after{
+    content: "";
+    position: absolute;
+    width: var(--tk-rivet-size);
+    height: var(--tk-rivet-size);
+    background: var(--tk-rivet);
+    border-radius: 50%;
+    top: 6px;
+  }
+  #write :is(ul, ol):not(.task-list):has(> li.md-task-list-item) > li:first-child::before{ left: 8px; }
+  #write :is(ul, ol):not(.task-list):has(> li.md-task-list-item) > li:first-child::after{ right: 8px; }
+}
+
+/* 嵌套任务列表容器：层级更轻、缝线缩短 + 更浅配方 */
+#write :is(ul.task-list, ol.task-list) :is(ul.task-list, ol.task-list){
+  margin: .5rem 0 .2rem .9rem;
+  padding: .45rem .6rem .45rem .55rem;
+  background:
+    radial-gradient(120% 140% at 50% 0%, #0000 50%, rgba(0,0,0,.12) 98%),
+    linear-gradient(180deg, rgba(255,235,185,.06), rgba(255,235,185,0) 40%),
+    linear-gradient(180deg, rgba(92,64,51,.12), rgba(40,32,25,.08)),
+    repeating-linear-gradient(45deg, rgba(255,240,220,.035) 0 2px, rgba(0,0,0,.04) 2px 3.5px);
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat;
+  background-size: 100% 100%, 100% 24px, 100% 100%, 18px 18px;
+  border: var(--tk-panel-stroke);
+  border-radius: calc(var(--tk-panel-radius) - 2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.12);
+}
+#write :is(ul.task-list, ol.task-list) :is(ul.task-list, ol.task-list)::before,
+#write :is(ul.task-list, ol.task-list) :is(ul.task-list, ol.task-list)::after{
+  inset-inline: 14px; /* 缝线左右收紧 */
+}
+
+
+/* =======================================================================================
+   REGION C — ITEMS & CHECKBOXES（任务项与复选框四态）
+   Scope: #write .md-task-list-item 及其直系 input
+   Function: 行模型/间距、清空 marker、复选框未选/悬停/按下/选中、完成项文本处理
+   ======================================================================================= */
+
+#write .md-task-list-item{
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  list-style: none;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  margin: 0;
+  padding: .15rem .1rem;
+}
+
+/* 任务项之间的间距 */
+#write .md-task-list-item + .md-task-list-item{ margin-top: var(--tk-item-gap); }
+
+/* 清空任务项的 ::before 与 ::marker（避免与全局列表装饰冲突） */
+#write .md-task-list-item::before{ content: ""; display: none; }
+#write .md-task-list-item::marker{ content: ""; }
+
+/* 复选框（直系 input） */
+#write .md-task-list-item > input{
+  margin-top: .16rem;
+  margin-right: .1rem;
+  cursor: pointer;
+}
+
+/* 键盘导航可访问态（focus-visible） */
+#write .md-task-list-item > input:focus-visible{
+  outline: none;
+  box-shadow: var(--tk-focus-ring);
+  border-radius: calc(var(--tk-radius) + 2px);
+}
+
+/* 未选中：皮革底 + 黄铜描边 */
+#write .md-task-list-item > input:before{
+  content: "";
+  display: inline-block;
+  width: var(--tk-size);
+  height: var(--tk-size);
+  vertical-align: middle;
+  text-align: center;
+  margin-top: -0.4rem;
+  border-radius: var(--tk-radius);
+  border: 1.5px solid var(--tk-brass);
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.12), rgba(0,0,0,0.12)),
+    var(--tk-bg-leather);
+  box-shadow:
+    inset 0 1px 2px rgba(0,0,0,0.25),
+    inset 0 -1px 1px rgba(255,255,255,0.07),
+    0 0 0 1px rgba(0,0,0,0.05),
+    0 1px 2px rgba(0,0,0,0.12);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+/* 悬停：提亮黄铜并轻微上浮 */
+#write .md-task-list-item > input:hover:before{
+  border-color: var(--tk-brass-hover);
+  box-shadow:
+    inset 0 1px 2px rgba(0,0,0,0.25),
+    0 0 4px rgba(217,160,99,0.4),
+    0 2px 6px rgba(0,0,0,0.18);
+  transform: translateY(-1px);
+}
+
+/* 按下：内凹压感 */
+#write .md-task-list-item > input:active:before{
+  transform: translateY(0);
+  box-shadow:
+    inset 0 2px 3px rgba(0,0,0,0.3),
+    0 0 0 1px rgba(192,138,83,0.25);
+}
+
+/* 选中：深黄铜边 + 对勾；磨旧皮革背景 */
+#write .md-task-list-item > input:checked:before,
+#write .md-task-list-item > input[checked]:before{
+  content: "✓";
+  font-size: 0.65rem;
+  line-height: var(--tk-size);
+  color: #fff;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.16), rgba(0,0,0,0.08)),
+    var(--tk-bg-leather-checked);
+  border-color: var(--tk-brass-checked);
+  box-shadow:
+    inset 0 1px 2px rgba(0,0,0,0.28),
+    0 0 0 1px rgba(141,98,54,0.35),
+    0 1px 3px rgba(0,0,0,0.15);
+}
+
+/* 文本：选中后轻度划线 + 褪色；未选中保持正文对比 */
+#write .md-task-list-item > input:checked + *{
+  color: var(--tk-text-checked);
+  text-decoration: line-through;
+  text-decoration-color: var(--tk-strike-color);
+  text-decoration-thickness: .09em;
+  text-underline-offset: .15em;
+}
+
+/* 次级描述（例如括号说明）的弱化，可按需注释掉 */
+#write .md-task-list-item > input + * em,
+#write .md-task-list-item > input + * small{
+  color: var(--tk-text-muted);
+}
+
+
+/* =======================================================================================
+   REGION D — ACCESSIBILITY & MOTION（可访问性与动效降级）
+   Scope: focus/disabled/readonly，及 prefers-reduced-motion
+   Function: 焦点环、禁用态、动效降级
+   ======================================================================================= */
+
+#write .md-task-list-item > input[disabled],
+#write .md-task-list-item > input[readonly]{
+  cursor: not-allowed;
+  opacity: .7;
+}
+#write .md-task-list-item > input[disabled]:before,
+#write .md-task-list-item > input[readonly]:before{
+  filter: grayscale(.2) brightness(.95);
+  border-color: #a07a50;
+}
+
+/* 降级：尊重减少动态偏好 */
+@media (prefers-reduced-motion: reduce){
+  #write .md-task-list-item > input:before{ transition: none; transform: none; }
+  #write .md-task-list-item > input:hover:before{ transform: none; }
+}
+
+/* =================================== END OF PACKAGE =================================== */

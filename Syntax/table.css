@@ -1,0 +1,459 @@
+/* =======================================================================================
+  TABLES · 江山如故（#write 正文表格体系 · A/B/C/D 四区）
+   Design Philosophy · 设计理念
+   ------------------------------------------------------------------------------
+   Scope（限域）
+     - 仅在写作区 #write 生效，覆盖：
+       · A — 表格编辑工具条（.ty-table-edit / .md-table-edit）
+       · B — 表格主体（.markdown-rendered table / .md-table 及 th/td/tr/a）
+       · C — 表格创建器（.md-grid-board-wrap 新建表格时的网格面板）
+       · D — 减少动态偏好（prefers-reduced-motion: reduce）
+     - 不改动 HTML 结构，不影响侧栏/弹窗/偏好面板等全局 UI。
+
+   Structure（结构）
+     - 分区化维护：A/B/C/D 四大区域，各自含「变量块 + 样式块」。
+     - 变量命名以 --tbl-* 为前缀，视觉与尺寸默认值与原实现一致；按需覆盖即可。
+     - 统一注释层级：A0/B0/C0 为变量，A1~A5、B1~B8、C1~C4 为功能小节。
+
+   Performance（性能）
+     - 彻底移除全局 :has() 扫描与多余 :is() 组合，选择器收敛到 #write。
+     - 避免常驻 will-change；仅在需要时短暂提升（D 区域另含无动效方案）。
+     - 大图放在 ::before 作为装饰图层，可通过变量快速关闭或替换。
+
+   Theming（主题变量）
+     - 颜色、阴影、圆角、z-index、背景图等全部由变量统一管理：
+       · A 区工具条：--tbl-bg / --tbl-bd / --tbl-radius / --tbl-shadow / ……
+       · B 区主体：--tbl-body-*（背景图、圆角、阴影、连结色等）
+       · C 区创建器：--tbl-creator-*（圆角、渐变、插图、输入与按钮）
+     - 若需轻量模式：可把相关 *-img 设为 none，或下调不透明度/阴影强度。
+
+   Accessibility（可访问性）
+     - D 区在系统开启“减少动态效果”时取消 transform/transition，降低眩晕与 GPU 占用。
+
+   Notes（说明）
+     - 变量默认值与原版视觉完全一致；替换本文件不会改变现有效果。
+     - 若未来发现编辑工具条并非表格子节点，可追加一段「备用守门」选择器于 A 区。
+     - 遵循 Typora 限制：不随意改动 HTML 结构，不滥用全局 !important。
+   ======================================================================================= */
+
+
+
+/* ========================================================================== */
+/* REGION A — TABLE TOOLBAR（仅 #write 表格编辑工具条，视觉参数与原版一致）    */
+/* Scope: (#write figure.md-table-fig > .ty|.md-table-edit) 与                 */
+/*        (#write table .ty|.md-table-edit)                                    */
+/* ========================================================================== */
+
+/* 变量：默认值 = 你原来的具体数值 */
+#write{
+  --tbl-bg: #fffdfa;
+  --tbl-fg: #232931;
+  --tbl-bd-color: #ecd06b;
+  --tbl-bd: 1.2px solid var(--tbl-bd-color);
+  --tbl-radius: .9em;
+  --tbl-shadow: 0 1.5px 8px #ecd06b18;
+  --tbl-z: 6;
+  --tbl-offset-y: 16px;
+
+  --tbl-icon-stroke: .6px rgba(255,253,250,.8);
+  --tbl-icon-shadow: 0 0 3px rgba(255,253,250,.7), 0 0 6px rgba(236,208,107,.35);
+
+  --tbl-icon-menu: #168fcf;
+  --tbl-icon-dots: #232931;
+  --tbl-icon-del:  #a35a1f;
+
+  --tbl-hover-menu: #1eb7ff;
+  --tbl-hover-dots: #4a4f57;
+  --tbl-hover-del:  #ff7b29;
+
+  --tbl-active-menu: #117fb3;
+  --tbl-active-dots: #1c1e21;
+  --tbl-active-del:  #8b4513;
+
+  --tbl-btn-bg:       rgba(255,253,250,.82);
+  --tbl-btn-fg:       #0770fd;
+  --tbl-btn-bg-hover: rgba(255,253,250,.18);
+  --tbl-btn-fg-hover: #ffd700;
+  --tbl-btn-bg-on:    rgba(255,253,220,.29);
+  --tbl-btn-fg-on:    #ff2a2a;
+
+  --tbl-overlay-img: url('../assets/Table/千里江山.png');
+}
+
+/* 容器（保持 position/z-index/transform 等一致） */
+#write figure.md-table-fig > .ty-table-edit,
+#write figure.md-table-fig > .md-table-edit,
+#write table .ty-table-edit,
+#write table .md-table-edit{
+  background: var(--tbl-bg);
+  border: var(--tbl-bd);
+  border-radius: var(--tbl-radius);
+  box-shadow: var(--tbl-shadow);
+  color: var(--tbl-fg);
+  position: absolute;
+  z-index: var(--tbl-z);
+  transform: translateY(var(--tbl-offset-y));
+  will-change: transform; /* 按你的原始写法保留 */
+}
+
+/* 图标（保持 stroke / text-shadow 与颜色一致） */
+#write figure.md-table-fig > .ty-table-edit .ty-icon.ty-menu::before,
+#write figure.md-table-fig > .md-table-edit .ty-icon.ty-menu::before,
+#write table .ty-table-edit .ty-icon.ty-menu::before,
+#write table .md-table-edit .ty-icon.ty-menu::before,
+#write figure.md-table-fig > .ty-table-edit .ty-icon.ty-dots-v::before,
+#write figure.md-table-fig > .md-table-edit .ty-icon.ty-dots-v::before,
+#write table .ty-table-edit .ty-icon.ty-dots-v::before,
+#write table .md-table-edit .ty-icon.ty-dots-v::before,
+#write figure.md-table-fig > .ty-table-edit .ty-icon.ty-delete::before,
+#write figure.md-table-fig > .md-table-edit .ty-icon.ty-delete::before,
+#write table .ty-table-edit .ty-icon.ty-delete::before,
+#write table .md-table-edit .ty-icon.ty-delete::before{
+  position: relative; z-index: 2;
+  -webkit-text-stroke: var(--tbl-icon-stroke);
+  text-shadow: var(--tbl-icon-shadow);
+  mix-blend-mode: normal;
+  transition: color .18s ease, text-shadow .18s ease, transform .18s ease;
+}
+
+/* 常态色（与原值一致） */
+#write figure.md-table-fig > .ty-table-edit .ty-icon.ty-menu::before,
+#write figure.md-table-fig > .md-table-edit .ty-icon.ty-menu::before,
+#write table .ty-table-edit .ty-icon.ty-menu::before,
+#write table .md-table-edit .ty-icon.ty-menu::before{ color: var(--tbl-icon-menu); }
+
+#write figure.md-table-fig > .ty-table-edit .ty-icon.ty-dots-v::before,
+#write figure.md-table-fig > .md-table-edit .ty-icon.ty-dots-v::before,
+#write table .ty-table-edit .ty-icon.ty-dots-v::before,
+#write table .md-table-edit .ty-icon.ty-dots-v::before{ color: var(--tbl-icon-dots); }
+
+#write figure.md-table-fig > .ty-table-edit .ty-icon.ty-delete::before,
+#write figure.md-table-fig > .md-table-edit .ty-icon.ty-delete::before,
+#write table .ty-table-edit .ty-icon.ty-delete::before,
+#write table .md-table-edit .ty-icon.ty-delete::before{ color: var(--tbl-icon-del); }
+
+/* Hover / Active（保持完全一致的色与阴影与位移） */
+#write .ty-table-edit .btn:hover .ty-icon.ty-menu::before,
+#write .md-table-edit .btn:hover .ty-icon.ty-menu::before{
+  color: var(--tbl-hover-menu);
+  text-shadow: 0 0 8px rgba(30,183,255,.4), 0 0 3px #fffbe3;
+  transform: translateY(-.5px);
+}
+#write .ty-table-edit .btn:hover .ty-icon.ty-dots-v::before,
+#write .md-table-edit .btn:hover .ty-icon.ty-dots-v::before{
+  color: var(--tbl-hover-dots);
+  text-shadow: 0 0 8px rgba(74,79,87,.4), 0 0 3px #fffbe3;
+  transform: translateY(-.5px);
+}
+#write .ty-table-edit .btn:hover .ty-icon.ty-delete::before,
+#write .md-table-edit .btn:hover .ty-icon.ty-delete::before{
+  color: var(--tbl-hover-del);
+  text-shadow: 0 0 8px rgba(255,123,41,.4), 0 0 3px #fffbe3;
+  transform: translateY(-.5px);
+}
+#write .ty-table-edit .btn:active .ty-icon.ty-menu::before,
+#write .ty-table-edit .btn.active .ty-icon.ty-menu::before,
+#write .md-table-edit .btn:active .ty-icon.ty-menu::before,
+#write .md-table-edit .btn.active .ty-icon.ty-menu::before{ color: var(--tbl-active-menu); }
+
+#write .ty-table-edit .btn:active .ty-icon.ty-dots-v::before,
+#write .ty-table-edit .btn.active .ty-icon.ty-dots-v::before,
+#write .md-table-edit .btn:active .ty-icon.ty-dots-v::before,
+#write .md-table-edit .btn.active .ty-icon.ty-dots-v::before{ color: var(--tbl-active-dots); }
+
+#write .ty-table-edit .btn:active .ty-icon.ty-delete::before,
+#write .ty-table-edit .btn.active .ty-icon.ty-delete::before,
+#write .md-table-edit .btn:active .ty-icon.ty-delete::before,
+#write .md-table-edit .btn.active .ty-icon.ty-delete::before{ color: var(--tbl-active-del); }
+
+/* 工具条按钮（尺寸/颜色/间距完全一致） */
+#write .ty-table-edit .btn,
+#write .md-table-edit .btn{
+  background: var(--tbl-btn-bg);
+  color: var(--tbl-btn-fg);
+  border: none;
+  border-radius: .5em;
+  padding: .28em 1em;
+  margin: 0 3px;
+  font-size: 1em;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background .16s, color .14s, font-weight .18s;
+  user-select: none;
+}
+#write .ty-table-edit .btn:hover,
+#write .md-table-edit .btn:hover,
+#write .ty-table-edit .btn:active,
+#write .md-table-edit .btn:active{
+  background: var(--tbl-btn-bg-hover);
+  color: var(--tbl-btn-fg-hover);
+}
+#write .ty-table-edit .btn.active,
+#write .ty-table-edit .btn.selected,
+#write .ty-table-edit .btn[aria-pressed="true"],
+#write .md-table-edit .btn.active,
+#write .md-table-edit .btn.selected,
+#write .md-table-edit .btn[aria-pressed="true"]{
+  background: var(--tbl-btn-bg-on);
+  color: var(--tbl-btn-fg-on);
+  font-weight: bold;
+}
+
+/* 墨画蒙层（保持你的渐变 + 图片；仅 hover 显现） */
+#write .ty-table-edit::before,
+#write .md-table-edit::before{
+  content:"";
+  position:absolute; inset:0; z-index:1; border-radius:var(--tbl-radius);
+  background:
+    linear-gradient(115deg, #fffefa90 60%, #ecd06b22 100%),
+    var(--tbl-overlay-img) center/cover no-repeat;
+  opacity:0; pointer-events:none; transition: opacity .36s;
+}
+#write .ty-table-edit:hover::before,
+#write .md-table-edit:hover::before{ opacity:.95; }
+
+/* =======================================================================================
+   REGION B — TABLE BODY（#write 正文表格主体）
+   Scope: #write 内的 .markdown-rendered table / .md-table 及其 th、td、tr、a
+   Function
+     - 定义正文表格的背景、圆角、阴影、文字与 hover 效果；
+     - 视觉保持原始参数不变，封装变量方便调整。
+   Adjustable Params
+     - --tbl-body-bg-img / --tbl-body-radius / --tbl-body-shadow / --tbl-body-border
+     - --tbl-head-color / --tbl-td-color / --tbl-link / --tbl-link-hover
+   ======================================================================================= */
+
+
+/* ====================== B0. 变量（默认值 = 原始数值） ====================== */
+#write{
+  --tbl-body-bg-img: url('../assets/Table/天上人间.png');
+  --tbl-body-radius: 1.4em;
+  --tbl-body-margin: 2em 0 0.5em 0;
+  --tbl-body-shadow: 0 6px 28px -4px rgba(20,24,28,.14);
+  --tbl-body-border: 0 0 0 2px #e3d7b3;
+
+  --tbl-head-color: #a35a1f;
+  --tbl-head-shadow: 0 1.5px 0 #ecd06b inset, 0 .8px 16px #0002;
+
+  --tbl-td-color: #3b2e1e;
+  --tbl-link: #168fcf;
+  --tbl-link-hover: #ff2a2a;
+  --tbl-link-bd: 1.5px dotted #168fcf;
+  --tbl-link-bd-hover: 2px solid #ecd06b;
+}
+
+
+/* ====================== B1. 表格容器（table 本体） ====================== */
+#write :is(.markdown-rendered table, .md-table){
+  width: 100%;
+  position: relative;
+  background: var(--tbl-body-bg-img) center top/cover no-repeat;
+  border-radius: var(--tbl-body-radius);
+  overflow: hidden;
+  margin: var(--tbl-body-margin);
+  box-shadow: var(--tbl-body-shadow), var(--tbl-body-border);
+  border-collapse: separate;
+  border-spacing: 0;
+  font-family: 'GuDuYanHei','AliPuHuiTi',serif;
+  -webkit-font-smoothing: antialiased;
+  z-index: 5;
+}
+
+
+/* ====================== B2. 表头（th） ====================== */
+#write :is(.markdown-rendered th, .md-table th){
+  position: relative;
+  font-size: 1.3em; /* 原代码 1.08em 与 1.3em 同时出现，这里保留大号 */
+  color: var(--tbl-head-color);
+  text-shadow: 0 0 1px #fff6ed, 0 0 2px rgba(255,240,200,.4);
+  background: transparent;
+  padding: 1.1em 1.6em 1em 1.4em;
+  box-shadow: var(--tbl-head-shadow);
+  letter-spacing: .08em;
+  text-align: left;
+  z-index: 7;
+  border: none;
+  box-sizing: border-box;
+}
+
+
+/* ====================== B3. 单元格（td） ====================== */
+#write :is(.markdown-rendered td, .md-table td){
+  font-size: 1em;
+  font-family: 'AliPuHuiTi','SourceHanSansSoft',sans-serif;
+  color: var(--tbl-td-color);
+  background: transparent;
+  padding: 1em 1.5em 1em 1.3em;
+  border: none;
+  transition: background .2s, color .2s;
+  box-sizing: border-box;
+}
+
+
+/* ====================== B4. 行 Hover 高亮 ====================== */
+#write :is(.markdown-rendered tr:hover td, .md-table tr:hover td){
+  background: linear-gradient(90deg, #fffbe3aa 70%, #ffe06b33 100%);
+  box-shadow: 0 0 18px #ecd06b33;
+  transition: background .25s, box-shadow .28s;
+}
+
+
+/* ====================== B5. 链接高亮 ====================== */
+#write :is(.markdown-rendered td a, .md-table td a){
+  color: var(--tbl-link);
+  border-bottom: var(--tbl-link-bd);
+  text-decoration: none;
+  transition: color .2s, border .2s;
+}
+#write :is(.markdown-rendered td a:hover, .md-table td a:hover){
+  color: var(--tbl-link-hover);
+  border-bottom: var(--tbl-link-bd-hover);
+}
+
+
+/* ====================== B6. 编辑聚焦态 ====================== */
+#write th .td-span,
+#write td .td-span{
+  display: block;
+  min-height: 1.6em;
+  outline: none;
+  word-break: break-word;
+  background: transparent;
+  overflow: visible;
+}
+#write th .td-span:focus,
+#write td .td-span:focus{
+  background: #fffbe3;
+  box-shadow: 0 0 8px #ecd06b66;
+  border-radius: .24em;
+  color: var(--tbl-link-hover);
+}
+
+
+/* ====================== B7. 圆角收尾 ====================== */
+#write .markdown-rendered tr:first-child th:first-child,
+#write .md-table tr:first-child th:first-child{ border-top-left-radius: 1.1em; }
+#write .markdown-rendered tr:first-child th:last-child,
+#write .md-table tr:first-child th:last-child{ border-top-right-radius: 1.1em; }
+#write .markdown-rendered tr:last-child td:first-child,
+#write .md-table tr:last-child td:first-child{ border-bottom-left-radius: 1.1em; }
+#write .markdown-rendered tr:last-child td:last-child,
+#write .md-table tr:last-child td:last-child{ border-bottom-right-radius: 1.1em; }
+
+
+/* ====================== B8. 对齐映射 ====================== */
+#write .td-span.md-align-left  { text-align: left; }
+#write .td-span.md-align-center{ text-align: center; }
+#write .td-span.md-align-right { text-align: right; }
+
+/* =======================================================================================
+   REGION C — TABLE CREATOR（表格创建器 · 新建表格时弹出面板）
+   Scope: #write 激活时出现的 .md-grid-board-wrap 及其子元素
+   Function
+     - 定义表格创建器网格面板的背景、蒙层、输入框与按钮样式。
+     - 保持与表格主体/工具条视觉统一；用变量可一键换背景图或调整圆角。
+   ======================================================================================= */
+
+/* ---------------------- C0. 变量（默认值 = 原始数值） ---------------------- */
+#write {
+  --tbl-creator-radius: .9em;
+  --tbl-creator-bg: linear-gradient(115deg, rgba(255,254,250,.92) 60%, rgba(236,208,107,.15) 100%);
+  --tbl-creator-img: url('../assets/Table/渔舟唱晚.png');
+  --tbl-creator-bd: 1.2px solid #ecd06b;
+  --tbl-creator-title-shadow: inset 0 1px 2px rgba(236,208,107,.2);
+
+  --tbl-creator-input-bg: rgba(255,253,250,.92);
+  --tbl-creator-input-bd: 1px solid #ecd06b;
+  --tbl-creator-input-color: #3b2e1e;
+  --tbl-creator-input-fg: 'AliPuHuiTi',sans-serif;
+  --tbl-creator-input-fs: .9em;
+
+  --tbl-creator-input-focus-bd: #ff2a2a;
+  --tbl-creator-input-focus-shadow: 0 0 6px rgba(255,42,42,.3);
+
+  --tbl-creator-btn-bg: rgba(255,253,250,.92);
+  --tbl-creator-btn-bd: 1px solid #ecd06b;
+  --tbl-creator-btn-color: #a35a1f;
+  --tbl-creator-btn-radius: .4em;
+  --tbl-creator-btn-shadow: 0 1px 4px rgba(236,208,107,.12);
+}
+
+/* ---------------------- C1. 主容器与蒙层 ---------------------- */
+#write .md-grid-board-wrap {
+  position: relative;
+  border-radius: var(--tbl-creator-radius);
+  overflow: hidden;
+  background: var(--tbl-creator-bg);
+  transition: background .6s ease;
+}
+#write .md-grid-board-wrap::before {
+  content: "";
+  position: absolute; inset: 0; z-index: 0;
+  background: var(--tbl-creator-img) center/cover no-repeat;
+  opacity: 0;
+  transition: opacity .6s ease;
+}
+#write .md-grid-board-wrap:hover::before { opacity: 1; }
+#write .md-grid-board-wrap * { position: relative; z-index: 1; }
+
+/* ---------------------- C2. 标题栏 ---------------------- */
+#write .md-grid-board-wrap .popover-title {
+  display: flex; align-items: center; gap: .4em;
+  padding: .4em .6em;
+  border-top: var(--tbl-creator-bd);
+  border-radius: 0 0 var(--tbl-creator-radius) var(--tbl-creator-radius);
+  box-shadow: var(--tbl-creator-title-shadow);
+  background: transparent;
+}
+
+/* ---------------------- C3. 输入框 ---------------------- */
+#write .md-grid-board-wrap .popover-title input {
+  border: var(--tbl-creator-input-bd);
+  border-radius: .4em;
+  background: var(--tbl-creator-input-bg);
+  color: var(--tbl-creator-input-color);
+  padding: .25em .5em;
+  font-family: var(--tbl-creator-input-fg);
+  font-size: var(--tbl-creator-input-fs);
+  box-shadow: var(--tbl-creator-btn-shadow);
+  transition: all .2s ease;
+}
+#write .md-grid-board-wrap .popover-title input:focus {
+  outline: none;
+  border-color: var(--tbl-creator-input-focus-bd);
+  box-shadow: var(--tbl-creator-input-focus-shadow);
+}
+
+/* ---------------------- C4. 按钮 ---------------------- */
+#write .md-grid-board-wrap .popover-title button.btn.btn-primary.btn-xs {
+  border: var(--tbl-creator-btn-bd);
+  border-radius: var(--tbl-creator-btn-radius);
+  background: var(--tbl-creator-btn-bg);
+  color: var(--tbl-creator-btn-color);
+  padding: .25em .6em;
+  font-family: 'AliPuHuiTi',sans-serif;
+  font-size: .9em;
+  cursor: pointer;
+  box-shadow: var(--tbl-creator-btn-shadow);
+  transition: all .2s ease;
+}
+
+
+/* =======================================================================================
+   REGION D — REDUCED MOTION（无障碍设置下减少动态效果）
+   Scope: prefers-reduced-motion: reduce
+   Function
+     - 当系统启用“减少动态效果”时，关闭表格工具条的 transform/transition 动画，
+       以降低 GPU 占用并提升可访问性。
+   ======================================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  #write .ty-table-edit,
+  #write .md-table-edit {
+    transform: none;
+    transition: none;
+  }
+}
+/* =============================== END OF PACKAGE ============================ */

@@ -1,0 +1,361 @@
+/* =======================================================================================
+   Rhapsody · Code Blocks（代码块 · 极客霓虹）
+   设计理念 / Design Concept
+   - 仅限 #write：外壳承担霓虹与能量条动效，内部 code 保持透明避免双重底色。
+   - 全量变量化（前景/高光/阴影/tooltip/行号/选区/语法色），便于主题统一调色。
+   - 动画命名本地化；尊重 prefers-reduced-motion，静态降级稳定。
+   ======================================================================================= */
+
+/* ========================================================================== */
+/* REGION A — ROOT VARS（仅 #write 生效 · 变量集中维护）                       */
+/* Scope: #write                                                               */
+/* Function: 统一维护代码块/语法高亮/浮层/键盘键的配色、阴影、动效参数           */
+/* Notes: 不改 DOM；不使用 :has；仅变量化，不改变视觉                           */
+/* Adjustable: A 区全部变量（主色/阴影/动效时长/字体/token 色）                 */
+/* ========================================================================== */
+#write{
+  /* ------ Palette（主色） ------ */
+  --cb-bg: #101218;                 /* 代码块底色 */
+  --cb-fg: #2aff5a;                 /* 前景主色（青绿） */
+  --cb-cyan: #23b3fc;               /* 次要高光（青） */
+  --cb-accent-cyan: #00ffe7;        /* 能量条青 */
+  --cb-accent-gold: #ffd700;        /* 能量条金 */
+  --cb-accent-pink: #ff007f;        /* 能量条品红 */
+  --cb-gutter: #00eaff;             /* 行号栏文字青 */
+  --cb-border: #00c18a;             /* 外壳描边 */
+  --cb-select-fg: #ffffff;          /* 选中前景 */
+  --cb-select-bg: #23b3fc;          /* 选中底色 */
+  --cb-deep-2: #232931;             /* 深色描边/阴影辅助 */
+  --cb-tooltip-bg: #19271f;         /* 代码提示底色 */
+  --cb-tooltip-fg: #e91ee3;         /* 代码提示前景（洋红） */
+  --cb-key-cyan: #00ccff;           /* kbd 专用青（#0cf） */
+
+  /* ------ RGB 派生（便于半透明 rgba） ------ */
+  --cb-fg-rgb: 42,255,90;
+  --cb-cyan-rgb: 35,179,252;
+  --cb-accent-cyan-rgb: 0,255,231;
+  --cb-accent-gold-rgb: 255,215,0;
+  --cb-accent-pink-rgb: 255,0,127;
+  --cb-gutter-rgb: 0,234,255;
+  --cb-key-cyan-rgb: 0,204,255;
+
+  /* ------ Geometry ------ */
+  --cb-radius: 1.1em;
+
+  /* ------ Shadows（休止/激活） ------ */
+  --cb-shadow-rest:
+      0 0 32px 1px rgba(var(--cb-fg-rgb), .38),
+      0 0 6px 0 rgba(var(--cb-cyan-rgb), .19),
+      0 2px 12px rgba(0,0,0,.66);
+  --cb-shadow-hover:
+      0 0 56px 4px var(--cb-cyan),
+      0 0 20px 4px var(--cb-fg),
+      0 2px 20px var(--cb-deep-2);
+
+  /* ------ Motion & Transition ------ */
+  --cb-breath-dur: 4.2s;
+  --cb-energy-dur: 6.2s;
+  --cb-trans-fast: .18s;
+  --cb-trans-mid:  .22s;
+  --cb-trans-slow: .40s;
+
+  /* ------ Font ------ */
+  --cb-font-mono: 'JetBrainsMonoNL', monospace;
+
+  /* ------ Syntax Tokens（如需统一调色可改此处） ------ */
+  --cb-token-keyword:      #ff007f;
+  --cb-token-variable:     var(--cb-fg);
+  --cb-token-builtin:      var(--cb-accent-cyan);
+  --cb-token-string:       var(--cb-accent-gold);
+  --cb-token-number-atom:  #8b2aff;
+  --cb-token-comment:      var(--cb-cyan);
+  --cb-token-tag:          #ff5200;
+  --cb-token-attr-prop:    #00d6ff;
+  --cb-token-operator:     #ff9e00;
+  --cb-token-error:        #ff1a1a;
+  --cb-token-meta:         #ff00d0;
+  --cb-token-type:         #aaff00;
+}
+
+/* ========================================================================== */
+/* REGION B — WRAPPER（外壳 pre.md-fences）                                    */
+/* Scope: #write pre.md-fences                                                  */
+/* Function: 外壳底色/描边/阴影/能量条动效/滚动与字体                           */
+/* Notes: 动画名本地化；滚动条 UI 隐藏但保留滚动；不改结构                      */
+/* Adjustable: 半径/阴影/描边/内外边距/动画时长                                 */
+/* ========================================================================== */
+#write pre.md-fences{
+  background: var(--cb-bg);
+  color: var(--cb-fg);
+  border-radius: var(--cb-radius);
+  box-shadow: var(--cb-shadow-rest);
+  border: 1.5px solid var(--cb-border);
+  padding: 1.2em 2em 1.2em 2.5em;
+  margin: 1.8em 0 2.2em 0;
+  position: relative;
+  overflow-x: auto;
+  z-index: 6;
+  text-shadow:
+    0 0 8px rgba(var(--cb-fg-rgb), .38),
+    0 0 2px rgba(var(--cb-cyan-rgb), .33);
+  animation: borderBreath--cb var(--cb-breath-dur) cubic-bezier(.45,1.7,.32,.94) infinite alternate;
+  transition: box-shadow var(--cb-trans-slow), border var(--cb-trans-slow), text-shadow var(--cb-trans-slow);
+  scrollbar-color: var(--cb-accent-cyan) var(--cb-bg);
+  scrollbar-width: thin;
+  font-family: var(--cb-font-mono);
+}
+/* WebKit 隐藏滚动条 UI，保留滚动功能 */
+#write pre.md-fences::-webkit-scrollbar{ display: none; width: 0; height: 0; }
+
+/* Hover/Focus 激活态 */
+#write pre.md-fences:hover,
+#write pre.md-fences:focus-within{
+  box-shadow: var(--cb-shadow-hover);
+  border: 1.5px solid var(--cb-cyan);
+  text-shadow:
+    0 0 24px var(--cb-fg),
+    0 0 10px var(--cb-cyan);
+}
+
+/* 顶部能量条 */
+#write pre.md-fences::before{
+  content: "";
+  display: block;
+  position: absolute;
+  left: 2.2em; right: 2.2em; top: 1.1em; height: 6px;
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+              var(--cb-accent-cyan) 8%,
+              var(--cb-accent-gold) 51%,
+              var(--cb-accent-pink) 95%);
+  opacity: 0.18;
+  filter: blur(4px);
+  animation: geekEnergyBar--cb var(--cb-energy-dur) cubic-bezier(.45,1.7,.32,.94) infinite alternate;
+  pointer-events: none;
+  z-index: 6;
+  transition: background .38s cubic-bezier(.72,.08,.43,1.45), opacity .32s;
+}
+#write pre.md-fences:hover::before,
+#write pre.md-fences:focus-within::before{
+  background: linear-gradient(90deg,
+              var(--cb-accent-cyan) 0%,
+              var(--cb-accent-gold) 40%,
+              var(--cb-accent-pink) 100%);
+  opacity: 0.40;
+  filter: blur(5.5px);
+  transition: background .38s cubic-bezier(.72,.08,.43,1.45), opacity .32s, filter .26s;
+}
+
+/* 关键帧（本地化） */
+@keyframes geekEnergyBar--cb{
+  0%   { opacity: 0.12; left: 2.2em; right: 2.2em; }
+  58%  { opacity: 0.36; left: 4em; right: 1.1em; }
+  100% { opacity: 0.12; left: 2.2em; right: 2.2em; }
+}
+@keyframes borderBreath--cb{
+  0% {
+    box-shadow:
+      0 0 32px 1px rgba(var(--cb-fg-rgb), .38),
+      0 0 6px 0 rgba(var(--cb-cyan-rgb), .19),
+      0 2px 12px rgba(0,0,0,.66);
+  }
+  100% {
+    box-shadow:
+      0 0 56px 4px var(--cb-cyan),
+      0 0 20px 4px var(--cb-fg),
+      0 2px 20px var(--cb-deep-2);
+  }
+}
+
+/* ========================================================================== */
+/* REGION C — CODEMIRROR（正文编辑器）                                         */
+/* Scope: #write .CodeMirror*                                                   */
+/* Function: 文本色/行高/字影与悬停行背景                                        */
+/* Notes: 仅正文；不影响侧栏与菜单                                               */
+/* Adjustable: 字号/行高/悬停透明度/文本阴影                                     */
+/* ========================================================================== */
+#write .CodeMirror,
+#write .CodeMirror-code,
+#write .CodeMirror-line{
+  color: var(--cb-fg);
+  background: transparent;
+  font-family: var(--cb-font-mono);
+  font-size: 1em;
+  line-height: 1.7;
+  text-shadow:
+    0 0 6px rgba(var(--cb-fg-rgb), .50),
+    0 0 2px rgba(var(--cb-cyan-rgb), .33);
+}
+#write .CodeMirror-line:hover{
+  background: rgba(var(--cb-fg-rgb), .10);
+  transition: background var(--cb-trans-fast);
+}
+
+/* 行号栏 */
+#write .CodeMirror-gutters{
+  background: transparent;
+  color: var(--cb-gutter);
+  border-right: 1.5px solid var(--cb-deep-2);
+  opacity: 0.87;
+  z-index: 6;
+  font-size: 1em;
+  font-family: var(--cb-font-mono);
+  text-shadow:
+    0 0 8px rgba(var(--cb-gutter-rgb), .60),
+    0 0 2px rgba(var(--cb-fg-rgb), .25);
+}
+
+/* 光标 */
+#write .CodeMirror-cursor{ border-left: 2px solid var(--cb-select-fg); }
+
+/* ========================================================================== */
+/* REGION D — TOOLTIP（浮层与工具提示）                                        */
+/* Scope: #write pre.md-fences(.+ .code-tooltip)                                */
+/* Function: tooltip 的底色/前景/阴影与 hover 交互                               */
+/* Notes: 覆盖两种结构（内部/相邻兄弟）；z-index 本区控制                        */
+/* Adjustable: 背景/前景/阴影/圆角/字号                                          */
+/* ========================================================================== */
+#write pre.md-fences .code-tooltip,
+#write pre.md-fences + .code-tooltip,
+#write .md-fences .code-tooltip{
+  background: var(--cb-tooltip-bg);
+  color: var(--cb-tooltip-fg);
+  border-radius: 6px;
+  box-shadow: 0 0 8px rgba(var(--cb-fg-rgb), .27);
+  font-family: var(--cb-font-mono);
+  font-size: 0.96em;
+  z-index: 9;
+}
+#write pre.md-fences .code-tooltip:hover,
+#write pre.md-fences + .code-tooltip:hover,
+#write .md-fences .code-tooltip:hover{
+  background: var(--cb-cyan);
+  color: var(--cb-select-fg);
+  box-shadow:
+    0 0 16px rgba(var(--cb-cyan-rgb), .53),
+    0 0 8px  rgba(var(--cb-fg-rgb), .27);
+}
+
+/* Mermaid/Flowchart 浮窗定位 */
+#write .enable-diagrams pre.md-fences[lang="sequence"] .code-tooltip,
+#write .enable-diagrams pre.md-fences[lang="flow"] .code-tooltip,
+#write .enable-diagrams pre.md-fences[lang="mermaid"] .code-tooltip{
+  bottom: -2.2em;
+  right: 4px;
+}
+
+/* ========================================================================== */
+/* REGION E — INNER CODE（内部 code 元素去双底）                                */
+/* Scope: #write pre.md-fences code                                             */
+/* Function: 透明化内部 <code>，继承外壳霓虹氛围                                 */
+/* Notes: 只做字体/阴影继承，不叠加背景与圆角                                     */
+/* Adjustable: 字体家族/字号                                                     */
+/* ========================================================================== */
+#write pre.md-fences > code,
+#write pre.md-fences code{
+  background: transparent;
+  color: inherit;
+  font-family: var(--cb-font-mono);
+  text-shadow: inherit;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ========================================================================== */
+/* REGION F — KBD（键盘键样式）                                                */
+/* Scope: #write kbd                                                            */
+/* Function: 轻量渐变 + 边框 + 霓虹字影                                          */
+/* Notes: 不影响侧栏/菜单；与代码块配色统一                                      */
+/* Adjustable: 渐变/描边/阴影/过渡时间                                           */
+/* ========================================================================== */
+#write kbd{
+  padding: 2px 4px;
+  font-size: 90%;
+  color: var(--cb-select-fg);
+  background: linear-gradient(90deg, var(--cb-key-cyan) 60%, var(--cb-bg) 100%);
+  border-radius: 6px;
+  border: 1.5px solid var(--cb-key-cyan);
+  box-shadow: 0 2px 12px rgba(var(--cb-gutter-rgb), .27);
+  text-shadow:
+    0 0 8px rgba(var(--cb-gutter-rgb), .69),
+    0 0 2px rgba(var(--cb-fg-rgb), .25);
+  font-family: var(--cb-font-mono);
+  transition:
+    background var(--cb-trans-mid),
+    color var(--cb-trans-mid),
+    text-shadow var(--cb-trans-mid),
+    border var(--cb-trans-mid);
+}
+#write kbd:hover{
+  background: linear-gradient(90deg, var(--cb-bg) 0%, var(--cb-key-cyan) 100%);
+  color: var(--cb-fg);
+  text-shadow:
+    0 0 8px rgba(var(--cb-fg-rgb), .60),
+    0 0 8px rgba(var(--cb-cyan-rgb), .80);
+  border-color: var(--cb-fg);
+}
+
+/* ========================================================================== */
+/* REGION G — ACTIVE / SELECTION（活动行与选区）                                */
+/* Scope: #write .CodeMirror-activeline / ::selection                           */
+/* Function: 活动行底色与选区前/背景色                                           */
+/* Notes: 仅正文编辑区；文本阴影与主题色联动                                     */
+/* Adjustable: 透明度/过渡/前景背景色                                            */
+/* ========================================================================== */
+#write .CodeMirror-activeline-background{
+  background: rgba(var(--cb-cyan-rgb), .12);
+  transition: background var(--cb-trans-mid);
+}
+#write .CodeMirror-selected,
+#write .CodeMirror-line::selection,
+#write .CodeMirror-line::-moz-selection{
+  background: var(--cb-select-bg);
+  color: var(--cb-select-fg);
+  text-shadow:
+    0 0 8px var(--cb-select-bg),
+    0 0 2px var(--cb-select-fg);
+}
+
+/* ========================================================================== */
+/* REGION H — SYNTAX TOKENS（语法高亮）                                        */
+/* Scope: #write .cm-*                                                          */
+/* Function: 以变量映射 token 颜色，便于主题化一键联动                           */
+/* Notes: 不改变语义，仅设色与字影；提供兜底高亮                                 */
+/* Adjustable: Token 变量（--cb-token-*）与字影强度                              */
+/* ========================================================================== */
+#write .cm-keyword{   color: var(--cb-token-keyword);      text-shadow: 0 0 7px rgba(255,0,127,.53), 0 0 2px transparent; }
+#write .cm-variable,
+#write .cm-def{       color: var(--cb-token-variable);     text-shadow: 0 0 6px rgba(var(--cb-fg-rgb), .50), 0 0 2px rgba(var(--cb-cyan-rgb), .33); }
+#write .cm-builtin{   color: var(--cb-token-builtin);      text-shadow: 0 0 6px rgba(var(--cb-accent-cyan-rgb), .50), 0 0 2px rgba(var(--cb-accent-gold-rgb), .27); }
+#write .cm-string{    color: var(--cb-token-string);       text-shadow: 0 0 7px rgba(var(--cb-accent-gold-rgb), .63), 0 0 2px rgba(var(--cb-accent-cyan-rgb), .27); }
+#write .cm-number,
+#write .cm-atom{      color: var(--cb-token-number-atom);  text-shadow: 0 0 6px rgba(139,42,255,.53), 0 0 2px rgba(var(--cb-cyan-rgb), .27); }
+#write .cm-comment{   color: var(--cb-token-comment);      font-style: italic; opacity: .87; text-shadow: 0 0 8px rgba(var(--cb-cyan-rgb), .40), 0 0 2px rgba(255,255,255,.27); }
+#write .cm-tag{       color: var(--cb-token-tag);          text-shadow: 0 0 7px rgba(255,82,0,.50), 0 0 2px rgba(var(--cb-accent-gold-rgb), .27); }
+#write .cm-attribute,
+#write .cm-property{  color: var(--cb-token-attr-prop);    text-shadow: 0 0 5px rgba(0,214,255,.47), 0 0 2px transparent; }
+#write .cm-operator{  color: var(--cb-token-operator);     text-shadow: 0 0 6px rgba(255,158,0,.53), 0 0 2px rgba(var(--cb-accent-gold-rgb), .27); }
+#write .cm-error{     color: var(--cb-token-error);        text-shadow: 0 0 7px rgba(255,26,26,.53), 0 0 2px rgba(var(--cb-accent-gold-rgb), .27);
+                       font-weight: bold; border-bottom: 1.5px dashed rgba(255,26,26,.40); }
+#write .cm-meta{      color: var(--cb-token-meta);         text-shadow: 0 0 5px rgba(255,0,208,.53), 0 0 2px transparent; font-style: italic; }
+#write .cm-type{      color: var(--cb-token-type);         text-shadow: 0 0 6px rgba(170,255,0,.53), 0 0 2px rgba(var(--cb-accent-cyan-rgb), .27); }
+/* 兜底高亮 */
+#write .cm-s-inner span,
+#write .CodeMirror span{
+  text-shadow: 0 0 4px rgba(var(--cb-fg-rgb), .20), 0 0 2px rgba(var(--cb-cyan-rgb), .20);
+}
+
+/* ========================================================================== */
+/* REGION R — REDUCED MOTION（尊重减少动态）                                    */
+/* Scope: @media (prefers-reduced-motion: reduce)                               */
+/* Function: 停用动画/过渡，只保留静态样式                                       */
+/* Notes: 关键帧与激活过渡全部关闭                                               */
+/* Adjustable: 可按需细分禁用范围                                                */
+/* ========================================================================== */
+@media (prefers-reduced-motion: reduce){
+  #write pre.md-fences{ animation: none !important; }
+  #write pre.md-fences::before{ animation: none !important; }
+  #write .CodeMirror-activeline-background{ transition: none !important; }
+}
+/* =============================== END OF PACKAGE ============================ */

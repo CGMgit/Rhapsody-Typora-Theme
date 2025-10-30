@@ -1,0 +1,196 @@
+/* =======================================================================================
+   Rhapsody · Inline Math（行内数学公式 · MathJax/SVG 一体 + 预览气泡）
+   设计理念 / Design Concept
+   - 范围仅 #write：正文与 md-alert 中行内公式统一风格。
+   - 所有色值/字体/阴影/过渡参数变量化，SVG 与 tooltip 共用 --im-*。
+   - Hover 高亮统一；预览气泡背景/描边/阴影可独立调整。
+   ======================================================================================= */
+
+/* ========================================================================== */
+/* REGION A — ROOT VARS（集中变量 · 仅 #write）                                */
+/* Scope: #write                                                               */
+/* Function: 集中维护行内公式与预览气泡配色/字体/阴影/过渡                      */
+/* Adjustable Params: --im-* 全部                                              */
+/* ========================================================================== */
+#write {
+  /* 行内公式 */
+  --im-fg: #2500ed;
+  --im-font-size: 1.09em;
+  --im-font-family: 'LatinmodernmathRegular';
+  --im-line-height: 1.4;
+  --im-shadow-a: 0 0.7px 0.8px #fff;
+  --im-shadow-b: 0 1.2px 4px #23b3fc19;
+  --im-trans-fast: 0.16s;
+
+  /* SVG 渲染 */
+  --im-svg-fg: #9916cf;
+
+  /* Hover 高亮 */
+  --im-hover-fg: #ff2a2a;
+  --im-hover-shadow: 0 1.2px 1.2px #fff, 0 1.6px 6px #ffd70022;
+
+  /* 预览气泡 */
+  --im-tip-bg: #f2ffff;
+  --im-tip-fg: #003e3e;
+  --im-tip-bd: #00b8b8;
+  --im-tip-shadow: 0 2px 12px rgba(0, 184, 184, 0.25);
+  --im-tip-radius: 0.75em;
+  --im-tip-pad: 0.9em 1.2em;
+  --im-tip-font: 'Fira Mono', 'JetBrains Mono', monospace;
+  --im-tip-font-size: 1em;
+  --im-tip-line-height: 1.5;
+  --im-tip-blur: 3px;
+  --im-trans-mid: 0.25s;
+
+  /* 预览 Hover */
+  --im-tip-hover-bg: #fff0f0;
+  --im-tip-hover-bd: #ff2a2a;
+  --im-tip-hover-shadow: 0 2px 16px rgba(255, 42, 42, 0.25);
+}
+
+/* ========================================================================== */
+/* REGION B — INLINE CORE（正文 + md-alert 行内公式）                          */
+/* Scope: #write .md-inline-math（mjx-container/.MathJax）                     */
+/* Function: 行内公式颜色/字号/字体/阴影/过渡                                   */
+/* Adjustable Params: --im-fg / --im-font-* / --im-shadow-*                    */
+/* ========================================================================== */
+#write .md-inline-math mjx-container,
+#write .md-inline-math .MathJax,
+#write .md-alert .md-inline-math mjx-container,
+#write .md-alert .md-inline-math .MathJax {
+  display: inline;
+  color: var(--im-fg);
+  font-size: var(--im-font-size);
+  font-family: var(--im-font-family);
+  vertical-align: 0em;
+  text-shadow: var(--im-shadow-a), var(--im-shadow-b);
+  transition: color var(--im-trans-fast);
+  max-width: 100%;
+  box-sizing: border-box;
+  line-height: var(--im-line-height);
+}
+
+/* ========================================================================== */
+/* REGION C — SVG RENDER（SVG 渲染，排除 tooltip）                             */
+/* Scope: #write .md-inline-math svg                                           */
+/* Function: 设置 SVG 数学渲染的颜色/尺寸/对齐                                  */
+/* Adjustable Params: --im-svg-fg / --im-trans-svg                             */
+/* ========================================================================== */
+#write .md-inline-math:not(.code-tooltip-content):not(#math-inline-preview-content) svg,
+#write .md-alert .md-inline-math svg {
+  display: inline-block;
+  color: var(--im-svg-fg);
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+
+/* ========================================================================== */
+/* REGION D — HOVER HIGHLIGHT（悬停高亮）                                      */
+/* Scope: mjx-container / .MathJax / svg                                       */
+/* Function: 悬停时统一高亮，文字色/填充/阴影                                   */
+/* Adjustable Params: --im-hover-*                                             */
+/* ========================================================================== */
+#write .md-inline-math:hover mjx-container,
+#write .md-inline-math:hover .MathJax,
+#write .md-inline-math:hover svg,
+#write .md-inline-math mjx-container:hover,
+#write .md-inline-math .MathJax:hover,
+#write .md-inline-math svg:hover,
+#write .md-inline-math svg *:hover,
+#write .md-alert .md-inline-math:hover mjx-container,
+#write .md-alert .md-inline-math:hover .MathJax,
+#write .md-alert .md-inline-math:hover svg,
+#write .md-alert .md-inline-math svg *:hover {
+  color: var(--im-hover-fg);
+  fill: var(--im-hover-fg);
+  text-shadow: var(--im-hover-shadow);
+}
+
+/* ========================================================================== */
+/* REGION E — FIX PREVIEW VARIABLES（修复预览气泡变量作用域）                   */
+/* Scope: #math-inline-preview-content（脱离 #write）                           */
+/* Function: 播种变量，确保气泡也能取到 --im-*                                  */
+/* Notes: 保持与 #write 下变量一致                                             */
+/* ========================================================================== */
+#math-inline-preview-content {
+  --im-tip-bg: #f2ffff;
+  --im-tip-fg: #003e3e;
+  --im-tip-bd: #00b8b8;
+  --im-tip-shadow: 0 2px 12px rgba(0,184,184,.25);
+  --im-tip-radius: 0.75em;
+  --im-tip-pad: 0.9em 1.2em;
+  --im-tip-font: 'Fira Mono', 'JetBrains Mono', monospace;
+  --im-tip-font-size: 1em;
+  --im-tip-line-height: 1.5;
+  --im-tip-blur: 3px;
+  --im-tip-hover-bg: #fff0f0;
+  --im-tip-hover-bd: #ff2a2a;
+  --im-tip-hover-shadow: 0 2px 16px rgba(255,42,42,.25);
+  --im-trans-mid: 0.25s;
+  --im-hover-fg: #ff2a2a;
+}
+
+/* ========================================================================== */
+/* REGION F— TOOLTIP / PREVIEW（悬浮预览气泡）                                */
+/* Scope: .code-tooltip-content / #math-inline-preview-content                 */
+/* Function: 气泡的背景/前景/描边/阴影/字体/模糊/过渡                           */
+/* Adjustable Params: --im-tip-*                                               */
+/* ========================================================================== */
+#write .md-inline-math .code-tooltip-content,
+#write .md-math-block .code-tooltip-content,
+#math-inline-preview-content {
+  position: absolute;
+  z-index: 4;
+  background: var(--im-tip-bg);
+  color: var(--im-tip-fg);
+  border: 2px solid var(--im-tip-bd);
+  box-shadow: var(--im-tip-shadow);
+  border-radius: var(--im-tip-radius);
+  padding: var(--im-tip-pad);
+  font-family: var(--im-tip-font);
+  font-size: var(--im-tip-font-size);
+  line-height: var(--im-tip-line-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  max-width: none;
+  overflow: visible;
+  backdrop-filter: blur(var(--im-tip-blur));
+  transition: all var(--im-trans-mid) ease-in-out;
+}
+
+/* 悬浮框 Hover */
+#write .code-tooltip-content:hover,
+#math-inline-preview-content:hover {
+  background: var(--im-tip-hover-bg);
+  border-color: var(--im-tip-hover-bd);
+  box-shadow: var(--im-tip-hover-shadow);
+}
+
+/* 悬浮框内部 SVG */
+#write .code-tooltip-content svg,
+#math-inline-preview-content svg {
+  width: auto;
+  height: auto;
+  vertical-align: middle;
+  transition: color 0.2s ease, fill 0.2s ease;
+}
+
+/* 悬浮框 SVG hover */
+#write .code-tooltip-content:hover svg *,
+#math-inline-preview-content:hover svg * {
+  color: var(--im-hover-fg);
+  fill: var(--im-hover-fg);
+}
+
+/* 悬浮框 mjx-container 对齐 */
+#write .code-tooltip-content mjx-container,
+#math-inline-preview-content mjx-container {
+  display: inline-block;
+  vertical-align: middle;
+  width: auto;
+}
+/* =============================== END OF PACKAGE ============================ */

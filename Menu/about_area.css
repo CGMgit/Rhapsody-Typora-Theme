@@ -1,0 +1,677 @@
+/* =======================================================================================
+   Rhapsody · DESIGN CONCEPT — ABOUT PACKAGE（A–E 总纲 · Typora 主题定制）
+   Scope :
+     - REGION A — TYPE BASE（字体统一补丁，仅排印）
+     - REGION B — ABOUT SURFACE（主容器表层/按钮/链接）
+     - REGION C — HEADER LATCH（Header 与右侧父容器兜底）
+     - REGION D — ABOUT MENU（Sidebar/Header + Menu List + Icons + Patch）
+     - REGION E — SCROLLBARS（滚动条：Sidebar + 页面右侧）
+   Visual Language :
+     - 夜蓝（night-*）为基底，银白（silver）与湖蓝/天青（lake-1/sky-1）提亮，暖金（warm-gold）少量点缀；
+       像素感通过硬描边、阶梯阴影、repeating-linear-gradient 条纹与 steps 动画实现。
+   Constraints :
+     - 严格遵守 Typora 限制：不改 HTML 结构；仅用选择器与变量；作用域全部收敛在
+       body.megamenu-opened:has(#m-about.active) 下避免全局污染。
+   Variables :
+     - 各区集中 Root Vars：A（字体家族）、B（表层/按钮/链接）、C（Header/兜底）、D（菜单/图标/动效）、
+       E（滚动条）；相互复用时优先用本区变量 → 回退到上层/全局变量（如 --night-*、--silver）。
+   Composition :
+     - A 统一中/英/等宽与标题字形（不改色/尺寸）；B 提供 About 主容器的银光晕、噪点与像素描边；
+       C 统一 Header 横向渐变与右侧父容器兜底；D 合并 Sidebar/列表/图标/补丁为一体；
+       E 输出像素滚动条（同语汇的轨道/拇指/投影）。
+   Icons :
+     - 默认统一左侧 ::before 为 FontAwesome，并提供 id 映射；兼容历史 #m-save-as / #m-saveas。
+       如需保留 emoji，建议用属性选择器（a[data-fa]）或把 emoji 放入 <i>，让 ::before 专供 FA。
+   Motion :
+     - Hover 采用 steps(·, end) 阶梯位移与条纹动画；阴影使用 2D 位移模拟像素抬升；
+       避免昂贵滤镜，保证电子书/文稿渲染流畅。
+   Accessibility :
+     - 字体平滑 + 合理字间距；按钮/链接对比度与可点击态明确；滚动条宽度可通过 --SB-size 微调。
+   Maintenance :
+     - 配色/亮度/间距优先改各区 Root Vars；不在规则内硬编码常量；
+       若需要暗/亮两套方案，可在 body 上挂主题类切换变量即可。
+   ======================================================================================= */
+
+/* ========================================================================== */
+/* REGION A — TYPE BASE（字体统一补丁 · 仅排印，不改色/尺寸）                   */
+/* Scope : #about-content；以及 About 激活时的 #megamenu-menu-sidebar         */
+/* Function : 统一中/英/等宽字体；英文斜体仅限 About 内；图标/代码不被覆盖      */
+/* Notes : 只设置 font-family/letter-spacing；不动背景/尺寸/配色               */
+/* ========================================================================== */
+
+/* 仅在 About 激活时注入“字体相关”变量 */
+body.megamenu-opened:has(#megamenu-menu-list #m-about.active){
+  /* 中文/UI 基线 */
+  --about-font-zh: 'AliPuHuiTi','SourceHanSansSoft','SourceHanSansSC',
+                   system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+  /* 中文标题/标签（力量感） */
+  --about-font-display-zh: 'GaoDuanHei','AliPuHuiTi','SourceHanSansSoft','SourceHanSansSC',sans-serif;
+  /* 英文小标语（仅 About 内允许衬线斜体） */
+  --about-font-en-italic: 'Playfair_Display','AliPuHuiTi',serif;
+  /* 等宽（版本号/Meta/代码） */
+  --about-font-mono: 'JetBrainsMonoNL','RobotoMono',monospace;
+  /* 可选：像素味（手动加类使用） */
+  --about-font-pixel: 'Press Start 2P','SourceHanSansPixel',monospace;
+}
+
+/* 1) 面板主体：统一中文基线 */
+#about-content{
+  font-family: var(--about-font-zh);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* 2) 面板标题：中文展示用高端黑 */
+#about-content h1,
+#about-content h2{
+  font-family: var(--about-font-display-zh);
+  letter-spacing: .01em;
+}
+
+/* 3) 英文小标语/英文小段（仅 About 内使用衬线斜体） */
+#about-content .about-content-slogon,
+#about-content .about-content-description :where(:lang(en), [data-localize], [data-lg]){
+  font-family: var(--about-font-en-italic);
+  font-style: italic;
+  letter-spacing: 0;
+}
+
+/* 4) 版本号/Meta/代码：等宽 */
+#about-content :where(#about-page-version-label, .about-content-meta, code, pre, kbd, samp){
+  font-family: var(--about-font-mono);
+  letter-spacing: .02em;
+}
+
+/* 5) About 激活时的左侧菜单：与主体统一中文基线 */
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-sidebar{
+  font-family: var(--about-font-zh);
+}
+
+/* 菜单头标题与每项标签：用中文展示字体（高端黑） */
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-header-title,
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a > span{
+  font-family: var(--about-font-display-zh);
+  letter-spacing: .01em;
+  font-weight: 800;
+}
+
+/* 菜单中的英文维持无衬线直立（不使用斜体） */
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-sidebar
+  :where(:lang(en), [data-localize], [data-lg]){
+  font-family: var(--about-font-zh);
+  font-style: normal;
+  letter-spacing: 0;
+}
+
+/* 6) 常见控件继承统一基线 */
+#about-content :where(input,button,select,textarea,.btn,.long-btn,th,td,label,span,h1,h2,h3,h4,h5,h6),
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-sidebar
+  :where(input,button,select,textarea,.btn,li>a,span,label,h1,h2,h3,h4,h5,h6){
+  font-family: inherit;
+  letter-spacing: 0;
+}
+
+/* 7) 图标/代码区域保持原字形/图标字形 */
+#about-content :where(i,.icon,[class^="ion-"],[class*=" ion-"],svg),
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-sidebar
+  :where(i,.icon,[class^="ion-"],[class*=" ion-"],svg){
+  font-family: inherit;
+}
+
+/* 8) 可选像素味（局部挂类） */
+#about-content :where(.is-pixel, .pixel, .badge-pixel){
+  font-family: var(--about-font-pixel);
+}
+
+/* ======================================================================================= */
+/* REGION B — ABOUT SURFACE（主容器表层 · 背景/噪点/描边）                                  */
+/* Scope : #about-content                                                                 */
+/* Function : 银光晕 / 竖向像素噪点 / 背景图 / 夜蓝兜底 + 像素硬描边与按钮/链接样式           */
+/* ======================================================================================= */
+
+/* ========================================================================== */
+/* REGION B0 — ROOT VARS（集中变量 · 仅 #about-content 有效）                  */
+/* ========================================================================== */
+#about-content {
+  /* 容器内边距 */
+  --ab-pad-y: 20px;
+  --ab-pad-x: 18px;
+
+  /* 背景渐变色 */
+  --ab-radial-c1: rgba(207,223,255,.38);
+  --ab-radial-c2: rgba(61,157,242,.24);
+  --ab-radial-c3: rgba(0,0,0,0);
+
+  --ab-noise-c: rgba(255,255,255,.10);
+
+  --ab-fallback-top: var(--night-1, #0b1c2e);
+  --ab-fallback-bot: var(--night-2, #152f4f);
+
+  /* 描边与阴影 */
+  --ab-border: var(--night-0, #081424);
+  --ab-shadow: inset 0 0 0 2px #000;
+
+  /* 按钮 */
+  --btn-fg: #e9f0ff;
+  --btn-bg1: var(--lake-1, #1e4a6b);
+  --btn-bg2: var(--sky-1, #3d9df2);
+  --btn-bg3: var(--night-1, #0b1c2e);
+  --btn-stripe1: var(--aurora, #50e3ff);
+  --btn-stripe2: var(--sky-1, #3d9df2);
+  --btn-stripe3: var(--lake-1, #1e4a6b);
+  --btn-stripe4: var(--night-2, #152f4f);
+  --btn-stripe5: var(--night-1, #0b1c2e);
+
+  --btn-shadow: var(--ink, #081f2b);
+  --btn-glow: var(--silver, #cfdfff);
+
+  /* 链接 */
+  --lnk-fg: var(--aurora, #50e3ff);
+  --lnk-hover: var(--silver, #cfdfff);
+}
+
+
+/* ========================================================================== */
+/* REGION B1 — SURFACE CONTAINER                                              */
+/* ========================================================================== */
+#about-content {
+  position: relative;
+  padding: var(--ab-pad-y) var(--ab-pad-x);
+  background:
+    radial-gradient(120% 140% at 50% 40%, var(--ab-radial-c1) 0%, var(--ab-radial-c2) 52%, var(--ab-radial-c3) 72%),
+    repeating-linear-gradient(0deg, var(--ab-noise-c) 0 2px, transparent 2px 4px),
+    url("../assets/Menu/南屏晚风.png") center/cover no-repeat,
+    linear-gradient(180deg, var(--ab-fallback-top) 0%, var(--ab-fallback-bot) 100%);
+  image-rendering: pixelated;
+  border: 2px solid var(--ab-border);
+  box-shadow: var(--ab-shadow);
+}
+
+
+/* ========================================================================== */
+/* REGION B2 — ACTION BUTTON（Registration / Activation）                     */
+/* ========================================================================== */
+#about-content #about-content-license-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  color: var(--btn-fg);
+  border: 2px solid var(--ab-border);
+  border-radius: 0;
+  background:
+    linear-gradient(180deg, var(--btn-bg1) 0%, var(--btn-bg2) 50%, var(--btn-bg3) 100%),
+    repeating-linear-gradient(90deg,
+      var(--btn-stripe1) 0 12px,
+      var(--btn-stripe2) 12px 24px,
+      var(--btn-stripe3) 24px 36px,
+      var(--btn-stripe4) 36px 48px,
+      var(--btn-stripe5) 48px 60px);
+  box-shadow: 3px 3px 0 0 var(--btn-shadow),
+              inset 0 0 0 2px var(--btn-glow);
+  transition: transform .06s steps(2,end);
+  cursor: pointer;
+}
+#about-content #about-content-license-button:hover {
+  transform: translate(-1px,-1px);
+  animation: about-rainbow-border 1.2s steps(5,end) infinite,
+             about-stripe .6s steps(6,end) infinite;
+}
+#about-content #about-content-license-button:active {
+  transform: translate(0,0);
+  box-shadow: 2px 2px 0 0 var(--btn-shadow),
+              inset 0 0 0 2px var(--btn-glow);
+}
+
+
+/* ========================================================================== */
+/* REGION B3 — ANIMATIONS（按钮动画）                                          */
+/* ========================================================================== */
+@keyframes about-rainbow-border {
+  0%   { box-shadow: 3px 3px 0 0 var(--btn-shadow), 0 0 0 2px var(--btn-stripe1) inset; }
+  25%  { box-shadow: 3px 3px 0 0 var(--btn-shadow), 0 0 0 2px var(--btn-stripe2) inset; }
+  50%  { box-shadow: 3px 3px 0 0 var(--btn-shadow), 0 0 0 2px var(--btn-stripe3) inset; }
+  75%  { box-shadow: 3px 3px 0 0 var(--btn-shadow), 0 0 0 2px var(--btn-stripe4) inset; }
+  100% { box-shadow: 3px 3px 0 0 var(--btn-shadow), 0 0 0 2px var(--btn-glow) inset; }
+}
+@keyframes about-stripe {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 0 0, 72px 0; }
+}
+
+
+/* ========================================================================== */
+/* REGION B4 — LINKS（链接与提示色）                                           */
+/* ========================================================================== */
+#about-content a.ty-link {
+  color: var(--lnk-fg);
+  text-decoration: none;
+  border-bottom: 2px solid var(--ab-border);
+  padding-bottom: 1px;
+}
+#about-content a.ty-link:hover {
+  color: var(--lnk-hover);
+  border-bottom-color: var(--lnk-hover);
+}
+
+/* ======================================================================================= */
+/* REGION C — HEADER LATCH（Header/右侧父容器兜底 · About 激活）                           */
+/* Scope : body.megamenu-opened:has(#m-about.active) header；及父容器兜底                 */
+/* Function : Header 上色/描边；右侧主容器像素兜底；统一银白图标                           */
+/* ======================================================================================= */
+
+/* -------- C0 : ROOT VARS（仅 About 激活时挂载） -------- */
+body.megamenu-opened:has(#megamenu-menu-list #m-about.active){
+  /* Header 背景色带（横向渐变顺序保持原有夜蓝 → 湖蓝 → 天蓝 → 极光蓝） */
+  --c-hdr-grad1: var(--night-1, #0b1c2e);
+  --c-hdr-grad2: var(--night-2, #152f4f);
+  --c-hdr-grad3: var(--lake-1,  #1e4a6b);
+  --c-hdr-grad4: var(--sky-1,   #3d9df2);
+  --c-hdr-grad5: var(--aurora,  #50e3ff);
+
+  /* 纵向像素噪点 */
+  --c-noise: #ffffff22;
+
+  /* 描边与阴影 */
+  --c-bd:    var(--night-0, #081424);
+  --c-shadow: var(--ink, #081f2b);
+
+  /* 图标与按钮（银白 + 内发光） */
+  --c-icon:  var(--silver, #cfdfff);
+  --c-btn-inset: rgba(207,223,255,.25);
+}
+
+/* -------- C1 : HEADER（像素横向渐变 + 下描边 + 阴影） -------- */
+body.megamenu-opened:has(#megamenu-menu-list #m-about.active) header{
+  background:
+    linear-gradient(90deg,
+      var(--c-hdr-grad1),
+      var(--c-hdr-grad2),
+      var(--c-hdr-grad3),
+      var(--c-hdr-grad4),
+      var(--c-hdr-grad5)
+    ),
+    repeating-linear-gradient(0deg, var(--c-noise) 0 2px, transparent 2px 4px);
+  image-rendering: pixelated;
+  border-bottom: 2px solid var(--c-bd);
+  box-shadow: 0 2px 0 0 var(--c-shadow);
+}
+
+/* -------- C2 : 右侧父容器兜底（蓝银像素内框） -------- */
+body.megamenu-opened:has(#megamenu-menu-list #m-about.active) #megamenu-section-about,
+body.megamenu-opened:has(#megamenu-menu-list #m-about.active) *:has(> #megamenu-section-about){
+  background:
+    linear-gradient(90deg,
+      var(--c-hdr-grad1),
+      var(--c-hdr-grad2),
+      var(--c-hdr-grad3),
+      var(--c-hdr-grad4),
+      var(--c-hdr-grad5)
+    ),
+    repeating-linear-gradient(0deg, var(--c-noise) 0 2px, transparent 2px 4px);
+  image-rendering: pixelated;
+  box-shadow: inset 0 0 0 2px var(--c-bd);
+}
+
+/* -------- C3 : Header 图标/按钮（统一银白 + 内发光） -------- */
+body.megamenu-opened:has(#megamenu-menu-list #m-about.active)
+header :is(.btn,.toolbar-icon,.icon,[class*="icon"],[class^="ion-"],i,svg,svg use){
+  color: var(--c-icon); fill: var(--c-icon); stroke: var(--c-icon);
+  opacity: 1; filter: none;
+}
+body.megamenu-opened:has(#megamenu-menu-list #m-about.active) header .btn{
+  border-color: var(--c-bd);
+  box-shadow: 0 0 0 2px var(--c-btn-inset) inset;
+}
+
+/* ========================================================================== */
+/* REGION D — ABOUT MENU（Sidebar/Header + Menu List + Icons + Patch）        */
+/* Scope : body.megamenu-opened:has(#m-about.active)                          */
+/*         #megamenu-menu-sidebar（含 .megamenu-menu-header）与 #megamenu-menu-list */
+/* Function : 夜蓝纸感侧栏 + 银蓝 Header 条幅 + 右侧竖线补丁；                   */
+/*            菜单容器/菜单项/贴纸标签/分隔条；FontAwesome 图标映射与 Saved 勾选 */
+/* Notes : 不改 DOM；仅在 About 激活态挂载；统一像素描边语汇                     */
+/* ========================================================================== */
+
+
+/* —— D · Region Root Vars（仅本区有效，可统一调色/间距/动画） —— */
+body.megamenu-opened:has(#m-about.active){
+  /* 色板映射（沿用你的 night/silver/sky/lake/aurora/ink，可在此统一替换） */
+  --D-ink:        var(--ink, #081f2b);
+  --D-night-0:    var(--night-0, #081424);
+  --D-night-1:    var(--night-1, #0b1c2e);
+  --D-night-2:    var(--night-2, #152f4f);
+  --D-silver:     var(--silver, #cfdfff);
+  --D-sky-1:      var(--sky-1, #3d9df2);
+  --D-lake-1:     var(--lake-1, #1e4a6b);
+  --D-aurora:     var(--aurora, #50e3ff);
+  --D-warm-gold:  var(--warm-gold, #ffd66b);
+
+  /* 侧栏/卡片间距与尺寸 */
+  --D-sidebar-border-l: 2px;
+  --D-inner-frame:      2px;
+  --D-header-pad-y:     12px;
+  --D-header-pad-x:     10px;
+
+  --D-list-margin:      10px 8px 12px;
+  --D-list-padding:     6px 4px;
+
+  --D-item-margin:      8px 6px;
+  --D-item-padding:     10px 12px;
+
+  --D-divider-h:        10px;
+
+  /* 菜单项交互/动画 */
+  --D-step-time:        .06s;
+  --D-anim-border:      about-rainbow-border 1.2s steps(5,end) infinite;
+  --D-anim-stripe:      about-stripe .6s steps(6,end) infinite;
+
+  /* 标题牌、发光与阴影 */
+  --D-title-border:     2px;
+  --D-title-shadow:     2px 2px 0 0 var(--D-ink);
+  --D-text-glow:        0 0 2px rgba(207,223,255,.4);
+
+  /* FA 图标槽与 Saved 右侧勾选 */
+  --D-fa-width:         1.25em;
+  --D-fa-lshift:        6px;  /* 左侧图标与文本间距 */
+  --D-saved-r-pad:      2rem; /* Saved 右侧预留空间 */
+  --D-saved-icon-size:  1.05em;
+
+  /* 背景层（梯度 stop 可集中调参） */
+  --D-sidebar-bg-1:     linear-gradient(180deg, var(--D-night-1) 0%, var(--D-night-2) 42%, var(--D-lake-1) 85%, var(--D-sky-1) 100%);
+  --D-sidebar-bg-2:     repeating-linear-gradient(90deg, var(--D-aurora) 0 18px, var(--D-sky-1) 18px 36px, var(--D-lake-1) 36px 54px, var(--D-night-2) 54px 72px, var(--D-night-1) 72px 90px);
+  --D-sidebar-bg-3:     repeating-linear-gradient(0deg, #ffffff22 0 2px, transparent 2px 4px);
+
+  --D-header-bg-1:      linear-gradient(180deg, rgba(255,255,255,.12) 0%, rgba(207,223,255,.22) 100%);
+  --D-header-bg-2:      repeating-linear-gradient(90deg, var(--D-aurora) 0 10px, var(--D-sky-1) 10px 20px, var(--D-lake-1) 20px 30px, var(--D-night-2) 30px 40px, var(--D-night-1) 40px 50px);
+
+  --D-list-bg:          linear-gradient(180deg, var(--D-night-1) 0%, var(--D-night-2) 100%);
+
+  --D-item-bg-1:        linear-gradient(180deg, var(--D-silver) 0%, var(--D-warm-gold) 28%, var(--D-lake-1) 60%, var(--D-night-1) 100%);
+  --D-item-bg-2:        repeating-linear-gradient(90deg, var(--D-warm-gold) 0 8px, var(--D-sky-1) 8px 20px, var(--D-lake-1) 20px 32px, var(--D-night-2) 32px 44px, var(--D-night-1) 44px 56px);
+
+  --D-divider-bg-1:     linear-gradient(180deg, var(--D-silver) 0%, var(--D-sky-1) 100%);
+  --D-divider-bg-2:     repeating-linear-gradient(90deg, var(--D-aurora) 0 12px, var(--D-sky-1) 12px 24px, var(--D-lake-1) 24px 36px, var(--D-night-2) 36px 48px, var(--D-night-1) 48px 60px);
+}
+
+
+/* —— Sidebar 主体（夜蓝纸感 + 内框像素描边） —— */
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-sidebar{
+  background: var(--D-sidebar-bg-1), var(--D-sidebar-bg-2), var(--D-sidebar-bg-3);
+  image-rendering: pixelated;
+  border-left: var(--D-sidebar-border-l) solid var(--D-night-0);
+  box-shadow: inset 0 0 0 var(--D-inner-frame) var(--D-night-0);
+}
+
+/* —— Sidebar Header（银蓝条幅 + 下缘像素投影 + 右侧竖线补丁） —— */
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-sidebar .megamenu-menu-header{
+  padding: var(--D-header-pad-y) var(--D-header-pad-x);
+  border-bottom: 2px solid var(--D-night-0);
+  background: var(--D-header-bg-1), var(--D-header-bg-2);
+  box-shadow: 0 2px 0 0 var(--D-ink);
+  position: relative; /* 用于右侧补丁竖线定位 */
+}
+/* Header 右侧竖线补齐（补丁线） */
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-sidebar .megamenu-menu-header::after{
+  content:"";
+  position:absolute; top:0; right:0; bottom:0; width:2px;
+  background: var(--D-night-0);
+  box-shadow:
+    inset 0 0 0 2px var(--D-silver),
+    0 0 0 2px var(--D-night-0),
+    2px 0 0 0 var(--D-ink);
+  pointer-events:none;
+  image-rendering: pixelated;
+}
+
+/* —— 返回按钮与标题牌（蓝银） —— */
+body.megamenu-opened:has(#m-about.active) #megamenu-back-btn i{
+  color: var(--D-lake-1);
+  text-shadow: var(--D-text-glow);
+}
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-header-title{
+  display:inline-block;
+  padding: 2px 8px;
+  border: var(--D-title-border) solid var(--D-night-0);
+  background: linear-gradient(180deg, rgba(207,223,255,.35) 0%, rgba(207,223,255,.15) 100%);
+  box-shadow: var(--D-title-shadow);
+  font-weight: 600;
+  color: var(--D-lake-1);
+}
+
+/* —— 菜单容器（蓝银像素卡片） —— */
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list{
+  margin: var(--D-list-margin);
+  padding: var(--D-list-padding);
+  border: 2px solid var(--D-night-0);
+  background: var(--D-list-bg);
+  box-shadow: 3px 3px 0 0 var(--D-ink);
+}
+
+/* —— 菜单项（小按键：暖金点缀 + 像素阴影 + 阶梯动画） —— */
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a{
+  display:flex; align-items:center; gap:10px;
+  position: relative;
+  margin: var(--D-item-margin);
+  padding: var(--D-item-padding);
+  color:#0a1b27; text-decoration:none;
+  border: 2px solid var(--D-night-0); border-radius: 0;
+  background: var(--D-item-bg-1), var(--D-item-bg-2);
+  box-shadow: 2px 2px 0 0 var(--D-ink), inset 0 0 0 2px #fff;
+  transition: transform var(--D-step-time) steps(2,end),
+              box-shadow var(--D-step-time) steps(2,end);
+}
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a i{
+  color: var(--D-lake-1);
+}
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a:hover{
+  transform: translate(-1px,-1px);
+  box-shadow: 4px 4px 0 0 var(--D-ink), inset 0 0 0 2px var(--D-silver);
+  animation: var(--D-anim-border), var(--D-anim-stripe);
+}
+
+/* —— 菜单项标签（银白贴纸） —— */
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a > span{
+  font-weight:800; color: var(--D-lake-1);
+  background: linear-gradient(0deg, #ffffff, var(--D-silver));
+  border:1.5px solid var(--D-night-0); padding:0 4px; display:inline-block;
+  font-size:.95em; line-height:1.2; border-radius:0;
+  box-shadow:1.5px 1.5px 0 0 var(--D-ink);
+}
+
+/* —— 左侧图标槽（统一强制 FontAwesome；默认图标） —— */
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a::before{
+  font-family: 'FontAwesome' !important;
+  font-style: normal !important;
+  font-weight: normal !important;
+  font-variant: normal;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  display: inline-block;
+  width: var(--D-fa-width); text-align: center;
+  margin-right: var(--D-fa-lshift); transform: translateY(-1px);
+  color: var(--D-lake-1);
+  text-shadow: 1px 1px 0 var(--D-silver), 0 0 2px var(--D-ink);
+  content: "\f0a3"; /* fa-certificate（默认） */
+}
+
+/* —— 单项图标映射（兼容 a#id / li#id > a / .long-btn#id） —— */
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a#m-new::before,
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li#m-new > a::before,
+body.megamenu-opened:has(#m-about.active) .long-btn#m-new::before{ content:"\f0a3"; } /* certificate */
+
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a#m-open::before,
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li#m-open > a::before,
+body.megamenu-opened:has(#m-about.active) .long-btn#m-open::before{ content:"\f19c"; } /* university */
+
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a#m-save::before,
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li#m-save > a::before,
+body.megamenu-opened:has(#m-about.active) .long-btn#m-save::before{ content:"\f13d"; } /* anchor */
+
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a#m-saved::before,
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li#m-saved > a::before,
+body.megamenu-opened:has(#m-about.active) .long-btn#m-saved::before{ content:"\f219"; } /* diamond */
+
+/* 兼容 m-save-as 与 m-saveas 两种历史写法 */
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a#m-save-as::before,
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li#m-save-as > a::before,
+body.megamenu-opened:has(#m-about.active) .long-btn#m-save-as::before,
+body.megamenu-opened:has(#m-about.active) .long-btn#m-saveas::before{ content:"\f15c"; } /* file-text */
+
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a#m-export::before,
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li#m-export > a::before,
+body.megamenu-opened:has(#m-about.active) .long-btn#m-export::before{ content:"\f06d"; } /* fire */
+
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a#m-print::before,
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li#m-print > a::before,
+body.megamenu-opened:has(#m-about.active) .long-btn#m-print::before{ content:"\f02f"; } /* print */
+
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a#m-theme::before,
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li#m-theme > a::before,
+body.megamenu-opened:has(#m-about.active) .long-btn#m-theme::before{ content:"\f18c"; } /* pagelines */
+
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a#m-preference::before,
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li#m-preference > a::before,
+body.megamenu-opened:has(#m-about.active) .long-btn#m-preferences::before{ content:"\f013"; } /* cog */
+
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a#m-about::before,
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li#m-about > a::before,
+body.megamenu-opened:has(#m-about.active) .long-btn#m-about::before{ content:"\f19c"; } /* university */
+
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a#m-close::before,
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li#m-close > a::before,
+body.megamenu-opened:has(#m-about.active) .long-btn#m-close::before{ content:"\f057"; } /* times-circle */
+
+/* Hover 时“银线闪烁” */
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a:hover::before{
+  text-shadow: 0 0 6px var(--D-silver), 0 0 10px var(--D-sky-1), 1px 1px 0 var(--D-ink);
+}
+
+/* —— Saved 右侧图标位（右置勾选） —— */
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a#m-saved{
+  position: relative;
+  padding-right: var(--D-saved-r-pad);
+}
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a#m-saved > i{
+  position: absolute;
+  right: -2px; top: 50%; transform: translateY(-50%);
+  font-family: 'FontAwesome' !important;
+  font-style: normal !important; font-weight: normal !important;
+  line-height: 1; font-size: var(--D-saved-icon-size);
+  color: var(--D-lake-1);
+  text-shadow: 1px 1px 0 var(--D-silver), 0 0 2px var(--D-ink);
+  pointer-events: none;
+}
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a#m-saved > i:before{
+  content: "\f05d"; /* fa-check-circle-o */
+}
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-list > li > a#m-saved:hover > i{
+  text-shadow: 0 0 6px var(--D-silver), 0 0 10px var(--D-sky-1), 1px 1px 0 var(--D-ink);
+}
+
+/* （可选）若希望右侧主区也闭合成整条竖线，解开此行：
+body.megamenu-opened:has(#m-about.active) #megamenu-section-about{
+  border-right:2px solid var(--D-night-0);
+}
+*/
+
+/* ========================================================================== */
+/* REGION E — SCROLLBARS（滚动条 · Sidebar + 页面右侧）                         */
+/* Scope : About 激活时的 Sidebar 与典型主容器                                 */
+/* Function : 蓝银像素风滚动条；轨道像素描边；拇指阶梯位移                      */
+/* ========================================================================== */
+
+/* —— E · Scrollbar Root Vars（仅本区有效） —— */
+body.megamenu-opened:has(#m-about.active){
+  /* 色板（优先承接 D 区变量，其次回退到全局） */
+  --SB-ink:       var(--D-ink,       var(--ink, #081f2b));
+  --SB-night-0:   var(--D-night-0,   var(--night-0, #081424));
+  --SB-night-1:   var(--D-night-1,   var(--night-1, #0b1c2e));
+  --SB-night-2:   var(--D-night-2,   var(--night-2, #152f4f));
+  --SB-silver:    var(--D-silver,    var(--silver, #cfdfff));
+  --SB-sky-1:     var(--D-sky-1,     var(--sky-1, #3d9df2));
+  --SB-lake-1:    var(--D-lake-1,    var(--lake-1, #1e4a6b));
+  --SB-aurora:    var(--D-aurora,    var(--aurora, #50e3ff));
+
+  /* 尺寸/描边 */
+  --SB-size:        10px;          /* 滚动条宽高（竖/横） */
+  --SB-border-w:     2px;          /* 外边框宽度（track/thumb） */
+  --SB-inner-frame:  2px;          /* 轨道内框 inset 像素描边 */
+  --SB-radius:       0;            /* thumb 圆角（像素风为 0） */
+
+  /* 轨道背景（Sidebar / Page） */
+  --SB-track-bg-sidebar:
+    linear-gradient(180deg, var(--SB-night-1) 0%, var(--SB-night-2) 40%, var(--SB-lake-1) 75%, var(--SB-sky-1) 100%),
+    repeating-linear-gradient(0deg, #ffffff22 0 2px, transparent 2px 4px);
+  --SB-track-bg-page:
+    linear-gradient(180deg, var(--SB-night-1) 0%, var(--SB-night-2) 50%, var(--SB-sky-1) 100%),
+    repeating-linear-gradient(0deg, #ffffff22 0 2px, transparent 2px 4px);
+
+  /* 拇指背景（Sidebar/Page 同款） */
+  --SB-thumb-bg:
+    linear-gradient(180deg, var(--SB-sky-1) 0%, var(--SB-lake-1) 50%, var(--SB-night-1) 100%),
+    repeating-linear-gradient(135deg, var(--SB-aurora) 0 8px, var(--SB-sky-1) 8px 16px, var(--SB-lake-1) 16px 24px, var(--SB-night-2) 24px 32px, var(--SB-night-1) 32px 40px);
+
+  /* 通用像素投影/描边 */
+  --SB-track-inset-shadow: inset 0 0 0 var(--SB-inner-frame) var(--SB-night-0);
+  --SB-thumb-inset:        inset 0 0 0 2px var(--SB-silver);
+  --SB-thumb-drop:         2px 2px 0 0 var(--SB-ink);
+
+  /* Hover 动效（Sidebar 专用） */
+  --SB-thumb-hover-shift-x: -1px;
+  --SB-thumb-hover-shift-y: -1px;
+}
+
+/* —— Sidebar 滚动条 —— */
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-sidebar::-webkit-scrollbar{
+  width: var(--SB-size); height: var(--SB-size);
+}
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-sidebar::-webkit-scrollbar-track{
+  background: var(--SB-track-bg-sidebar);
+  image-rendering: pixelated;
+  border-left: var(--SB-border-w) solid var(--SB-night-0);
+  border-top:  var(--SB-border-w) solid var(--SB-night-0);
+  box-shadow: var(--SB-track-inset-shadow);
+}
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-sidebar::-webkit-scrollbar-thumb{
+  background: var(--SB-thumb-bg);
+  border: var(--SB-border-w) solid var(--SB-night-0);
+  border-radius: var(--SB-radius);
+  box-shadow: var(--SB-thumb-inset), var(--SB-thumb-drop);
+}
+body.megamenu-opened:has(#m-about.active) #megamenu-menu-sidebar::-webkit-scrollbar-thumb:hover{
+  transform: translate(var(--SB-thumb-hover-shift-x), var(--SB-thumb-hover-shift-y));
+}
+
+/* —— 页面右侧主滚动条（覆盖典型 Megamenu 容器） —— */
+body.megamenu-opened:has(#m-about.active)
+:where(html, body, #megamenu-section-about, .megamenu-section, .megamenu-menu-panel, .megamenu-content, #content, #write)::-webkit-scrollbar{
+  width: var(--SB-size); height: var(--SB-size);
+}
+body.megamenu-opened:has(#m-about.active)
+:where(html, body, #megamenu-section-about, .megamenu-section, .megamenu-menu-panel, .megamenu-content, #content, #write)::-webkit-scrollbar-track{
+  background: var(--SB-track-bg-page);
+  image-rendering: pixelated;
+  border-left: var(--SB-border-w) solid var(--SB-night-0);
+  border-top:  var(--SB-border-w) solid var(--SB-night-0);
+  box-shadow: var(--SB-track-inset-shadow);
+}
+body.megamenu-opened:has(#m-about.active)
+:where(html, body, #megamenu-section-about, .megamenu-section, .megamenu-menu-panel, .megamenu-content, #content, #write)::-webkit-scrollbar-thumb{
+  background: var(--SB-thumb-bg);
+  border: var(--SB-border-w) solid var(--SB-night-0);
+  border-radius: var(--SB-radius);
+  box-shadow: var(--SB-thumb-inset), var(--SB-thumb-drop);
+}
+/* =============================== END OF PACKAGE ============================ */
+
+
+
+
+
+
+
+
+
+
+

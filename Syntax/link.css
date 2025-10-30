@@ -1,0 +1,114 @@
+/* =======================================================================================
+   Rhapsody — BODY LINKS（正文内普通链接）
+   设计理念 / Design Concept
+   - 严格作用域：仅限 #write 下的外链 a[href^="http"]，避免影响内部锚点与菜单。
+   - 视觉平衡：默认青色文字，hover 焦点时切换暖橙色并伴随轻微光晕，提升交互感。
+   - 一致性：使用透明描边占位，避免 hover 边框粗细跳动；变量集中管理颜色/圆角/描边。
+   - 可读性：仅在交互态使用 text-shadow，保持常态清爽，聚焦时增强可达性。
+   - 兼容性：提供黑名单排除（代码、目录、脚注、标题、图像链接），避免样式污染。
+   - 性能友好：无持续动画与大范围滤镜，常态静止；符合 Typora/Electron 长文场景。
+   ======================================================================================= */
+
+/* ========================================================================== */
+/* REGION A — BODY LINK ROOT                                                  */
+/* Scope: #write a[href^="http"]                                              */
+/* Function: 定义正文外链的基础变量（颜色、字号、内边距、圆角、描边等）         */
+/* Adjustable Params: --link-fg / --link-fg-hover / --link-radius / --link-pad*/
+/* Compatibility: 现代浏览器 / Typora(Electron)；无动画时回退为静态           */
+/* ========================================================================== */
+#write {
+  --link-fg: #00c5d4;                /* 链接常态前景色 */
+  --link-fg-hover: #ff9e4d;          /* hover/焦点前景色 */
+  --link-radius: 0.75em;             /* 圆角 */
+  --link-pad-y: 0.05em;              /* 垂直内边距 */
+  --link-pad-x: 0.4em;               /* 水平内边距 */
+  --link-fs: 1.02rem;                /* 字号 */
+  --link-fw: 500;                    /* 字重 */
+  --link-lh: 1.5;                    /* 行高 */
+  --link-border: 1.2px solid transparent; /* 透明描边占位 */
+}
+
+/* ========================================================================== */
+/* REGION B — BODY LINK BASE                                                  */
+/* Scope: #write a[href^="http"]                                              */
+/* Function: 应用 Root 变量，设定常态样式与交互过渡                           */
+/* ========================================================================== */
+#write a[href^="http"] {
+  position: relative; 
+  display: inline;
+  padding: var(--link-pad-y) var(--link-pad-x);
+  font-size: var(--link-fs);
+  font-weight: var(--link-fw);
+  line-height: var(--link-lh);
+
+  color: var(--link-fg);
+  text-decoration: none;
+  border-radius: var(--link-radius);
+  border-bottom: var(--link-border);
+
+  transition: color .25s ease, border-color .25s ease, text-shadow .25s ease;
+  cursor: pointer;
+}
+
+/* Hover 效果 */
+#write a[href^="http"]:hover {
+  color: var(--link-fg-hover);
+  border-bottom-color: var(--link-fg-hover);
+  text-shadow:
+    0 0 1px rgba(0, 0, 0, 0.25),
+    0 0 4px rgba(255, 130, 0, 0.4),
+    0 0 10px rgba(255, 90, 0, 0.2);
+}
+
+/* 外链前缀图标 */
+#write a[href^="http"]::before {
+  content: "🌐 ";
+  color: var(--link-fg-hover);
+  font-size: 0.9em;
+  margin-right: 0.2em;
+}
+
+/* ========================================================================== */
+/* REGION C — BODY LINK BLACKLIST                                             */
+/* Scope: code/目录/脚注/标题锚点/图片链接                                    */
+/* Function: 恢复朴素链接样式，禁用前缀图标                                   */
+/* ========================================================================== */
+#write :is(pre, code, kbd, tt, var) a[href^="http"],
+#write .CodeMirror a[href^="http"],
+#write .md-toc a[href^="http"],
+#write .footnotes a[href^="http"],
+#write :is(h1,h2,h3,h4,h5,h6) a[href^="http"],
+#write a[href^="http"]:has(:where(img,svg)),
+#write a.md-header-anchor {
+  color: inherit;
+  text-decoration: underline;
+  padding: 0;
+  border: 0;
+  text-shadow: none;
+  background: transparent;
+}
+
+#write :is(pre, code, kbd, tt, var) a[href^="http"]::before,
+#write .CodeMirror a[href^="http"]::before,
+#write .md-toc a[href^="http"]::before,
+#write .footnotes a[href^="http"]::before,
+#write :is(h1,h2,h3,h4,h5,h6) a[href^="http"]::before,
+#write a[href^="http"]:has(:where(img,svg))::before,
+#write a.md-header-anchor::before {
+  content: "";
+}
+
+/* ========================================================================== */
+/* REGION D — BODY LINK ACCESSIBILITY                                         */
+/* Scope: focus-visible 状态                                                   */
+/* Function: 增强键盘可达性，保证焦点可见                                     */
+/* ========================================================================== */
+#write a[href^="http"]:not(:has(:where(img,svg))):focus-visible {
+  color: var(--link-fg-hover);
+  border-bottom-color: var(--link-fg-hover);
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  text-decoration: underline;
+}
+
+/* =============================== END OF PACKAGE ============================ */

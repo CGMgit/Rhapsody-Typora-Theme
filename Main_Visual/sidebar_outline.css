@@ -1,0 +1,583 @@
+/* =======================================================================================
+   Rhapsody · Outline Sidebar Package  （大纲侧栏样式包 · 精修合并版）
+   设计理念 / Design Concept
+   - 作用域收敛：仅在 #typora-sidebar.active-tab-outline 激活时生效，避免影响 Files/其他页签。
+   - 轻量表达：以文字层级色 + 细导引线 + 轻度发光表现交互，不使用重滤镜/大面积块背景。
+   - 分区自治：每区仅使用本区变量（--ol*），A 区合并原 SPECIAL/CONTAINERS 并保留旧名映射。
+   - 结构不改：不调整 Typora DOM，使用 ID/类名精确命中（如 #file-library-search-panel / #file-library-search-input）。
+   - 性能优先：导引线提供 rgba 兜底 + color-mix 首选；主滚动区 contain: paint；只对必要属性做过渡。
+   - 可达性：提供明确的键盘焦点环；层级配色在深底下保持 ≥ AA 对比。
+   - 兼容策略：字体规则使用 :where 降特异性以便继承；J 区 :has() 仅用于“分隔条/全局协调”，并受守卫限制。
+   - 可控调试：提供 .debug-outline-scope 开关类，用于快速验证作用域收敛（发布时不添加该类）。
+
+   使用说明 / Usage Notes
+   - A 区：统一黑底白字与描边，仅给大纲根容器着色；.outline-content 设置内边距与 contain: paint。
+   - B 区：为各级 ul 绘制左侧导引线；优先 color-mix，老内核回退 rgba。
+   - C 区：条目层级色/hover/active 文本高亮与圆点强调；圆点 pointer-events:none 避免遮挡点击。
+   - D/E 区：折叠箭头仅做 opacity/scale 的轻动效；Reduced Motion 下关闭相关过渡。
+   - F 区（Filter）：在 Outline 激活时以 ID 精确命中搜索面板与输入框；变量集中挂在根上统一调参。
+   - G 区（Resizer）：通过 body:has(#typora-sidebar.active-tab-outline) 接管分隔条；当 .megamenu-opened 时让位。
+   - H 区（Fonts）：在根与常见容器设 UI 字体，tabs 标题/代码片段分别映射标题/等宽字体，避免跨区污染。
+   - I 区（Menu）：y阴阳鱼主题菜单样式设置，围绕主题图片惊醒配色设计。
+
+   兼容性 / Compatibility
+   - Chromium/Electron（Typora）/现代 Safari：完整支持；旧内核忽略 color-mix / :has 时自动使用兜底或跳过。
+   - @media (prefers-reduced-motion: reduce)：动效降级不影响布局与配色。
+
+   维护建议 / Maintenance
+   - 保持变量名与选择器稳定；新增样式优先追加在对应 REGION，避免跨区读取变量。
+   - 若需扩大命中范围，优先调整根守卫或容器选择器，而非提升选择器特异性或使用 !important。
+   ======================================================================================= */
+
+/* =============================================================================
+   REGION A — 主要样式与全局上色（合并版：原 SPECIAL + CONTAINERS）
+   Scope:
+     #typora-sidebar.active-tab-outline 及其内部常见容器
+   Function:
+     - 统一 Outline 区的黑底白字与描边（发布版默认只作用于本区容器）
+     - 设置主滚动区内边距与绘制收敛（contain: paint）
+   Notes:
+     - 提供“调试开关”类 .debug-outline-scope，便于一键验证作用域收敛；
+       发布时不加该类即可避免潜在外溢。
+     - 变量采用 A 区命名；保留旧名映射，避免下游样式回归。
+   ========================================================================== */
+/* =============================================================================
+   REGION A — ROOT + TAB STRIP（合并：容器上色 + 顶部页签条）
+   Scope:
+     #typora-sidebar.active-tab-outline 及其内部 .outline-content / tabs 子容器
+   Function:
+     - 统一侧栏容器黑底白字与描边
+     - 同时接管顶部页签条（Outline / Files tab strip）的底色与文字状态
+   Vars:
+     - S 组（容器）：--olS-bg / --olS-fg / --olS-border
+     - B 组（内容内边距）：--olB-pad
+     - K 组（页签条）：--olK-tab-bg / --olK-tab-fg / --olK-tab-fg-active / --olK-underline / --olK-dur
+   Notes:
+     - 仅命中本侧栏实例，不跨区；不使用 :has() 与 !important。
+   ========================================================================== */
+
+#typora-sidebar.active-tab-outline {
+  /* 容器（S 组） */
+  --olS-bg: #0f0f0f;
+  --olS-fg: #ffffff;
+  --olS-border: rgba(255,255,255,.12);
+
+  /* 内容区（B 组） */
+  --olB-pad: 12px 12px 10px;
+
+  /* 页签条（K 组） */
+  --olK-tab-bg: #0f0f0f;
+  --olK-tab-fg: rgba(255,255,255,.62);
+  --olK-tab-fg-active: #ffffff;
+  --olK-underline: #eaeaea;
+  --olK-dur: .18s;
+
+  /* 应用于侧栏容器本体 */
+  background: var(--olS-bg);
+  color: var(--olS-fg);
+  border-color: var(--olS-border);
+}
+
+/* 主内容内边距 */
+#typora-sidebar.active-tab-outline .outline-content {
+  padding: var(--olB-pad);
+}
+
+/* 顶部页签条容器与伪元素：统一底色与去阴影 */
+#typora-sidebar.active-tab-outline .info-panel-tab-title-group,
+#typora-sidebar.active-tab-outline .info-panel-tab-title-group::before {
+  background: var(--olK-tab-bg);
+  box-shadow: none;
+}
+
+/* 下划线（若存在） */
+#typora-sidebar.active-tab-outline .info-panel-tab-border {
+  background: var(--olK-underline);
+}
+
+/* 单个页签标题：常态/交互 */
+#typora-sidebar.active-tab-outline .info-panel-tab-title {
+  background: var(--olK-tab-bg);
+  color: var(--olK-tab-fg);
+  border: 0;
+  outline: none;
+  box-shadow: none;     /* 移除左侧高亮 rail 等阴影差异 */
+  font-weight: 600;
+  transition: color var(--olK-dur) ease;
+}
+#typora-sidebar.active-tab-outline .info-panel-tab-title:hover,
+#typora-sidebar.active-tab-outline .info-panel-tab-title.active {
+  background: var(--olK-tab-bg);
+  color: var(--olK-tab-fg-active);
+  box-shadow: none;
+}
+
+
+/* =============================================================================
+   REGION B — TREE RAILS（纵向导引线）
+   Scope:
+     #typora-sidebar.active-tab-outline .outline-content ul
+   Vars（仅本区）:
+     --olC-rail / --olC-rail-alpha / --olC-rail-w / --olC-indent
+   Function:
+     为每级 ul 绘制左侧纵向导引线；提供 rgba 兜底与 color-mix 首选（现代）。
+   设计要点 / Design Notes:
+     - 粗细（--olC-rail-w）与缩进（--olC-indent）需要配合，避免“线压文字”或过宽空栏。
+     - alpha 建议 85%–100%，过低会导致深色底下不可见；过高会喧宾夺主。
+   ========================================================================== */
+#typora-sidebar.active-tab-outline .outline-content ul {
+  --olC-rail: #e5e5e5;      /* 轨道基色 | rail base color */
+  --olC-rail-alpha: 100%;   /* 建议 85%–100% | recommended 85%–100% */
+  --olC-rail-w: 2px;        /* 轨道粗细 | rail thickness */
+  --olC-indent: 18px;       /* 子层缩进 | nested indent */
+
+  margin: 0;
+  padding-left: var(--olC-indent);
+
+  /* 兜底：rgba | fallback first */
+  border-left: var(--olC-rail-w) solid rgba(229,229,229,0.85);
+
+  /* 首选：color-mix（若支持）覆盖兜底 | preferred if supported */
+  border-left-color: color-mix(in srgb, var(--olC-rail) var(--olC-rail-alpha), transparent);
+}
+
+
+/* =============================================================================
+   REGION C — ITEMS & STATES（条目与状态）
+   Scope:
+     .outline-item 及其状态/层级；兼容 .outline-label 文本容器
+   Vars（仅本区）:
+     层级配色 --olD-h1~h6；
+     交互配色 --olD-hover / --olD-hover-glow / --olD-active / --olD-active-glow；
+     几何/节奏 --olD-pad-y / --olD-pad-x / --olD-radius / --olD-line / --olD-dur；
+     强调圆点 --olD-accent / --olD-accent-w。
+   Function:
+     控制条目层级色、hover/active 文本高亮与圆点强调；不使用块背景，尽量轻。
+   可达性 / A11y:
+     - 层级色差清晰，黑底下保持 ≥ AA 对比（建议 h1~h6 分级由亮到暗）。
+     - 发光半径克制，避免影响字形边界识别。
+   ========================================================================== */
+#typora-sidebar.active-tab-outline .outline-item {
+  --olD-dim: rgba(255,255,255,.78);  /* 非高亮默认字色 | dimmed text */
+  --olD-pad-y: 2px;
+  --olD-pad-x: 4px;
+  --olD-radius: 6px;
+  --olD-line: 1.28;
+  --olD-dur: .18s;
+
+  /* 层级配色（同色不同名，不与他区共享） */
+  --olD-h1: #ffffff;
+  --olD-h2: #e6f7ff;
+  --olD-h3: #bae7ff;
+  --olD-h4: #91d5ff;
+  --olD-h5: #69c0ff;
+  --olD-h6: #40a9ff;
+
+  /* 交互配色（仅本区） */
+  --olD-hover: #23b3fc;
+  --olD-hover-glow: rgba(35,179,252,.55);
+  --olD-active: #ffe232;
+  --olD-active-glow: rgba(255,226,50,.65);
+
+  /* 活动强调（圆点） */
+  --olD-accent: #ffe232;
+  --olD-accent-w: 3px; /* 用于计算圆点偏移 | offset reference */
+
+  margin: 2px 0 4px 6px;
+  padding: var(--olD-pad-y) var(--olD-pad-x);
+  background: transparent;
+  border: none;
+  color: var(--olD-dim);
+  line-height: var(--olD-line);
+  border-radius: var(--olD-radius);
+  position: relative;
+  overflow: visible; /* 防止 ::before 被裁切 | keep pseudo visible */
+  transition: color var(--olD-dur) ease, text-shadow var(--olD-dur) ease;
+}
+
+/* 文本承载节点兜底（有的版本文字在 .outline-label 内）
+   Fallback: some builds use .outline-label for text. */
+#typora-sidebar.active-tab-outline .outline-item .outline-label { color: inherit; }
+
+/* 层级色（同时兜底到 .outline-label）
+   Map level colors; also affect .outline-label if present. */
+#typora-sidebar.active-tab-outline .outline-h1 > .outline-item,
+#typora-sidebar.active-tab-outline .outline-h1 > .outline-item .outline-label { color: var(--olD-h1); }
+#typora-sidebar.active-tab-outline .outline-h2 > .outline-item,
+#typora-sidebar.active-tab-outline .outline-h2 > .outline-item .outline-label { color: var(--olD-h2); }
+#typora-sidebar.active-tab-outline .outline-h3 > .outline-item,
+#typora-sidebar.active-tab-outline .outline-h3 > .outline-item .outline-label { color: var(--olD-h3); }
+#typora-sidebar.active-tab-outline .outline-h4 > .outline-item,
+#typora-sidebar.active-tab-outline .outline-h4 > .outline-item .outline-label { color: var(--olD-h4); }
+#typora-sidebar.active-tab-outline .outline-h5 > .outline-item,
+#typora-sidebar.active-tab-outline .outline-h5 > .outline-item .outline-label { color: var(--olD-h5); }
+#typora-sidebar.active-tab-outline .outline-h6 > .outline-item,
+#typora-sidebar.active-tab-outline .outline-h6 > .outline-item .outline-label { color: var(--olD-h6); }
+
+/* Hover：文字提亮 + 轻微发光（不使用块背景）
+   Hover state: brighten text with a subtle glow. */
+#typora-sidebar.active-tab-outline .outline-item:hover {
+  color: var(--olD-hover);
+  text-shadow: 0 0 6px var(--olD-hover-glow);
+}
+
+/* Active：字色置黄 + 圆点强调（兼容 .active）
+   Active state with yellow text + circular marker (also match .active). */
+#typora-sidebar.active-tab-outline :is(.outline-item-active, .outline-item.active) {
+  color: var(--olD-active);
+  text-shadow: 0 0 8px var(--olD-active-glow);
+}
+#typora-sidebar.active-tab-outline :is(.outline-item-active, .outline-item.active)::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * (var(--olD-accent-w) + 6px));
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px; height: 8px;
+  background: var(--olD-accent);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--olD-active-glow);
+}
+
+
+/* =============================================================================
+   REGION D — EXPANDER（折叠箭头）
+   Scope:
+     .outline-expander
+   Vars（仅本区）:
+     --olE-dur / --olE-op
+   Function:
+     轻量交互反馈：悬停微提亮与轻缩放；不改图标形态与布局。
+   性能 / Perf:
+     - scale 轻量友好；不使用滤镜与阴影，避免滚动抖动。
+   ========================================================================== */
+#typora-sidebar.active-tab-outline .outline-expander {
+  --olE-dur: .18s;
+  --olE-op: .92;
+
+  background: transparent;
+  margin-right: 6px;
+  opacity: var(--olE-op);
+  transition: opacity var(--olE-dur) ease, transform var(--olE-dur) ease;
+}
+#typora-sidebar.active-tab-outline .outline-expander:hover {
+  opacity: 1;
+  transform: scale(1.06);
+}
+
+
+/* =============================================================================
+   REGION E — FOCUS & A11Y（键盘焦点）
+   Scope:
+     .outline-item:focus / :focus-visible
+   Vars（仅本区）:
+     --olF-outline / --olF-offset / --olF-glow
+   Function:
+     可见的焦点环与轻度发光，兼顾键盘导航人群的可达性。
+   建议 / Tips:
+     - 若与 Active 发光过叠，可略降 --olF-glow 或缩小外发光半径。
+   ========================================================================== */
+#typora-sidebar.active-tab-outline :is(.outline-item:focus, .outline-item:focus-visible) {
+  --olF-outline: 2px solid rgba(255,255,255,.18);
+  --olF-offset: 2px;
+  --olF-glow: rgba(35,179,252,.55);
+
+  outline: var(--olF-outline);
+  outline-offset: var(--olF-offset);
+  text-shadow: 0 0 6px var(--olF-glow);
+}
+
+
+/* 系统“减少动态”偏好（E、D 区相关动效一并关闭）
+   Honor reduced motion by disabling transitions. */
+@media (prefers-reduced-motion: reduce) {
+  #typora-sidebar.active-tab-outline :is(.outline-item, .outline-expander) {
+    transition: none;
+  }
+}
+
+/* =============================================================================
+   REGION F — FILTER INPUT（过滤输入框）
+   Scope:
+     .outline-content input[type="search"], .outline-filter input
+   Vars（仅本区）:
+     --olH-bg / --olH-fg / --olH-border / --olH-radius / --olH-ph / --olH-focus-*
+   Function:
+     输入框可见性与聚焦反馈；深色底下提升 caret 可见度。
+   约束 / Constraints:
+     - 仅针对 Outline 内部的搜索输入；不影响全局搜索或其它页签的表单控件。
+   ========================================================================== */
+
+/* 变量挂在根守卫下，便于统一调整 */
+#typora-sidebar.active-tab-outline {
+  --olH-shell-border: 1px solid rgba(255,255,255,.12);
+  --olH-shell-radius: 8px;
+
+  --olH-bg: #ffffff;                 /* 输入底色 */
+  --olH-fg: #000000;                 /* 输入文字/插入符 */
+  --olH-border: 1px solid rgba(255,255,255,.16);
+  --olH-radius: 8px;
+  --olH-ph: rgba(255,255,255,.45);   /* 占位提示色 */
+  --olH-focus-border: rgba(255,255,255,.22);
+  --olH-focus-ring: rgba(255,255,255,.12);
+}
+
+/* 壳容器：与 Files 版等价的 panel，但仅在 Outline 激活时接管 */
+#typora-sidebar.active-tab-outline #file-library-search-panel{
+  border: var(--olH-shell-border);
+  border-radius: var(--olH-shell-radius);
+  background: transparent;
+  box-shadow: none;
+  padding: 2px;          /* 让内部 input 不贴边，可按需调整/去掉 */
+  contain: paint;        /* 限定重绘范围 */
+}
+
+/* 输入框本体：直接用 ID 命中，兼容任何 type */
+#typora-sidebar.active-tab-outline #file-library-search-input{
+  background: var(--olH-bg);
+  color: var(--olH-fg);
+  caret-color: var(--olH-fg);
+  border: var(--olH-border);
+  border-radius: var(--olH-radius);
+  padding: 6px 10px;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+}
+
+/* 占位符 */
+#typora-sidebar.active-tab-outline #file-library-search-input::placeholder{
+  color: var(--olH-ph);
+}
+
+/* 聚焦反馈 */
+#typora-sidebar.active-tab-outline #file-library-search-input:focus{
+  border-color: var(--olH-focus-border);
+  box-shadow: 0 0 0 2px var(--olH-focus-ring);
+}
+
+/* =============================================================================
+   REGION G — RESIZER BAR（分隔拖拽条 · 仅 Outline 激活时）
+   Scope:
+     body:has(#typora-sidebar.active-tab-outline) .typora-sidebar-resizer-bar
+   Vars（仅本区）:
+     --olJ-w / --olJ-bg / --olJ-hover / --olJ-shadow / --olJ-dur / --olJ-accent
+   Function:
+     统一黑系分隔条、悬停/拖拽反馈与过渡；与其它区完全解耦。
+   备注 / Notes:
+     - 通过 body:has(...) 精准限定“仅当 Outline 激活时”的样式接管。
+     Extra Guard: 当 body.megamenu-opened 存在时，本区样式全部失效
+   ========================================================================== */
+body:not(.megamenu-opened):has(#typora-sidebar.active-tab-outline) .typora-sidebar-resizer-bar {
+  --olJ-w: 8px;
+  --olJ-bg: #0f0f0f;
+  --olJ-hover: #1a1a1a;
+  --olJ-shadow: 0 0 0 1px rgba(255,255,255,.10);
+  --olJ-dur: .18s;
+
+  width: var(--olJ-w);
+  background: var(--olJ-bg);
+  box-shadow: var(--olJ-shadow);
+  cursor: col-resize;
+  transition: background var(--olJ-dur) ease, box-shadow var(--olJ-dur) ease;
+}
+body:not(.megamenu-opened):has(#typora-sidebar.active-tab-outline) .typora-sidebar-resizer-bar:hover {
+  background: var(--olJ-hover);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.10);
+}
+body:not(.megamenu-opened):has(#typora-sidebar.active-tab-outline) .typora-sidebar-resizer-bar:active,
+body:not(.megamenu-opened):has(#typora-sidebar.active-tab-outline) .typora-sidebar-resizer-bar.dragging {
+  --olJ-accent: #ffe232; /* 本区独立强调色 | local accent */
+
+  background: var(--olJ-hover);
+  box-shadow:
+    inset 0 0 0 2px var(--olJ-accent),
+    0 0 10px rgba(255,226,50,.35);
+}
+
+/* Reduced Motion：同理加守卫 */
+@media (prefers-reduced-motion: reduce) {
+  body:not(.megamenu-opened):has(#typora-sidebar.active-tab-outline) .typora-sidebar-resizer-bar {
+    transition: none;
+  }
+}
+
+/* =============================================================================
+   REGION H — FONT ROOT（字体设置 | 仅 Outline 侧边栏激活时）
+   Scope:
+     #typora-sidebar.active-tab-outline 内部文字
+   Vars（仅本区）:
+     --ol-font-ui / --ol-font-body / --ol-font-code / --ol-font-head
+     （依赖 prerequisite.css 中的 @font-face 名称）
+   Function:
+     - 统一 Outline 区的 UI/标题/代码字体映射
+     - 仅限 Outline 侧边栏生效，不影响正文与其他区域
+   ========================================================================== */
+/* 根上挂变量：OK */
+#typora-sidebar.active-tab-outline {
+  --ol-font-ui: 'AliPuHuiTi', 'Microsoft YaHei', sans-serif;
+  --ol-font-body: 'SourceHanSerifSC', serif;
+  --ol-font-code: 'JetBrainsMonoNL', 'RobotoMono', monospace;
+  --ol-font-head: 'GuDuYanHei', 'AliPuHuiTi', sans-serif;
+}
+
+/* A) 让“UI 字体”主要靠继承：只需设在根和常见容器根，后代用 where 不抬特异性 */
+#typora-sidebar.active-tab-outline,
+#typora-sidebar.active-tab-outline :where(
+  .sidebar, #sidebar, #sidebar-content, .sidebar-content,
+  .outline-content
+){
+  font-family: var(--ol-font-ui);
+}
+
+/* B) 需要覆写为“标题字体”的少量节点（使用 where 降特异性） */
+#typora-sidebar.active-tab-outline :where(.info-panel-tab-title-group, .info-panel-tab-title){
+  font-family: var(--ol-font-head);
+}
+
+/* C) 代码片段仅在 Outline 内部指定等宽（不影响正文区域） */
+#typora-sidebar.active-tab-outline :where(code, kbd, pre, samp){
+  font-family: var(--ol-font-code);
+}
+
+/* =============================================================================
+   REGION I — OUTLINE MENU · Yin-Yang Skin（大纲菜单皮肤 · 阴阳鱼）
+   Scope:
+     #outline-menu（Typora 的大纲菜单 ID，避免影响 Files/正文菜单）
+   Design:
+     - 深色半透明卡片 + 低不透明度“阴阳鱼”水印（不滚动、不闪烁）
+     - 轻交互：仅背景/文字色过渡；不使用重滤镜与大阴影
+     - 无需 :has()；以 ID 唯一命中，满足“作用域收敛”与性能要求
+   Vars（仅本区，olY*）:
+     结构：--olY-radius / --olY-shadow / --olY-pad / --olY-item-h / --olY-gap
+     背景：--olY-bg / --olY-border / --olY-img / --olY-img-opacity / --olY-img-size
+     文字：--olY-fg / --olY-dim / --olY-accent / --olY-hover-fg / --olY-active-fg
+     交互：--olY-hover / --olY-active / --olY-dur
+   ========================================================================== */
+
+#outline-menu.dropdown-menu.context-menu.ext-context-menu {
+  /* —— I 组变量 —— */
+  --olY-radius: 12px;
+  --olY-shadow: 0 12px 28px rgba(0,0,0,.35);
+  --olY-pad: 8px;
+  --olY-item-h: 36px;
+  --olY-gap: 6px;
+
+  /* 背景与边界 */
+  --olY-bg: #101114;                           /* 深底 */
+  --olY-border: 1px solid rgba(255,255,255,.10);
+
+  /* 阴阳鱼水印（请按你的打包路径替换 url） */
+  /* 示例：url("./Assets/Backgrounds/yinyang-fish.png") */
+  --olY-img: url("../Assets/Siderbar/阴阳鱼.png");
+  --olY-img-opacity: .10;                      /* 透明度（0.08–0.16 建议） */
+  --olY-img-size: 240px;                       /* 尺寸（相对菜单宽度） */
+
+  /* 文本与强调 */
+  --olY-fg: #e9eef5;                           /* 文字常态 */
+  --olY-dim: color-mix(in srgb, var(--olY-fg) 70%, transparent);
+  --olY-accent: #23b3fc;                       /* 强调色（勾选/状态/快捷键） */
+  --olY-hover-fg: #f5fbff;
+  --olY-active-fg: #ffe232;
+
+  /* 行为色与动效 */
+  --olY-hover: #181b22;                        /* hover 背景 */
+  --olY-active: #222633;                       /* active/按下 */
+  --olY-dur: .14s;
+
+  /* —— 容器本体 —— */
+  background: var(--olY-bg);
+  color: var(--olY-fg);
+  border: var(--olY-border);
+  border-radius: var(--olY-radius);
+  box-shadow: var(--olY-shadow);
+  padding: var(--olY-pad);
+  min-width: 220px;
+  overflow: hidden;                             /* 裁剪水印圆角 */
+  backdrop-filter: none;                        /* 禁重滤镜 */
+  contain: paint;                               /* 限定重绘范围 */
+}
+
+/* 阴阳鱼水印（不改 DOM，放在容器下层） */
+#outline-menu.dropdown-menu.context-menu.ext-context-menu::before{
+  content:"";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(255,255,255,.04), transparent 60%),
+    var(--olY-img) center/var(--olY-img-size) no-repeat;
+  opacity: var(--olY-img-opacity);
+  filter: none;                                 /* 避免滤镜开销 */
+}
+
+/* —— 菜单项容器 —— */
+#outline-menu.dropdown-menu.context-menu.ext-context-menu > li{
+  margin: 0 0 var(--olY-gap) 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* 分隔线 */
+#outline-menu.dropdown-menu.context-menu.ext-context-menu > li.divider{
+  height: 1px;
+  margin: 6px 2px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent);
+  border: 0;
+}
+
+/* —— 菜单项（a/menuitem）—— */
+#outline-menu.dropdown-menu.context-menu.ext-context-menu > li > a,
+#outline-menu.dropdown-menu.context-menu.ext-context-menu > li > .menuitem{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--olY-item-h);
+  padding: 0 12px;
+  background: transparent;
+  color: var(--olY-fg);
+  text-decoration: none;
+  border-radius: 8px;
+  white-space: nowrap;
+  transition: background var(--olY-dur) ease, color var(--olY-dur) ease;
+}
+
+/* 悬停/按下 */
+#outline-menu.dropdown-menu.context-menu.ext-context-menu > li:hover > a,
+#outline-menu.dropdown-menu.context-menu.ext-context-menu > li:hover > .menuitem{
+  background: var(--olY-hover);
+  color: var(--olY-hover-fg);
+}
+#outline-menu.dropdown-menu.context-menu.ext-context-menu > li:active > a,
+#outline-menu.dropdown-menu.context-menu.ext-context-menu > li:active > .menuitem{
+  background: var(--olY-active);
+  color: var(--olY-active-fg);
+}
+
+/* “已开启”状态（Typora 的 .state-on） */
+#outline-menu.dropdown-menu.context-menu.ext-context-menu .state-on{
+  color: var(--olY-accent) !important;
+  text-shadow: 0 0 6px color-mix(in srgb, var(--olY-accent) 55%, transparent);
+}
+
+/* 右侧快捷键/次级说明 */
+#outline-menu.dropdown-menu.context-menu.ext-context-menu .menuitem-shortcut,
+#outline-menu.dropdown-menu.context-menu.ext-context-menu .kbr{
+  margin-left: auto;
+  color: var(--olY-dim);
+}
+
+/* 键盘可达性（focus ring） */
+#outline-menu.dropdown-menu.context-menu.ext-context-menu :is(a:focus, .menuitem:focus){
+  outline: 2px solid rgba(255,255,255,.20);
+  outline-offset: 2px;
+}
+
+/* Reduced Motion：关闭过渡，避免焦点移动时轻微抖动 */
+@media (prefers-reduced-motion: reduce){
+  #outline-menu.dropdown-menu.context-menu.ext-context-menu > li > a,
+  #outline-menu.dropdown-menu.context-menu.ext-context-menu > li > .menuitem{
+    transition: none;
+  }
+}
+/* =============================== END OF PACKAGE ============================ */

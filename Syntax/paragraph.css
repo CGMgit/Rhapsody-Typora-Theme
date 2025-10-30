@@ -1,0 +1,63 @@
+/* =======================================================================================
+   Rhapsody — BODY PARAGRAPHS（正文段落样式）
+   设计理念 / Design Concept
+   - 严格作用域：仅限 #write 下的 <p>，避免影响代码块、引用块、列表等其它元素。
+   - 排版优先：中文段落默认两端对齐并首行缩进 2em，兼顾中英文混排的整齐度。
+   - 统一控制：字号、行距、缩进、字距、字重等集中变量化，便于全局调参。
+   - 可读性增强：轻微 text-shadow 减弱屏幕锯齿感，保持长文阅读舒适度。
+   - 兼容性好：保留 word-wrap 与现代 overflow-wrap，防止英文长单词溢出。
+   - 性能友好：无复杂滤镜与动画，常态静止，适配 Typora/Electron 导出与 PDF 打印。
+   ======================================================================================= */
+
+/* ======================================================================================= */
+/* REGION A — BODY PARAGRAPHS（正文段落样式 | Paragraph Style in Writing Area）            */
+/* Scope: 仅限 #write 下的 <p> 元素                                                        */
+/* 功能 / Function: 控制正文段落的字号、行距、缩进、对齐与排版宽度                           */
+/* 可调参数 / Adjustable Params: font-size, line-height, text-indent, margin, font-family  */
+/* Notes:                                                                                  */
+/* - 两端对齐 text-align: justify，提升中文阅读体验                                        */
+/* - 首行缩进 2em；中英文混排时保持排版规整                                                */
+/* - 使用 prerequisite.css 中已定义的字体（AliPuHuiTi 等）:contentReference[oaicite:2]{index=2}                      */
+/* - 保留 word-wrap 防止英文长单词溢出                                                     */
+/* - 使用 text-shadow 提升可读性，弱化屏幕锯齿感                                           */
+/* ======================================================================================= */
+#write {
+  --p-font-size: 16px;                            /* 正文字号 | Base font size */
+  --p-line-height: 1.88;                          /* 行距 | Line height */
+  --p-indent: 2em;                                /* 首行缩进 | First-line indent */
+  --p-margin-y: 0.2em;                            /* 段落上下间距 | Vertical spacing */
+  --p-color: #232931;                             /* 主体文字颜色 | Body text color */
+  --p-font-family: 'AliPuHuiTi','Microsoft YaHei',sans-serif; /* 字体族 | Font family */
+  --p-font-weight: 420;                           /* 字重 | Font weight */
+  --p-letter-spacing: 0.02em;                     /* 字间距 | Letter spacing */
+  --p-text-shadow-light: 0 0.3px 0.3px rgba(255,255,255,0.2);
+  --p-text-shadow-dark: 0 0 0.4px rgba(0,0,0,0.05);
+}
+
+#write p {
+  position: relative;       
+  z-index: 6;                /* 避免被背景遮挡 | Stay above background layers */
+
+  /* Typography / 字体排版 */
+  font-size: var(--p-font-size);
+  line-height: var(--p-line-height);
+  text-align: justify;
+  text-indent: var(--p-indent);
+  margin: var(--p-margin-y) 0;
+
+  color: var(--p-color);
+  font-family: var(--p-font-family);
+  font-weight: var(--p-font-weight);
+
+  /* Subtle shadow for legibility */
+  text-shadow:
+    var(--p-text-shadow-light),
+    var(--p-text-shadow-dark);
+
+  /* Wrapping & spacing */
+  -ms-word-wrap: break-word;
+  word-wrap: break-word;
+  white-space: normal;
+  letter-spacing: var(--p-letter-spacing);
+}
+/* =============================== END OF PACKAGE ============================ */

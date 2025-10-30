@@ -1,0 +1,816 @@
+
+/* =======================================================================================
+   Rhapsody · Context Menus（右键菜单与子菜单 · 四季/时刻主题组）
+   设计理念 / Design Concept
+   - 仅针对 Typora 的菜单 DOM（ul.dropdown-menu.context-menu…），不改动任何 HTML 结构；
+     统一使用 fixed 定位与局部变量，确保样式作用域收敛、互不污染。
+   - 视觉基调以「季节/时刻」叙事：不同区块承担不同菜单语义，颜色与纹理轻度表达情绪；
+     常态静止、Hover 才触发低饱和渐变；尊重 prefers-reduced-motion。
+   - 性能策略：小面积、短时出现、仅背景渐变与阴影；伪元素 ::before/::after 作为轻量背景层，
+     默认极低透明度；允许二级菜单溢出；必要处 isolation:isolate；可按需加入 contain: paint。
+   - 资产约定：背景图为菜单专用轻量版（WebP/AVIF，长边 800–1200px，≤200KB），避免首次解码峰值。
+
+   —— 分区主题 / Core Themes ——
+   • REGION A — 春 · 黄发垂髫（右键主菜单 / #context-menu）
+     关键词：清新 · 青绿色感底 · 柳叶绿 × 樱花粉柔光 · 轻流动渐变 · 子菜单箭头轻呼吸
+     语义：全局右键入口，气质明朗、干净、友好，强调“开始/探索”的轻盈感。
+
+   • REGION B — 夏 · 荷叶红花（编辑子菜单 / #edit-menu.ext-context-menu）
+     关键词：繁茂 · 叶绿 × 花红主图 · 柔光点缀 · 亮度略高 · 操作性强
+     语义：编辑相关操作较频繁，用更直接的色彩对比提升“可点性”与节奏感。
+
+   • REGION C — 秋 · 鸿雁南飞（块级样式菜单 / #block-style-menu）
+     关键词：收束 · 草金 × 赭橙 × 远山青 · 雁阵纹理 · 稳重而层次分明
+     语义：结构/层级选择（H1–H6/Paragraph），以“雁阵”隐喻层级秩序与排版节律。
+
+   • REGION D — 冬 · 独钓寒江（插入菜单 / #insert-menu）
+     关键词：静谧 · 雾白 × 霜蓝 · 细雪粒子（可关） · 冰蓝渐变
+     语义：插入对象（图片/脚注等）多为“外物”，用冷静克制的视觉降低干扰，强调专注。
+
+   • REGION E — 晨 · 一日之计（图片缩放菜单 / #zoom-img-menu）
+     关键词：启程 · 淡青蓝 × 晨光金 · 柔和晨景 · 轻盈渐变
+     语义：图片操控强调“清晰与明快”，象征一天的开始，操作反馈干净利落。
+
+   • REGION F — 昏 · 万籁俱寂（切换图像语法菜单 / #switch-img-syntax-menu）
+     关键词：宁静 · 夜幕深蓝 × 月光银 · 冷色渐变 · 克制光晕
+     语义：语法切换偏“技术向”，在低调冷静的氛围下凸显信息与逻辑。
+
+   Adjustable Params（全局约定）
+   - 颜色：--XX-bg / --XX-fg / --XX-border / 渐变三色 --XX-grad-1/2/3 / 光晕 --XX-glow-a/b
+   - 形状：--XX-radius（圆角）、阴影 --XX-shadow、菜单项高度/内边距
+   - 动画：关键帧周期、background-size 位移幅度；可增设主开关 --menu-anim=0 以一键静止
+   - 资产：--XX-bg-img 为可选主图（极低透明度/soft-light），未配置时不影响布局
+
+   Compatibility / Notes
+   - 现代浏览器 & Typora(Electron)；旧内核下渐变/混合回退为静态底色。
+   - 仅限菜单节点生效；不在正文/侧栏/工具条中扩散；二级菜单允许溢出并覆盖。
+   ======================================================================================= */
+
+/* =======================================================================================
+   REGION A — CONTEXT MENU · 春·黄发垂髫（右键菜单 / Context Menu · Spring Palette）
+   Scope: 仅作用于 Typora 右键菜单 #context-menu.dropdown-menu.context-menu
+   Function: 青绿色感底 + 柳叶绿/樱花粉柔光；Hover 启动低饱和流动渐变；子菜单箭头轻呼吸
+   Notes:
+   - 不依赖外部主题变量，全部硬编码；允许子菜单溢出；定位强制 fixed（不改 HTML 结构）
+   - 尊重 prefers-reduced-motion：在系统减少动态时关闭渐变动画
+   - 可选：极低不透明度铺一层“春”背景图以呼应整体（见最下方开关）
+   ======================================================================================= */
+
+#context-menu.dropdown-menu.context-menu{
+  /* —— Region-local Vars（仅本区使用 / Season Switch by tuning these） —— */
+  /* Paper & text */
+  --ctx-bg: #caf9e5;                          /* 青绿色感底 | parchment */
+  --ctx-fg: #642c1b;                           /* 棕红色文字 | readable dark */
+  --ctx-border: rgba(152, 136, 110, .28);      /* 温和棕灰描边 */
+  --ctx-radius: 10px;
+  --ctx-shadow: 0 12px 28px rgba(0,0,0,.32);
+
+  /* Spring glow triad（低饱和度柳绿 / 樱粉 / 高光白） */
+  --ctx-grad-1: #a8d5a2;  /* willow green */
+  --ctx-grad-2: #ffd4e1;  /* sakura pink */
+  --ctx-grad-3: #ffffff;  /* soft white */
+
+  /* Soft glows */
+  --ctx-glow-green: rgba(168,213,162,.35);
+  --ctx-glow-pink:  rgba(255,212,225,.35);
+
+  /* Optional image tint（极低透明度防干扰） */
+  --ctx-bg-img:url('../Assets/UI/春-黄发垂髫.png'); ; /* 如需启用：url('../Assets/Seasons/spring_bg.jpg') 或你的相对路径 */
+
+  /* —— Root —— */
+  background:
+    var(--ctx-bg);
+  color: var(--ctx-fg);
+  border: 1px solid var(--ctx-border);
+  border-radius: var(--ctx-radius);
+  box-shadow: var(--ctx-shadow);
+  overflow: visible;                   /* 允许二级菜单溢出 */
+  padding: 6px 0;
+  z-index: 2147483647;
+
+  position: fixed !important;          /* 以视口为参照 */
+  top: auto; left: auto; margin: 0 !important;
+
+  isolation: isolate;                  /* 独立层叠环境 */
+  font-family: 'AliPuHuiTi','Microsoft YaHei',sans-serif; /* 依赖 prerequisite.css 的字体映射 */
+}
+
+/* 背景层：水彩光斑（柳绿/樱粉）+ 可选纸纹/背景图极低透明度 */
+#context-menu.dropdown-menu.context-menu::before{
+  content:"";
+  position:absolute; inset:0;
+  border-radius: var(--ctx-radius);
+  z-index: 0;
+  background:
+    radial-gradient(130% 140% at 20% 18%, rgba(168,213,162,.18), transparent 62%),
+    radial-gradient(120% 130% at 82% 85%, rgba(255,212,225,.16), transparent 60%),
+    var(--ctx-bg-img);
+  background-size: cover, cover, cover;
+  background-position: center;
+  background-blend-mode: normal, normal, soft-light;
+  opacity: .99;                         /* 总体很轻，避免干扰可读性 */
+  pointer-events: none;
+}
+
+/* 内容层基线 */
+#context-menu.dropdown-menu.context-menu > li,
+#context-menu.dropdown-menu.context-menu > li > a,
+#context-menu.dropdown-menu.context-menu > li .menu-item-container{
+  position: relative; z-index: 1;
+}
+
+/* 通用菜单项 */
+#context-menu.dropdown-menu.context-menu > li:not(.divider) > a,
+#context-menu.dropdown-menu.context-menu > li.has-btn-submenu > .menu-item-container{
+  display:flex; align-items:center; gap:6px;
+  height: 32px; padding: 0 12px;
+  color: var(--ctx-fg);
+  text-decoration: none; white-space: nowrap;
+  transition: background .26s ease, color .18s ease, box-shadow .26s ease;
+}
+
+/* Hover / Active：低饱和流动渐变 + 柔光 */
+#context-menu.dropdown-menu.context-menu > li:not(.divider) > a:hover,
+#context-menu.dropdown-menu.context-menu > li.has-btn-submenu:hover > .menu-item-container,
+#context-menu.dropdown-menu.context-menu > li.has-extra-menu > a:hover{
+  background: linear-gradient(135deg, var(--ctx-grad-1), var(--ctx-grad-2), var(--ctx-grad-3));
+  background-size: 300% 300%;
+  color: #2a332a; /* 渐变偏亮时仍用深色字，保持春日清爽 */
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.12),
+    0 0 10px var(--ctx-glow-green),
+    0 0 16px var(--ctx-glow-pink);
+  animation: ctxSpringFlow 6s ease infinite;
+}
+
+/* 子菜单箭头：轻呼吸 */
+#context-menu.dropdown-menu.context-menu > li.has-extra-menu > a .fa.fa-caret-right{
+  margin-left:auto; color:#7e8a7e;
+  transition: color .18s ease, transform .18s ease;
+}
+#context-menu.dropdown-menu.context-menu > li.has-extra-menu > a:hover .fa.fa-caret-right{
+  color:#5c8f5e; transform: translateX(2px);
+}
+
+/* 快捷键文本 */
+#context-menu .ty-menu-shortcut{
+  margin-left:auto; color:#808a7a; font-size:.92em;
+}
+
+/* 分隔线：细白映射到纸面 */
+#context-menu.dropdown-menu.context-menu > li.divider{
+  height:1px; margin:6px 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent);
+}
+
+/* 图标统一继承 */
+#context-menu.dropdown-menu.context-menu i,
+#context-menu.dropdown-menu.context-menu .ty-icon{
+  color: currentColor; text-shadow:none; font-style:normal; line-height:1;
+}
+
+/* 顶部按钮组（如有） */
+#context-menu .menu-style-btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:32px; height:28px; border-radius:6px;
+  color: var(--ctx-fg);
+  background: rgba(255,255,255,.06);
+  border: 1px solid var(--ctx-border);
+  transition: background .2s ease, color .2s ease, box-shadow .25s ease, transform .08s ease;
+}
+#context-menu .menu-style-btn:hover{
+  background: linear-gradient(135deg, var(--ctx-grad-1), var(--ctx-grad-2));
+  color:#2b332b;
+  box-shadow: 0 0 8px var(--ctx-glow-green), 0 0 12px var(--ctx-glow-pink);
+}
+#context-menu .menu-style-btn:active{ transform: translateY(1px) }
+#context-menu .menu-style-btn-2width{ min-width:44px }
+
+/* 动画关键帧（轻微位移） */
+@keyframes ctxSpringFlow{
+  0%{ background-position: 0% 50%; }
+  50%{ background-position: 100% 50%; }
+  100%{ background-position: 0% 50%; }
+}
+
+/* 减少动态偏好：禁用动画 */
+@media (prefers-reduced-motion: reduce){
+  #context-menu.dropdown-menu.context-menu > li:not(.divider) > a:hover,
+  #context-menu.dropdown-menu.context-menu > li.has-btn-submenu:hover > .menu-item-container,
+  #context-menu.dropdown-menu.context-menu > li.has-extra-menu > a:hover{
+    animation:none !important; background-position:50% 50%;
+  }
+}
+
+/* —— 可选开关：将春季背景图压到超低透明度以更贴合整套主题 —— */
+/* 使用时把 var(--ctx-bg-img) 设置为 url('你的春图相对路径') 即可 */
+
+/* =======================================================================================
+   REGION B — CONTEXT MENU · 夏·荷叶红花（子区 B：编辑子菜单 / ext-context-menu）
+   Scope: <ul id="edit-menu" class="dropdown-menu context-menu ext-context-menu>
+   Function: 以荷叶红花背景图为底，辅以低透明度光斑点缀；Hover 时柔光渐变
+   Notes:
+   - 背景图路径请自行替换
+   - 保持 DOM 结构不动；尊重 prefers-reduced-motion
+   ======================================================================================= */
+
+ul#edit-menu.dropdown-menu.context-menu.ext-context-menu {
+  --em-bg: #9effff;                        /* 背景底色 fallback */
+  --em-fg: #203620;                        /* 荷叶墨绿文字 */
+  --em-border: rgba(33, 66, 33, .22);
+  --em-radius: 10px;
+  --em-shadow: 0 12px 24px rgba(0,0,0,.28);
+
+  /* Hover 渐变色（荷叶绿+荷花粉+高光白） */
+  --em-grad-1: #66bb6a;
+  --em-grad-2: #ff8a80;
+  --em-grad-3: #ffffff;
+
+  --em-glow-g: rgba(102,187,106,.35);
+  --em-glow-r: rgba(255,138,128,.35);
+
+  background: var(--em-bg);
+  color: var(--em-fg);
+  border: 1px solid var(--em-border);
+  border-radius: var(--em-radius);
+  box-shadow: var(--em-shadow);
+  overflow: visible;
+  padding: 6px 0;
+  z-index: 2147483647;
+  isolation: isolate;
+  font-family: 'AliPuHuiTi','Microsoft YaHei',sans-serif;
+}
+
+/* 背景图层：荷叶红花主图 + 光斑点缀 */
+ul#edit-menu.dropdown-menu.context-menu.ext-context-menu::before {
+  content:"";
+  position:absolute; inset:0;
+  border-radius: var(--em-radius);
+  z-index:0;
+  background:
+    radial-gradient(120% 130% at 18% 20%, rgba(102,187,106,.18), transparent 60%),
+    radial-gradient(120% 130% at 82% 85%, rgba(255,138,128,.16), transparent 60%),
+    url('../Assets/UI/夏-荷叶红花.png');   /* ← 这里替换成你的背景图路径 */
+  background-size: cover, cover, cover;
+  background-position: center;
+  background-blend-mode: normal, normal, soft-light;
+  opacity: .99;  /* 主图清晰，点缀轻度 */
+  pointer-events:none;
+}
+
+/* 菜单项 */
+ul#edit-menu.dropdown-menu.context-menu.ext-context-menu > li:not(.divider) > a,
+ul#edit-menu.dropdown-menu.context-menu.ext-context-menu > li.has-btn-submenu > .menu-item-container {
+  display:flex; align-items:center; gap:6px;
+  height:32px; padding:0 12px;
+  color: var(--em-fg);
+  text-decoration:none; white-space:nowrap;
+  transition: background .26s ease, color .18s ease, box-shadow .26s ease;
+}
+
+/* Hover：渐变光效 */
+ul#edit-menu.dropdown-menu.context-menu.ext-context-menu > li:not(.divider) > a:hover,
+ul#edit-menu.dropdown-menu.context-menu.ext-context-menu > li.has-btn-submenu:hover > .menu-item-container {
+  background: linear-gradient(135deg, var(--em-grad-1), var(--em-grad-2), var(--em-grad-3));
+  background-size: 300% 300%;
+  color: #1b2b1b;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.12),
+    0 0 10px var(--em-glow-g),
+    0 0 14px var(--em-glow-r);
+  animation: editMenuSummerFlow 6s ease infinite;
+}
+
+/* 禁用/隐藏/分隔线 */
+ul#edit-menu.dropdown-menu.context-menu.ext-context-menu > li.disabled > a {
+  color: #0900e6; opacity:.65; cursor:not-allowed;
+  background:transparent !important; box-shadow:none !important;
+}
+ul#edit-menu.dropdown-menu.context-menu.ext-context-menu > li.hide { display:none; }
+ul#edit-menu.dropdown-menu.context-menu.ext-context-menu > li.divider {
+  height:1px; margin:6px 0;
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,.08), transparent);
+}
+
+/* 快捷键文本 */
+ul#edit-menu .ty-menu-shortcut {
+  margin-left:auto; color:#4f6f4f; font-size:.92em;
+}
+
+/* 图标 */
+ul#edit-menu i, ul#edit-menu .ty-icon { color:currentColor; text-shadow:none; line-height:1; }
+
+/* 动画关键帧 */
+@keyframes editMenuSummerFlow {
+  0%{ background-position:0% 50%; }
+  50%{ background-position:100% 50%; }
+  100%{ background-position:0% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ul#edit-menu.dropdown-menu.context-menu.ext-context-menu > li:not(.divider) > a:hover {
+    animation:none !important;
+    background-position:50% 50%;
+  }
+}
+
+/* =======================================================================================
+   REGION C — CONTEXT MENU · 秋·鸿雁南飞（区 C：块级样式菜单 / #block-style-menu）
+   Scope: <ul id="block-style-menu" class="dropdown-menu context-menu ext-context-menu">
+   Design: 浅米纸底 + 金黄/赭橙/远山青；雁阵高光纹理；Hover 柔和流动渐变
+   Notes : 不改 DOM；固定定位但不覆盖 top/left；尊重 reduced-motion
+   ======================================================================================= */
+
+ul#block-style-menu.dropdown-menu.context-menu.ext-context-menu{
+  /* —— 局部变量（仅本区使用）—— */
+  --bs-bg: #F6EFDF;               /* 纸感浅米底 */
+  --bs-fg: #2f302a;               /* 深灰墨色文字 */
+  --bs-border: rgba(120, 96, 64, .26);
+  --bs-radius: 10px;
+  --bs-shadow: 0 12px 26px rgba(0,0,0,.28);
+
+  /* 秋季三色（草金/赭橙/远山青）→ Hover 渐变 */
+  --bs-grad-1: #E7B85A;           /* 草金 */
+  --bs-grad-2: #D77F3F;           /* 赭橙 */
+  --bs-grad-3: #8DA4B3;           /* 远山青（冷调平衡） */
+
+  /* 柔光 */
+  --bs-glow-a: rgba(231,184,90,.32);
+  --bs-glow-b: rgba(215,127,63,.28);
+
+  /* 背景主图（可替换为你的路径） */
+  --bs-bg-img: url('../Assets/UI/秋-鸿雁南飞.png');
+
+  /* —— 容器基线 —— */
+  position: fixed;                /* 让 top/left 由内联样式控制 */
+  z-index: 2147483647;
+  isolation: isolate;
+  overflow: visible;
+  padding: 6px 0;
+
+  background: var(--bs-bg);
+  color: var(--bs-fg);
+  border: 1px solid var(--bs-border);
+  border-radius: var(--bs-radius);
+  box-shadow: var(--bs-shadow);
+  font-family: 'AliPuHuiTi','Microsoft YaHei',sans-serif;
+}
+
+/* 背景图层：暖金光斑 + 雁阵主图（极轻软光） */
+ul#block-style-menu.dropdown-menu.context-menu.ext-context-menu::before{
+  content:"";
+  position:absolute; inset:0;
+  border-radius: var(--bs-radius);
+  z-index:0;
+  background:
+    radial-gradient(120% 130% at 18% 22%, rgba(231,184,90,.18), transparent 62%),
+    radial-gradient(120% 130% at 86% 82%, rgba(215,127,63,.14), transparent 60%),
+    var(--bs-bg-img);
+  background-size: cover, cover, cover;
+  background-position: center;
+  background-blend-mode: normal, normal, soft-light;
+  opacity: .99;
+  pointer-events: none;
+}
+
+/* 内容层（盖在背景上） */
+ul#block-style-menu > li,
+ul#block-style-menu > li > a{
+  position: relative; z-index:1;
+}
+
+/* 菜单项（Heading 1~6 / Paragraph） */
+ul#block-style-menu > li:not(.divider) > a{
+  display:flex; align-items:center; gap:8px;
+  height: 32px;
+  padding: 0 12px;
+  color: var(--bs-fg);
+  text-decoration:none; white-space:nowrap;
+  transition: background .26s ease, color .18s ease, box-shadow .26s ease, transform .06s ease;
+}
+
+/* Hover：秋色流动渐变 + 柔光外晕 */
+ul#block-style-menu > li:not(.divider) > a:hover{
+  background: linear-gradient(135deg, var(--bs-grad-1), var(--bs-grad-2), var(--bs-grad-3));
+  background-size: 320% 320%;
+  color: #262721;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.12),
+    0 0 10px var(--bs-glow-a),
+    0 0 14px var(--bs-glow-b);
+  animation: bsAutumnFlow 7s ease infinite;
+}
+
+/* 当前激活项（.state-on）：左侧金线 + 轻抬起 */
+ul#block-style-menu > li > a.state-on{
+  background: linear-gradient(135deg, #F7E5C4, #f4d7b3);
+  box-shadow: inset 3px 0 0 0 #E7B85A;
+  font-weight: 700;
+  transform: translateX(1px);
+}
+
+/* 快捷键文本（靠右对齐） */
+ul#block-style-menu .ty-menu-shortcut{
+  margin-left:auto; font-size:.92em; color:#6b6c63;
+}
+
+/* 分隔线 */
+ul#block-style-menu > li.divider{
+  height:1px; margin:6px 0;
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,.08), transparent);
+}
+
+/* 禁用态（如果有） */
+ul#block-style-menu > li.disabled > a{
+  color:#8a867b; opacity:.55; cursor:not-allowed;
+  background:transparent !important; box-shadow:none !important;
+}
+
+/* 轻动效（雁阵风的感觉） */
+@keyframes bsAutumnFlow{
+  0%{   background-position: 0% 50%; }
+  50%{  background-position: 100% 50%; }
+  100%{ background-position: 0% 50%; }
+}
+
+/* 低动态偏好：停掉动画 */
+@media (prefers-reduced-motion: reduce){
+  ul#block-style-menu > li:not(.divider) > a:hover{
+    animation: none !important; background-position: 50% 50%;
+  }
+}
+
+/* —— 细节：标题层级的微型前缀（可选）——
+   用纯 CSS 的小圆点/横条表达层级深浅；不改 DOM，可随时删掉 */
+ul#block-style-menu a[data-block^="header"]::before{
+  content:"";
+  width:.5em; height:.5em; border-radius:999px; margin-right:4px;
+  background: currentColor; opacity:.25;
+}
+ul#block-style-menu a[data-block="header1"]::before{ opacity:.55; }
+ul#block-style-menu a[data-block="header2"]::before{ opacity:.48; }
+ul#block-style-menu a[data-block="header3"]::before{ opacity:.42; }
+ul#block-style-menu a[data-block="header4"]::before{ opacity:.36; }
+ul#block-style-menu a[data-block="header5"]::before{ opacity:.30; }
+ul#block-style-menu a[data-block="header6"]::before{ opacity:.24; }
+
+/* Paragraph 行给一个书页小横线（不想要可删除） */
+ul#block-style-menu a[data-block="paragraph"]::before{
+  content:""; width:.7em; height:.14em; border-radius:2px; background: currentColor; opacity:.28;
+}
+
+/* =======================================================================================
+   REGION D — CONTEXT MENU · 冬·独钓寒江雪（区 D：插入菜单 / #insert-menu）
+   Scope : <ul id="insert-menu" class="dropdown-menu context-menu ext-context-menu>
+   Design: 米白雾感底 + 冷灰蓝；雪粒纹理；Hover 冰蓝渐变；尊重 reduced-motion
+   Notes : 不覆盖 top/left；不改 DOM；允许二级菜单溢出
+   ======================================================================================= */
+
+ul#insert-menu.dropdown-menu.context-menu.ext-context-menu{
+  /* —— 局部变量 —— */
+  --im-bg: #F4F4F1;                 /* 冬日雾白底 */
+  --im-fg: #2a2f34;                 /* 深冷灰文字 */
+  --im-border: rgba(80, 92, 104, .22);
+  --im-radius: 10px;
+  --im-shadow: 0 12px 26px rgba(0,0,0,.28);
+
+  /* 冰蓝三色（Hover 渐变） */
+  --im-grad-1: #D7E2EA;             /* 雾蓝 */
+  --im-grad-2: #BFCEDA;             /* 霜蓝 */
+  --im-grad-3: #FFFFFF;             /* 高光白 */
+
+  --im-glow-a: rgba(183,202,215,.28);
+  --im-glow-b: rgba(191,206,218,.22);
+
+  /* 背景主图（按你的实际路径替换） */
+  --im-bg-img: url('../Assets/UI/冬-独钓寒江.png');
+
+  position: fixed;                   /* 交由内联 top/left 定位 */
+  z-index: 2147483647;
+  isolation: isolate;
+  overflow: visible;
+  padding: 6px 0;
+
+  background: var(--im-bg);
+  color: var(--im-fg);
+  border: 1px solid var(--im-border);
+  border-radius: var(--im-radius);
+  box-shadow: var(--im-shadow);
+  font-family: 'AliPuHuiTi','Microsoft YaHei',sans-serif;
+}
+
+/* 背景层：冷蓝光斑 + 冬景主图（软光） */
+ul#insert-menu.dropdown-menu.context-menu.ext-context-menu::before{
+  content:"";
+  position:absolute; inset:0;
+  border-radius: var(--im-radius);
+  z-index:0;
+  background:
+    radial-gradient(120% 130% at 16% 22%, rgba(215,226,234,.18), transparent 62%),
+    radial-gradient(120% 130% at 86% 82%, rgba(191,206,218,.14), transparent 60%),
+    var(--im-bg-img);
+  background-size: cover, cover, cover;
+  background-position: center;
+  background-blend-mode: normal, normal, soft-light;
+  opacity: .99;
+  pointer-events: none;
+}
+
+/* 细雪层（轻度粒子；可关） */
+ul#insert-menu.dropdown-menu.context-menu.ext-context-menu::after{
+  content:"";
+  position:absolute; inset:0;
+  border-radius: var(--im-radius);
+  z-index:0;
+  background:
+    radial-gradient(2px 2px at 20% 10%, rgba(255,255,255,.45) 60%, transparent 61%) repeat,
+    radial-gradient(2px 2px at 70% 30%, rgba(255,255,255,.40) 60%, transparent 61%) repeat,
+    radial-gradient(2px 2px at 40% 70%, rgba(255,255,255,.38) 60%, transparent 61%) repeat;
+  background-size: 220px 220px, 260px 260px, 300px 300px;
+  background-position: 0 0, 20px -10px, -15px 25px;
+  opacity: .35;
+  pointer-events:none;
+  animation: imSnowDrift 22s linear infinite;
+}
+
+/* 内容层 */
+ul#insert-menu > li,
+ul#insert-menu > li > a{
+  position: relative; z-index:1;
+}
+
+/* 菜单项（Image / Footnotes / …） */
+ul#insert-menu > li:not(.divider) > a{
+  display:flex; align-items:center; gap:8px;
+  height: 32px;
+  padding: 0 12px;
+  color: var(--im-fg);
+  text-decoration:none; white-space:nowrap;
+  transition: background .26s ease, color .18s ease, box-shadow .26s ease, transform .06s ease;
+}
+
+/* Hover：冰蓝渐变 + 霜光 */
+ul#insert-menu > li:not(.divider) > a:hover{
+  background: linear-gradient(135deg, var(--im-grad-1), var(--im-grad-2), var(--im-grad-3));
+  background-size: 320% 320%;
+  color: #22272b;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.12),
+    0 0 10px var(--im-glow-a),
+    0 0 14px var(--im-glow-b);
+  animation: imWinterFlow 8s ease infinite;
+}
+
+/* 当前激活项（若有 .state-on） */
+ul#insert-menu > li > a.state-on{
+  background: linear-gradient(135deg, #EEF3F6, #E6EDF2);
+  box-shadow: inset 3px 0 0 0 #C7D6E2;
+  font-weight: 700;
+  transform: translateX(1px);
+}
+
+/* 快捷键文本 */
+ul#insert-menu .ty-menu-shortcut{
+  margin-left:auto; font-size:.92em; color:#6c7780;
+}
+
+/* 分隔线 */
+ul#insert-menu > li.divider{
+  height:1px; margin:6px 0;
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,.08), transparent);
+}
+
+/* 禁用态（若出现） */
+ul#insert-menu > li.disabled > a{
+  color:#8a9096; opacity:.55; cursor:not-allowed;
+  background:transparent !important; box-shadow:none !important;
+}
+
+/* —— 动画 —— */
+@keyframes imWinterFlow{
+  0%{   background-position: 0% 50%; }
+  50%{  background-position: 100% 50%; }
+  100%{ background-position: 0% 50%; }
+}
+@keyframes imSnowDrift{
+  0%{   background-position: 0 0, 20px -10px, -15px 25px; }
+  100%{ background-position: 0 300px, 20px 290px, -15px 325px; }
+}
+
+/* 减少动态偏好：停掉动画/粒子 */
+@media (prefers-reduced-motion: reduce){
+  ul#insert-menu > li:not(.divider) > a:hover{ animation:none !important; background-position:50% 50%; }
+  ul#insert-menu.dropdown-menu.context-menu.ext-context-menu::after{ animation:none !important; opacity:.25; }
+}
+
+/* =======================================================================================
+   REGION E — CONTEXT MENU · 清晨·一日之计（区 E：图片缩放菜单 / #zoom-img-menu）
+   Scope : <ul id="zoom-img-menu" class="dropdown-menu context-menu ext-context-menu>
+   Design: 淡青蓝雾底 + 晨光金辉；Hover 渐变流动如晨曦
+   Notes : 不改 DOM；尊重 prefers-reduced-motion；允许子菜单溢出
+   ======================================================================================= */
+
+ul#zoom-img-menu.dropdown-menu.context-menu.ext-context-menu {
+  /* —— 局部变量 —— */
+  --zm-bg: #F7F9F6;                   /* 雾感浅底 */
+  --zm-fg: #2b322f;                   /* 深灰文字 */
+  --zm-border: rgba(90,100,110,.22);
+  --zm-radius: 10px;
+  --zm-shadow: 0 12px 24px rgba(0,0,0,.28);
+
+  /* 晨曦三色（Hover 渐变） */
+  --zm-grad-1: #b3d3e6;               /* 淡青蓝 */
+  --zm-grad-2: #f9e6b3;               /* 晨光金 */
+  --zm-grad-3: #ffffff;               /* 高光白 */
+
+  --zm-glow-a: rgba(179,211,230,.32);
+  --zm-glow-b: rgba(249,230,179,.28);
+
+  /* 背景主图（晨景） */
+  --zm-bg-img: url('../Assets/UI/晨-一日之计.png');
+
+  position: fixed;                   /* top/left 交给内联定位 */
+  z-index: 2147483647;
+  isolation: isolate;
+  overflow: visible;
+  padding: 6px 0;
+
+  background: var(--zm-bg);
+  color: var(--zm-fg);
+  border: 1px solid var(--zm-border);
+  border-radius: var(--zm-radius);
+  box-shadow: var(--zm-shadow);
+  font-family: 'AliPuHuiTi','Microsoft YaHei',sans-serif;
+}
+
+/* 背景层：淡蓝/金光斑 + 晨景主图（柔和覆盖） */
+ul#zoom-img-menu.dropdown-menu.context-menu.ext-context-menu::before {
+  content:"";
+  position:absolute; inset:0;
+  border-radius: var(--zm-radius);
+  z-index:0;
+  background:
+    radial-gradient(120% 130% at 18% 22%, rgba(179,211,230,.16), transparent 62%),
+    radial-gradient(120% 130% at 84% 80%, rgba(249,230,179,.14), transparent 60%),
+    var(--zm-bg-img);
+  background-size: cover, cover, cover;
+  background-position: center;
+  background-blend-mode: normal, normal, soft-light;
+  opacity: .99;
+  pointer-events: none;
+}
+
+/* 内容层 */
+ul#zoom-img-menu > li,
+ul#zoom-img-menu > li > a{
+  position: relative; z-index:1;
+}
+
+/* 菜单项 */
+ul#zoom-img-menu > li:not(.divider) > a{
+  display:flex; align-items:center; gap:8px;
+  height: 32px;
+  padding: 0 12px;
+  color: var(--zm-fg);
+  text-decoration:none; white-space:nowrap;
+  transition: background .26s ease, color .18s ease, box-shadow .26s ease, transform .06s ease;
+}
+
+/* Hover：晨光渐变 */
+ul#zoom-img-menu > li:not(.divider) > a:hover{
+  background: linear-gradient(135deg, var(--zm-grad-1), var(--zm-grad-2), var(--zm-grad-3));
+  background-size: 320% 320%;
+  color: #232827;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.12),
+    0 0 10px var(--zm-glow-a),
+    0 0 14px var(--zm-glow-b);
+  animation: zoomMenuMorningFlow 7s ease infinite;
+}
+
+/* Divider */
+ul#zoom-img-menu > li.divider{
+  height:1px; margin:6px 0;
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,.08), transparent);
+}
+
+/* 动画关键帧 */
+@keyframes zoomMenuMorningFlow {
+  0%{   background-position: 0% 50%; }
+  50%{  background-position: 100% 50%; }
+  100%{ background-position: 0% 50%; }
+}
+
+/* 减少动态偏好：停掉动画 */
+@media (prefers-reduced-motion: reduce){
+  ul#zoom-img-menu > li:not(.divider) > a:hover{
+    animation:none !important; background-position:50% 50%;
+  }
+}
+
+/* =======================================================================================
+   REGION F — CONTEXT MENU · 昏·万籁俱寂（区 F：切换图像语法菜单 / #switch-img-syntax-menu）
+   Scope : <ul id="switch-img-syntax-menu" class="dropdown-menu context-menu ext-context-menu>
+   Design: 深蓝夜幕底 + 银白月光；Hover 时冷色渐变，氛围静谧安宁
+   Notes : 不改 DOM；尊重 prefers-reduced-motion；允许子菜单溢出
+   ======================================================================================= */
+
+ul#switch-img-syntax-menu.dropdown-menu.context-menu.ext-context-menu {
+  /* —— 局部变量 —— */
+  --sm-bg: #101820;                  /* 夜幕深底 */
+  --sm-fg: #e6ebf2;                  /* 冷银白文字 */
+  --sm-border: rgba(200,200,220,.22);
+  --sm-radius: 10px;
+  --sm-shadow: 0 12px 26px rgba(0,0,0,.38);
+
+  /* 夜色三色（Hover 渐变） */
+  --sm-grad-1: #1d2a44;              /* 深蓝 */
+  --sm-grad-2: #2e3d66;              /* 靛青 */
+  --sm-grad-3: #4c5c7a;              /* 月光灰蓝 */
+
+  --sm-glow-a: rgba(77,102,133,.32);
+  --sm-glow-b: rgba(180,200,220,.25);
+
+  /* 背景主图（夜景） */
+  --sm-bg-img: url('../Assets/UI/昏-万籁俱寂.png');
+
+  position: fixed;                   /* top/left 交由内联控制 */
+  z-index: 2147483647;
+  isolation: isolate;
+  overflow: visible;
+  padding: 6px 0;
+
+  background: var(--sm-bg);
+  color: var(--sm-fg);
+  border: 1px solid var(--sm-border);
+  border-radius: var(--sm-radius);
+  box-shadow: var(--sm-shadow);
+  font-family: 'AliPuHuiTi','Microsoft YaHei',sans-serif;
+}
+
+/* 背景层：夜幕冷蓝 + 主图（月光夜景） */
+ul#switch-img-syntax-menu.dropdown-menu.context-menu.ext-context-menu::before {
+  content:"";
+  position:absolute; inset:0;
+  border-radius: var(--sm-radius);
+  z-index:0;
+  background:
+    radial-gradient(120% 130% at 18% 20%, rgba(77,102,133,.18), transparent 60%),
+    radial-gradient(120% 130% at 82% 85%, rgba(180,200,220,.14), transparent 60%),
+    var(--sm-bg-img);
+  background-size: cover, cover, cover;
+  background-position: center;
+  background-blend-mode: normal, normal, soft-light;
+  opacity: .99;
+  pointer-events: none;
+}
+
+/* 内容层 */
+ul#switch-img-syntax-menu > li,
+ul#switch-img-syntax-menu > li > a{
+  position: relative; z-index:1;
+}
+
+/* 菜单项 */
+ul#switch-img-syntax-menu > li:not(.divider) > a{
+  display:flex; align-items:center; gap:8px;
+  height: 34px;
+  padding: 0 14px;
+  color: var(--sm-fg);
+  text-decoration:none; white-space:nowrap;
+  transition: background .26s ease, color .18s ease, box-shadow .26s ease, transform .06s ease;
+  font-size: .95em;
+}
+
+/* Hover：冷蓝渐变 + 月光柔光 */
+ul#switch-img-syntax-menu > li:not(.divider) > a:hover{
+  background: linear-gradient(135deg, var(--sm-grad-1), var(--sm-grad-2), var(--sm-grad-3));
+  background-size: 320% 320%;
+  color: #f5f8fc;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.12),
+    0 0 10px var(--sm-glow-a),
+    0 0 14px var(--sm-glow-b);
+  animation: switchMenuNightFlow 9s ease infinite;
+}
+
+/* Divider */
+ul#switch-img-syntax-menu > li.divider{
+  height:1px; margin:6px 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
+}
+
+/* 动画关键帧 */
+@keyframes switchMenuNightFlow {
+  0%{   background-position: 0% 50%; }
+  50%{  background-position: 100% 50%; }
+  100%{ background-position: 0% 50%; }
+}
+
+/* 减少动态偏好：停掉动画 */
+@media (prefers-reduced-motion: reduce){
+  ul#switch-img-syntax-menu > li:not(.divider) > a:hover{
+    animation:none !important; background-position:50% 50%;
+  }
+}
+/* =============================== END OF PACKAGE ============================ */

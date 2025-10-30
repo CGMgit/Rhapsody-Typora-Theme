@@ -1,0 +1,883 @@
+
+/* =======================================================================================
+   Rhapsody · Typora Headings Theme — 设计理念 / Design Concept
+   ---------------------------------------------------------------------------------------
+   核心基调 / Visual Tone
+   - 童话 × 神话 × 赛博光感：层叠渐变、微发光阴影、局部能量描边，营造“叙事+科技”的混合气质。
+   - 六级标题各有隐喻人物与色彩语言，既可独立成景，又能在全文形成统一的叙事氛围。
+
+   语义映射 / Metaphor per Level
+   - H1「帅气大王子」：中心徽标呼吸 + 顶部流光带，作为全文视觉锚点与开篇宣叙。
+   - H2「齐天大圣」：金箍棒与赤金辐射，代表“章节转折”的磅礴气势。
+   - H3「白雪公主」：粉紫斜向渐变与苹果彩蛋，承接段落组的柔和过渡。
+   - H4「爱丽丝」：白卡 + 轻投影 + 兔表摇摆，适配中层结构与列表分节。
+   - H5「雷声之锤」：蓝青能量描边 + 扫光，强调小节标题的技术/要点。
+   - H6「狐面具」：祭典红与面具摇曳，用于注释、插曲与细粒度小节。
+
+   交互哲学 / Interaction Principles
+   - 常态静态、交互增强（Hover/Focus 才点亮）：减少打扰、维持编辑时的沉稳感。
+   - A11y 优先：统一焦点可见、reduced-motion 降级、提示信息不喧宾夺主。
+   - 视觉连续性：Hover 仅替换顶部层或增强层，避免“清栈”导致闪烁。
+
+   性能与工程约束 / Performance & Engineering
+   - Typora DOM 不可变更：全部效果以伪元素与局部变量实现（::before/::after + var()）。
+   - 尽量使用 transform/opacity 过渡；避免全局性的 filter/大面积 blur/频繁 repaint。
+   - 背景/阴影静态为主；循环动画仅限需要的层（如 H1 徽标、H5 扫光可按需降频或改交互触发）。
+   - 资源控制：图标建议 1–1.5× 展示尺寸、优先 SVG/WebP，小图启用 drop-shadow 即可。
+   - 可维护性：变量局部化（Local Only），每个 REGION 标注 Scope/Function/Adjustable Params。
+
+   可访问性 / Accessibility
+   - :focus-visible / :focus-within 统一焦点环与提示条；Reduced Motion 关闭动画与流动。
+   - 色彩对比遵循深浅背景下可读性要求（标题文本 + 发光阴影组合）。
+
+   命名与结构 / Naming & Structure
+   - 均以「#write hN」为作用域，避免外溢；关键帧命名前缀 hN-* 保持唯一性。
+   - REGION 分段：ROOT / ICON / INTERACTIONS / KEYFRAMES / A11Y / RESPONSIVE / NOTES。
+
+   维护提示 / Maintenance Notes
+   - 大文档或低配环境：优先降低/关闭循环动画（如 H5 thunderFlash），或切换轻量预设。
+   - 如需主题变体（冷/暖/高对比），建议仅改变量，不动结构与关键帧名。
+   ---------------------------------------------------------------------------------------
+
+/* ========================================================================== */
+/* REGION A — H1 ROOT（帅气大王子）                                             */
+/* Scope: #write h1                                                           */
+/* Function: 定义主标题的布局、底色、渐变层、排版与交互动效；                   */
+/*           提供 LOGO 呼吸与上沿流光带作为视觉亮点。                         */
+/* Adjustable Params: margin/padding、圆角尺寸、渐变配色、hover 态光影效果、   */
+/*                   LOGO 尺寸/动画时长、流光条宽高/渐变/动画周期。           */
+/* Compatibility: 现代浏览器 / Typora(Electron)；旧内核不支持动画时回退静态。 */
+/* ========================================================================== */
+
+#write h1{
+  /* Layout */
+  --h1-margin: 9rem auto 3rem;
+  --h1-padding: 0.8em 2em;
+  --h1-radius: 2rem;
+
+  /* Base glass & border */
+  --h1-bg: rgba(255,255,255,0.12);
+  --h1-border: 2px solid rgba(255,255,255,0.35);
+
+  /* Layered look */
+  --h1-boxshadow: 0 0 1px #00f5d4, 0 0 2px #00f5d4, 1px 1px 2px rgba(0,48,96,0.25);
+  --h1-bg-radial: radial-gradient(circle at 30% 40%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.03) 60%, rgba(255,255,255,0) 100%);
+  --h1-bg-linear: linear-gradient(145deg, rgba(255,255,255,0.13) 0%, rgba(200,240,255,0.06) 40%, rgba(255,255,255,0.1) 100%);
+
+  /* Typography */
+  --h1-color: #00d6ff;
+  --h1-font: 'AliPuHuiTi','Microsoft YaHei',sans-serif;
+  --h1-size: 2.6rem;
+  --h1-lh: 1.4;
+  --h1-weight: 900;
+  --h1-letterspace: 0.04em;
+  --h1-textshadow: 0 0 1px #00f5d4, 0 0 2px #00f5d4, 1px 1px 2px rgba(0,48,96,0.25);
+
+  /* Hover accent */
+  --h1-hover-bg-linear: linear-gradient(145deg, #fff4c1, #ffd88a, #ff9966);
+  --h1-hover-boxshadow: 0 0 0 1.5px rgba(255,200,100,0.3), 0 0 18px rgba(255,180,80,0.4), 0 0 48px rgba(255,140,60,0.25);
+  --h1-hover-color: #ffb300;
+  --h1-hover-textshadow: 0 0 4px rgba(255,220,180,0.8), 0 0 12px rgba(255,180,80,0.6), 1px 1px 2px rgba(120,50,0,0.3);
+
+  /* Top logo */
+  --h1-logo-url: url('../Logo/Headings_Icon/帅气大王子.webp');
+  --h1-logo-size: 84px;
+  --h1-logo-anim: 3.5s;
+
+  /* Shimmer band */
+  --h1-band-gradient: linear-gradient(90deg,#00bfff,#ff4d4f,#ffd700,#00bfff);
+  --h1-band-width: 60%;
+  --h1-band-height: 6px;
+  --h1-band-anim: 5s;
+
+  /* Transitions */
+  --h1-transition: background 3s ease, box-shadow 3s ease, text-shadow 3s ease, color 3s ease;
+  /* ============================================================================ */
+
+  position: relative;
+  display: block;
+  text-align: center;
+  margin: var(--h1-margin);
+  padding: var(--h1-padding);
+
+  /* 背景/边框/玻璃化 */
+  background: var(--h1-bg);
+  border: var(--h1-border);
+  border-radius: var(--h1-radius);
+
+  /* 冰晶光影 + 渐变层（多层并存，避免覆盖） */
+  box-shadow: var(--h1-boxshadow);
+  background-image: var(--h1-bg-radial), var(--h1-bg-linear);
+
+  /* 文案样式（强科技感） */
+  color: var(--h1-color);
+  font-size: var(--h1-size);
+  line-height: var(--h1-lh);
+  font-weight: var(--h1-weight);
+  font-family: var(--h1-font);
+  letter-spacing: var(--h1-letterspace);
+  z-index: 6;
+  text-shadow: var(--h1-textshadow);
+
+  transition: var(--h1-transition);
+}
+
+/* Hover：仅替换最上层渐变，保留底层光影栈（避免 background 简写清栈） */
+#write h1:hover{
+  background-image: var(--h1-hover-bg-linear), var(--h1-bg-radial);
+  box-shadow: var(--h1-hover-boxshadow);
+  color: var(--h1-hover-color);
+  text-shadow: var(--h1-hover-textshadow);
+}
+
+/* 顶部 LOGO 呼吸（中心徽标 · 呼吸放缩） */
+#write h1::before{
+  content: "";
+  position: absolute;
+  top: -9rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--h1-logo-size); height: var(--h1-logo-size); max-width: 20vw;
+  background-image: var(--h1-logo-url);
+  background-size: contain; background-repeat: no-repeat; background-position: center;
+  z-index: 4;
+  opacity: .96;
+  pointer-events: none;
+  animation: h1-logoPulse var(--h1-logo-anim) ease-in-out infinite;
+}
+
+/* 上沿流光带（彩带往复） */
+#write h1::after{
+  content: "";
+  position: absolute;
+  top: -0.5em;
+  left: 50%;
+  transform: translateX(-50%) skewX(-5deg);
+  width: var(--h1-band-width); height: var(--h1-band-height);
+  background: var(--h1-band-gradient);
+  background-size: 400%;
+  animation: h1-shimmerPulse var(--h1-band-anim) ease-in-out infinite;
+  border-radius: 4px;
+  z-index: 2;
+  opacity: .85;
+  pointer-events: none;
+  box-shadow:
+    0 0 8px rgba(255,255,255,0.3),
+    0 0 20px rgba(255,255,255,0.12),
+    0 0 28px rgba(0,229,255,0.1);
+}
+
+/* H1 动画（本地唯一命名） */
+@keyframes h1-logoPulse{
+  0%,100%{ transform: translateX(-50%) scale(1); }
+  50%{     transform: translateX(-50%) scale(1.06); }
+}
+@keyframes h1-shimmerPulse{
+  0%{   background-position: 0%;   opacity: .25; }
+  50%{  background-position: 200%; opacity: 1;   }
+  100%{ background-position: 400%; opacity: .25; }
+}
+
+/* Reduced Motion：停掉补帧与流动 */
+@media (prefers-reduced-motion: reduce){
+  #write h1::before,
+  #write h1::after{ animation: none !important; }
+}
+
+#write h1.md-focus::before{
+  /* H1 Focus Tip Vars (local to this pseudo-element render) */
+  --h1-tip-text: "🌞 All things arise from a single thought.\A\万象之源，皆出一念。";
+  --h1-tip-color: #168fcf;
+  --h1-tip-bg: #fff8fa;
+  --h1-tip-border: 2px solid #168fcf;
+
+  content: var(--h1-tip-text);
+  color: var(--h1-tip-color);
+  border: var(--h1-tip-border);
+  border-radius: 5px;
+  position: absolute;
+  top: -8.2rem;
+  font-size: 0.75rem;
+  padding: 12px 16px;
+  font-weight: normal;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  font-family: 'AliPuHuiTi',sans-serif;
+  background: var(--h1-tip-bg);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  z-index: 6; pointer-events: none; opacity: .95;
+  max-width: 220px; word-wrap: break-word; overflow-wrap: break-word;
+  display: inline-block; box-sizing: border-box; width: auto;
+}
+
+/* ========================================================================== */
+/* REGION B — H2 ROOT （齐天大圣）                                             */
+/* Scope: #write h2                                                           */
+/* Function: 定义副标题的布局、字体、背景、描边与交互光影；附带金箍棒图标动效。   */
+/* Adjustable Params: 字体家族/大小、渐变配色、圆角、描边、hover 阴影层级、      */
+/*                   图标路径/尺寸/动画周期、提示条文本与颜色。                */
+/* Compatibility: 现代浏览器 / Typora(Electron)；旧内核不支持动画时退化为静态。*/
+/* ========================================================================== */
+
+#write h2{
+  --h2-font: 'GuDuYanHei','AliPuHuiTi',sans-serif;
+  --h2-size: 1.63rem;
+  --h2-line: 1.875rem;
+  --h2-margin: 2rem 0 1.5rem;
+  --h2-padding: 0.8rem 1.6rem 0.8rem 2.8rem;
+  --h2-letter: 0.5px;
+  --h2-color: #ffd700;
+
+  --h2-bg: radial-gradient(circle at center, #d32f2f 0%, #000000 90%);
+  --h2-radius: 1rem;
+  --h2-border: 1.5px solid rgba(255,215,0,0.5);
+
+  --h2-shadow: inset 0 2px 4px rgba(255,255,255,0.05),
+               inset 0 -2px 4px rgba(0,0,0,0.25),
+               0 2px 4px rgba(0,0,0,0.35),
+               0 4px 10px rgba(255,215,0,0.1),
+               0 0 16px rgba(255,60,0,0.2);
+  --h2-textshadow: 0 0 2px rgba(255,215,0,0.75), 1px 1px 2px rgba(0,0,0,0.65);
+
+  --h2-icon-url: url('../Logo/Headings_Icon/金箍棒.svg');
+  --h2-icon-size: 1.6em;
+  --h2-icon-glow: drop-shadow(0 0 3px #ffd700);
+  --h2-icon-anim: 4s;
+
+  --h2-hover-color: #ffec8b;
+  --h2-hover-border: rgba(255, 215, 0, 0.9);
+  --h2-hover-shadow:
+      inset 0 2px 6px rgba(255,255,255,0.15),
+      inset 0 -3px 6px rgba(0,0,0,0.4),
+      0 3px 6px rgba(0,0,0,0.45),
+      0 6px 14px rgba(255,215,0,0.35),
+      0 0 22px rgba(255,180,0,0.4),
+      0 0 36px rgba(255,80,0,0.25);
+  --h2-hover-textshadow:
+      0 0 4px rgba(255, 230, 150, 0.9),
+      1px 1px 2px rgba(0,0,0,0.8),
+      0 0 12px rgba(255, 140, 0, 0.6);
+  /* ============================================================================ */
+
+  position: relative;
+  display: block;
+  font-size: var(--h2-size);
+  line-height: var(--h2-line);
+  margin: var(--h2-margin);
+  padding: var(--h2-padding);
+  font-weight: bold;
+  letter-spacing: var(--h2-letter);
+  color: var(--h2-color);
+  font-family: var(--h2-font);
+
+  background: var(--h2-bg);
+  border-radius: var(--h2-radius);
+  border: var(--h2-border);
+
+  box-shadow: var(--h2-shadow);
+  text-shadow: var(--h2-textshadow);
+
+  overflow: visible; 
+  z-index: 7;
+
+  /* 精准过渡：只过渡必要属性 */
+  transition:
+    color .25s ease,
+    border-color .25s ease,
+    box-shadow .35s ease;
+}
+/* 金箍棒（轻浮 · 云气护体） */
+#write h2::before{
+  content: "";
+  position: absolute;
+  top: 50%; left: 0.1rem;
+  width: var(--h2-icon-size); height: var(--h2-icon-size);
+  background: var(--h2-icon-url) center/contain no-repeat;
+  animation: h2-stickFloat var(--h2-icon-anim) ease-in-out infinite;
+  filter: var(--h2-icon-glow);
+  opacity: .95;
+  z-index: 6;
+  pointer-events: none;
+}
+/* 微漂动画：势起而不躁 */
+@keyframes h2-stickFloat{
+  0%,100%{ transform: translateY(-50%) translateX(0); }
+  50%{     transform: translateY(-52%) translateX(1px); }
+}
+#write h2:hover {
+  color: var(--h2-hover-color);
+  border-color: var(--h2-hover-border);
+  box-shadow: var(--h2-hover-shadow);
+  text-shadow: var(--h2-hover-textshadow);
+}
+
+#write h2.md-focus::before{
+  --h2-tip-text: "🐵俺老孙来也！";
+  --h2-tip-color: #ff0000;
+  content: var(--h2-tip-text);
+  color: var(--h2-tip-color);
+  position: absolute;
+  top: 30%;
+  left: 100%;
+  font-size: 1rem;
+  font-weight: normal;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: 'AliPuHuiTi',sans-serif;
+  z-index: 6; pointer-events: none; opacity: .95;
+  display: inline-block;
+}
+
+/* ========================================================================== */
+/* REGION C — H3 ROOT（白雪公主）                                              */
+/* Scope: #write h3                                                           */
+/* Function: 定义 H3 的排版、底色（渐变）、切角与光影层；附加苹果叠加层。        */
+/* Adjustable Params: 字体/尺寸/行高、渐变色、圆角、切角形状、阴影层级、         */
+/*                   hover 位移与放大倍率、提示文本与颜色。                   */
+/* Compatibility: 现代浏览器 / Typora(Electron)。无滤镜依赖，性能稳定。        */
+/* ========================================================================== */
+
+#write h3{
+  --h3-font: 'SourceHanSansSoft','AliPuHuiTi',sans-serif;
+  --h3-size: 1.25rem;
+  --h3-weight: 600;
+  --h3-padding: 0.75rem 1.5rem 0.75rem 3.2rem;
+  --h3-margin: 1.5rem 0 1rem;
+  --h3-color: #ffb3ec;
+  --h3-radius: 0.8rem;
+  --h3-clip: polygon(0% 0%,100% 0%,100% 100%,6% 100%,0% 90%);
+  --h3-shadow: 0 2px 4px rgba(0,0,0,0.35), 0 0 8px rgba(160,0,255,0.15);
+
+  --h3-bg-grad: linear-gradient(135deg,#4a148c,#6a1b9a,#e91e63);
+
+  --h3-before-shadow:
+    inset 1px 1px 3px rgba(255,255,255,0.1),
+    inset -2px -2px 4px rgba(0,0,0,0.3),
+    0 4px 8px rgba(90,0,160,0.3),
+    0 0 12px rgba(160,0,255,0.3);
+
+  --h3-apple-url: url('../Logo/Headings_Icon/魔法苹果.svg');
+  --h3-apple-size: 2.5em 2.5em;
+  --h3-apple-glow: drop-shadow(0 0 4px rgba(255,100,200,0.6)); /* 当前未使用，仅保留占位 */
+
+  --h3-hover-color: #32ff7e;
+  --h3-hover-translate: -2px;
+  --h3-hover-shadow:
+    0 4px 8px rgba(0,0,0,0.4),
+    0 0 12px rgba(255,100,200,0.35),
+    0 0 24px rgba(160,0,255,0.25);
+
+  --h3-hover-after-scale: 2.05;
+
+  /* ============================================================================ */
+
+  position: relative;
+  display: block;
+  font-size: var(--h3-size);
+  font-weight: var(--h3-weight);
+  padding: var(--h3-padding);
+  margin: var(--h3-margin);
+  color: var(--h3-color);
+  z-index: 6;
+  overflow: visible!important;
+  border-radius: var(--h3-radius);
+  font-family: var(--h3-font);
+  box-shadow: var(--h3-shadow);
+  clip-path: var(--h3-clip);
+
+  /* 精准过渡：只过渡必要属性（取代 transition: all） */
+  transition:
+    color .25s ease,
+    transform .35s ease,
+    box-shadow .35s ease;
+}
+
+/* 光影背景（无模糊） */
+#write h3::before{
+  content: "";
+  position: absolute; inset: 0; z-index: -2;
+  border-radius: var(--h3-radius); pointer-events: none;
+  background: var(--h3-bg-grad);
+  box-shadow: var(--h3-before-shadow);
+}
+
+/* 苹果图标 + 渐变叠加（无滤镜） */
+#write h3::after{
+  content: "";
+  position: absolute; inset: 0; z-index: -1;
+  border-radius: var(--h3-radius); pointer-events: none;
+  background-image: var(--h3-apple-url), var(--h3-bg-grad);
+  background-repeat: no-repeat,no-repeat;
+  background-position: 0.1rem center, center;
+  background-size: var(--h3-apple-size), 100% 100%;
+}
+
+/* Hover 交互（仅色彩/位移/阴影过渡） */
+#write h3:hover {
+  color: var(--h3-hover-color);
+  transform: translateY(var(--h3-hover-translate));
+  box-shadow: var(--h3-hover-shadow);
+}
+
+/* 仅对缩放做过渡，避免昂贵属性进入补间 */
+#write h3:hover::after {
+  transform: scale(var(--h3-hover-after-scale));
+  transition: transform 0.35s ease-in-out;
+}
+
+/* H3 聚焦彩蛋（童话警示语 · 不喧宾夺主） */
+#write h3.md-focus::after {
+  --h3-tip-text: "✨ Beware the bite of the magic apple";
+  --h3-tip-color: #00ffe7;
+  content: var(--h3-tip-text);
+  position: absolute;
+  top: 20%;
+  left: 40%;
+  font-size: 0.60rem;
+  font-weight: normal;
+  color: var(--h3-tip-color);
+  white-space: nowrap;
+  z-index: 7;
+  pointer-events: none;
+  opacity: .95;
+}
+
+/* ========================================================================== */
+/* REGION D — H4 ROOT（爱丽丝）                                                         */
+/* Scope: #write h4                                                           */
+/* Function: 定义 H4 标题的排版、卡片化背景、圆角与阴影；添加兔子怀表图标与动画。 */
+/* Adjustable Params: 字体、字号、内外边距、卡片阴影、hover 提升量、图标路径/尺寸、 */
+/*                   中线渐变色与动画时长、焦点态发光色。                       */
+/* Compatibility: 现代浏览器 / Typora(Electron)。prefers-reduced-motion 下停动画。*/
+/* ========================================================================== */
+#write h4{
+  /* ===================== H4 · Root Variables (Local Only) ===================== */
+  --h4-font: 'ZhanKuWenYiTi','AliPuHuiTi',serif;
+  --h4-size: 1.15rem;
+  --h4-padding: 0.6rem 1.8rem;
+  --h4-margin: 2rem 0 1.2rem;
+  --h4-color: #111;
+
+  --h4-bg: #ffffff;
+  --h4-radius: 1.2rem;
+  --h4-border: 1px solid #e8e8e8;
+
+  --h4-shadow: 0 4px 8px rgba(0,0,0,0.12),
+               0 2px 4px rgba(0,0,0,0.08),
+               0 0 0 1px rgba(0,0,0,0.02);
+
+  --h4-hover-translate: -2px;
+  --h4-hover-border: #dcdcdc;
+  --h4-hover-shadow: 0 8px 16px rgba(0,0,0,.14), 0 4px 8px rgba(0,0,0,.10), 0 0 0 1px rgba(0,0,0,.04);
+
+  --h4-icon-url: url('../Logo/Headings_Icon/兔子怀表.svg');
+  --h4-icon-size: 3.8em 2.2em;
+  --h4-icon-filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+  --h4-icon-hover-filter: drop-shadow(0 2px 6px rgba(255,200,80,.85));
+  --h4-icon-anim: 0.1s;
+
+  --h4-line-gradient: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.06) 50%, transparent 100%);
+  --h4-line-size: 200% 100%;
+  --h4-line-anim: 6s;
+  /* ============================================================================ */
+
+  position: relative;
+  display: block;
+  padding: var(--h4-padding);
+  margin: var(--h4-margin);
+  font-size: var(--h4-size);
+  font-family: var(--h4-font);
+  color: var(--h4-color);
+  z-index: 7;
+
+  background: var(--h4-bg);
+  border-radius: var(--h4-radius);
+  border: var(--h4-border);
+
+  box-shadow: var(--h4-shadow);
+
+  text-shadow: none;
+  letter-spacing: 0.015em;
+  overflow: visible;
+}
+/* Hover：卡片轻微上浮 + 边框提亮 */
+#write h4:hover{
+  transform: translateY(var(--h4-hover-translate));
+  border-color: var(--h4-hover-border);
+  box-shadow: var(--h4-hover-shadow);
+}
+/* 兔子怀表图标（左侧） */
+#write h4::before{
+  content: "";
+  position: absolute;
+  top: 10%; left: -1.3em;
+  transform: translateY(-50%);
+  width: 3.8em; height: 2.2em;
+  background: var(--h4-icon-url) center/contain no-repeat;
+  filter: var(--h4-icon-filter);
+  pointer-events: none; z-index: 9;
+}
+#write h4:hover::before{
+  animation: h4-watch-swing var(--h4-icon-anim) ease-in-out infinite;
+  filter: var(--h4-icon-hover-filter);
+}
+@keyframes h4-watch-swing{
+  0%   { transform: translateY(-50%) rotate(-8deg); }
+  50%  { transform: translateY(-50%) rotate( 6deg); }
+  100% { transform: translateY(-50%) rotate(-8deg); }
+}
+/* 中线阴影流动 */
+#write h4::after{
+  content: "";
+  position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: var(--h4-line-gradient);
+  background-size: var(--h4-line-size);
+  background-position: left;
+  background-repeat: no-repeat;
+  animation: h4-shadowFlow var(--h4-line-anim) ease-in-out infinite alternate;
+}
+@keyframes h4-shadowFlow{
+  0%{   background-position: left; }
+  100%{ background-position: right; }
+}
+/* 降级 */
+@media (prefers-reduced-motion: reduce){
+  #write h4:hover{ transform:none; }
+  #write h4::before, #write h4::after{ animation:none !important; }
+}
+
+/* H4 A11y 焦点环 + 右侧提示（停掉原动画/阴影，文字提示为主） */
+#write h4:focus-visible,
+#write h4:focus-within,
+#write h4:target,
+#write h4.md-focus{
+  /* 去掉 outline，避免伪元素兔子怀表也被套框 */
+  outline: none;
+
+  /* 用外发光替代 outline，只围绕容器本体 */
+  box-shadow:
+    0 0 0 2px rgba(42,160,255,.85), /* 焦点环 */
+    var(--h4-shadow);               /* 叠加原阴影 */
+  border-color: #b9dcff;            /* 边框提亮 */
+}
+
+#write h4:focus-visible::after,
+#write h4:focus-within::after,
+#write h4:target::after,
+#write h4.md-focus::after{
+  --h4-tip-text: "⏱ Oh dear! Oh dear! I shall be late!";
+  --h4-tip-color: #164b7a;
+  content: var(--h4-tip-text);
+  position: absolute;
+  top: 1.5rem;
+  left: calc(70% + 0rem);
+  z-index: 12;
+  pointer-events: none;
+  color: var(--h4-tip-color);
+  display: inline-block;
+  white-space: nowrap;
+  max-width: 260px;
+  opacity: .98;
+}
+
+/* ========================================================================== */
+/* REGION E — H5 ROOT（雷声之锤）                                              */
+/* Scope: 仅 #write 内的 <h5>                                                 */
+/* Function: 定义本级标题的排版、色彩、底/外光与默认动画；不向其它区域泄露变量  */
+/* Adjustable Params: 字体/字号/粗细/间距、底色渐变、左侧描边、圆角与阴影层数   */
+/* Compatibility: Chromium/Electron (Typora)；旧内核忽略部分混合模式与动画     */
+/* Performance Notes: 背景/阴影静态；唯一常驻动画为 text-shadow 闪烁（可按需关）*/
+/* ========================================================================== */
+
+#write h5{
+  /* ===================== H5 · Root Variables (Local Only) ===================== */
+  --h5-font: 'ZCOOLAddictItalic','AliPuHuiTi',sans-serif;
+  --h5-size: 1.05rem;
+  --h5-weight: 700;
+  --h5-color: #00ccff;
+  --h5-padding: 0.6rem 1.4rem 0.6rem 1.2rem;
+  --h5-margin: 1.5rem 0 1rem;
+
+  --h5-bg: radial-gradient(circle at 30% 50%, #001c33 0%, #000000 90%);
+  --h5-border-left: 1px solid #00ccff;
+  --h5-radius: 0.8rem;
+
+  --h5-textshadow: 0 0 3px #00ccff, 0 0 10px #00eaff, 1px 1px 2px rgba(0,0,0,0.5);
+  --h5-boxshadow: 0 0 8px rgba(0,204,255,0.3), inset 0 0 8px rgba(0,204,255,0.08);
+
+  --h5-anim-thunder: 4s;
+
+  --h5-icon-url: url('../Logo/Headings_Icon/雷神之锤.png');
+  --h5-icon-size: 2.6em;
+  --h5-icon-glow: drop-shadow(0 0 4px #00ccff) drop-shadow(0 0 8px #00eaff);
+
+  --h5-hover-color: #bff5ff;
+  --h5-hover-border-left: #00eaff;
+  --h5-hover-textshadow: 0 0 4px #00eaff, 0 0 16px #00f3ff, 1px 1px 2px rgba(0,0,0,0.6);
+  --h5-hover-boxshadow: 0 0 12px rgba(0,204,255,0.45), 0 0 24px rgba(0,234,255,0.25), inset 0 0 10px rgba(0,204,255,0.12);
+
+  --h5-sweep-anim: 1.15s;
+  --h5-breathe-anim: 2.4s;
+
+  --h5-icon-swing: 800ms;
+  --h5-outline: 2px solid #00eaff;
+  /* ============================================================================ */
+
+  position: relative; 
+  display: block;
+  font-size: var(--h5-size);
+  font-weight: var(--h5-weight);
+  color: var(--h5-color);
+  padding: var(--h5-padding);
+  margin: var(--h5-margin);
+  font-family: var(--h5-font);
+
+  background: var(--h5-bg);
+  border-left: var(--h5-border-left);
+  border-radius: var(--h5-radius);
+
+  text-shadow: var(--h5-textshadow);
+
+  box-shadow: var(--h5-boxshadow);
+
+  animation: h5-thunderFlash var(--h5-anim-thunder) ease-in-out infinite;
+  overflow: visible; z-index: 6;
+}
+#write h5::before{
+  content: "";
+  position: absolute;
+  top: 50%; left: -2.8rem;
+  transform: translateY(-50%);
+  width: var(--h5-icon-size); height: var(--h5-icon-size);
+  background: var(--h5-icon-url) center/contain no-repeat;
+  filter: var(--h5-icon-glow);
+  pointer-events: none; z-index: 7;
+}
+@keyframes h5-thunderFlash{
+  0%,100%{ text-shadow: 0 0 2px #00ccff, 0 0 5px #0099ff; }
+  50%{     text-shadow: 0 0 10px #00eaff, 0 0 20px #00eaff; }
+}
+
+/* 悬停/聚焦：整体提亮（字色/外光/描边） */
+#write h5:hover,
+#write h5:is(:focus-visible, :focus-within, .md-focus){
+  color: var(--h5-hover-color);
+  border-left-color: var(--h5-hover-border-left);
+  text-shadow: var(--h5-hover-textshadow);
+  box-shadow: var(--h5-hover-boxshadow);
+}
+
+/* 扫光叠层（交互时启用） */
+#write h5::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+  opacity: 0; /* 基态隐藏，交互时显现 */
+}
+#write h5:hover::after,
+#write h5:is(:focus-visible, :focus-within, .md-focus)::after{
+  opacity: 1;
+  background:
+    radial-gradient(60% 120% at 0% 50%,
+      rgba(0,234,255,0.18) 0%,
+      rgba(0,234,255,0.08) 30%,
+      rgba(0,234,255,0) 60%),
+    linear-gradient(115deg,
+      transparent 0%,
+      rgba(0,234,255,0.38) 48%,
+      rgba(0,234,255,0.85) 50%,
+      rgba(0,234,255,0.38) 52%,
+      transparent 100%);
+  background-size: 100% 100%, 300% 100%;
+  background-position: 0 0, -180% 0;
+  mix-blend-mode: screen;
+  animation:
+    h5-sweep var(--h5-sweep-anim) ease-out infinite,
+    h5-radial-breathe var(--h5-breathe-anim) ease-in-out infinite;
+}
+
+/* 锤具轻摆（交互触发） */
+#write h5:hover::before,
+#write h5:is(:focus-visible, :focus-within, .md-focus)::before{
+  transform-origin: 55% 15%;
+  animation: h5-hover-swing var(--h5-icon-swing) ease-in-out 1;
+  filter: drop-shadow(0 0 5px #00eaff) drop-shadow(0 0 12px #00f3ff);
+}
+
+/* 可达性：可见焦点环 */
+#write h5:is(:focus-visible, :focus-within, .md-focus){
+  outline: var(--h5-outline);
+  outline-offset: 2px;
+}
+
+/* —— 扫光/呼吸/摆动关键帧 —— */
+@keyframes h5-sweep{
+  0%   { background-position: 0 0, -180% 0; }
+  60%  { background-position: 0 0,  110% 0; }
+  100% { background-position: 0 0,  110% 0; }
+}
+@keyframes h5-radial-breathe{
+  0%,100% { opacity: .85; filter: brightness(1) saturate(1); }
+  50%     { opacity: 1;   filter: brightness(1.08) saturate(1.08); }
+}
+@keyframes h5-hover-swing{
+  0%   { transform: translateY(-50%) rotate(0deg); }
+  30%  { transform: translateY(-50%) rotate(-9deg); }
+  60%  { transform: translateY(-50%) rotate(7deg); }
+  100% { transform: translateY(-50%) rotate(0deg); }
+}
+
+/* 降级：停动画，仅保留提亮与描边 */
+@media (prefers-reduced-motion: reduce){
+  #write h5:hover,
+  #write h5:is(:focus-visible, :focus-within, .md-focus){
+    animation: none !important;
+  }
+  #write h5::after,
+  #write h5::before{
+    animation: none !important;
+  }
+}
+
+/* H5 聚焦：符文风提示条（不与扫光叠加冲突） */
+#write h5:is(:focus-visible, :focus-within, :target, .md-focus){
+  --h5-outline-focus: 2px solid #00eaff;
+  outline: var(--h5-outline-focus);
+  outline-offset: 2px;
+}
+#write h5:is(:focus-visible, :focus-within, :target, .md-focus)::before{
+  transform-origin: 50% 0%;
+  animation: h5-hammer-swing 900ms ease-in-out 1;
+}
+#write h5:is(:focus-visible, :focus-within, :target, .md-focus)::after{
+  --h5-tip-text: "ᛋᛅ ᛁᛋ ᚼᛅᛚᛏᛁ ᛘᛅᛦᛚᚾᛁ ᚦᚢᚱᛋ, ᛁᚠ ᚼᛅᚾ ᛁᛋ ᚢᛁᚱᚦᚱ, ᛋᚴᛅᛚ ᛅᛁᚴᛅ ᛘᛅᚦ ᚦᚢᚱᛋ.";
+  content: var(--h5-tip-text);
+  animation: none;
+  transition: none;
+  filter: none;
+  background: none;
+  box-shadow: none;
+  border: none;
+  position: absolute;
+  top: 0.2rem;
+  left: calc(60% + 0.8rem);
+  z-index: 11;
+  pointer-events: none;
+  color: #ffffff;
+  background: rgba(0,204,255,.15);
+  border: 1px solid #00ccff;
+  border-radius: 6px;
+  padding: 6px 10px;
+  white-space: nowrap;
+  font: 600 0.78rem 'AliPuHuiTi', sans-serif;
+  line-height: 1.4;
+  opacity: .98;
+}
+/* 窄屏回退 */
+@media (max-width: 760px){
+  #write h5:is(:focus-visible, :focus-within, :target, .md-focus)::after{
+    top: -2.2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: min(82vw, 340px);
+    white-space: normal;
+    text-align: center;
+  }
+}
+@media (prefers-reduced-motion: reduce){
+  #write h5{ animation: none !important; }
+  #write h5::before{ animation: none !important; }
+}
+
+/* ========================================================================== */
+/* REGION F — H6 ROOT（狐面具）                                                */
+/* Scope: 仅 #write 内的 <h6>                                                 */
+/* Function: 定义六级标题的排版、底色/字色、间距与交互高亮                     */
+/* Adjustable Params: 字号/行高/粗细、前景色、hover 背景与描边、阴影样式       */
+/* Compatibility: Chromium/Electron (Typora)；旧内核忽略部分滤镜/渐变          */
+/* ========================================================================== */
+#write h6{
+  /* ===================== H6 · Root Variables (Local Only) ===================== */
+  --h6-font: 'GaoDuanHei','AliPuHuiTi',sans-serif;
+  --h6-size: 0.93rem;
+  --h6-line: 1.2rem;
+  --h6-weight: 600;
+  --h6-margin: 1.4rem 0 1rem;
+  --h6-padding: 0.5rem 1.6rem 0.5rem 1.8rem;
+  --h6-color: #b1222b;
+
+  --h6-icon-url: url('../Logo/Headings_Icon/狐狸面具.png');
+  --h6-icon-size: 4.8em 2.5em;
+  --h6-icon-filter: drop-shadow(0 0 2px #ffcccc);
+  --h6-icon-hover: drop-shadow(0 0 3px #ff9999) drop-shadow(0 0 6px #ff6666);
+  --h6-icon-anim: 1.6s;
+
+  --h6-hover-color: #d62828;
+  --h6-hover-bg: linear-gradient(to right, #fff5f5, #ffdada);
+  --h6-hover-border: #f08080;
+  --h6-hover-textshadow: 0 0 6px rgba(255,120,120,0.7), 1px 1px 3px rgba(150,0,0,0.3);
+  --h6-hover-boxshadow: 0 0 12px rgba(255,80,80,0.35), inset 0 0 6px rgba(255,200,200,0.35);
+  /* ============================================================================ */
+
+  position: relative; display: block;
+  font-size: var(--h6-size);
+  line-height: var(--h6-line);
+  font-weight: var(--h6-weight);
+  margin: var(--h6-margin);
+  padding: var(--h6-padding);
+  font-family: var(--h6-font);
+  color: var(--h6-color);
+  overflow: visible; 
+  z-index: 6;
+}
+/* 狐面具图标（左侧） */
+#write h6::before{
+  content: "";
+  position: absolute;
+  top: 20%; left: -1.4rem;
+  transform: translateY(-10%);
+  width: 4.8em; height: 2.5em;
+  background: var(--h6-icon-url) center/contain no-repeat;
+  filter: var(--h6-icon-filter);
+  z-index: 7; pointer-events: none;
+}
+#write h6:hover {
+  color: var(--h6-hover-color);
+  background: var(--h6-hover-bg);
+  border-color: var(--h6-hover-border);
+  text-shadow: var(--h6-hover-textshadow);
+  box-shadow: var(--h6-hover-boxshadow);
+  transition: all 0.35s ease;
+}
+/* 狐面具图标 Hover 摇曳 */
+#write h6:hover::before {
+  animation: h6-mask-sway var(--h6-icon-anim) ease-in-out infinite alternate;
+  filter: var(--h6-icon-hover);
+}
+@keyframes h6-mask-sway {
+  0%   { transform: translateY(-10%) rotate(0deg); }
+  25%  { transform: translateY(-12%) rotate(-5deg); }
+  50%  { transform: translateY(-8%)  rotate(3deg); }
+  75%  { transform: translateY(-11%) rotate(-3deg); }
+  100% { transform: translateY(-10%) rotate(0deg); }
+}
+/* 降级：关闭面具摆动，仅保留色彩强调与名言 */
+@media (prefers-reduced-motion: reduce){
+  #write h6:hover::before { animation: none !important; }
+}
+
+/* H6 聚焦：樱语句签（与祭典红呼应） */
+#write h6:is(:focus-visible, :focus-within, .md-focus, :target)::after{
+  --h6-tip-text: "🌸 桜は散るからこそ美しい";
+  content: var(--h6-tip-text);
+  position: absolute;
+  top: -.0rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 12;
+  pointer-events: none;
+}
+/* =============================== END OF PACKAGE ============================ */

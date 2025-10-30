@@ -1,0 +1,65 @@
+/* =======================================================================================
+   Rhapsody · Front-Matter Package（文首信息块 · Transparent Edition）
+   设计理念 / Design Concept
+   - 仅作用于文档开头的 YAML Front-Matter / Meta Block，不影响正文与 fenced code。
+   - 保留纯文字呈现：去掉底色、边框、阴影和圆角，使其与正文自然衔接。
+   - 参数化 padding / margin / line-height，方便根据版心或导出需求微调。
+   - 打印与导出 PDF 时保持透明显示，避免强制底色，确保一致性。
+   - 不改动 HTML 结构，避免使用 !important，兼容 Typora/Electron 渲染逻辑。
+   ======================================================================================= */
+
+/* =======================================================================================
+   REGION A — TRANSPARENT FRONT-MATTER（仅文首 meta 块，纯文字透明）
+   Scope: 仅 #write 顶层、位于文档开头的 .md-front-matter / .md-meta-block
+   Function: 去掉一切底色/边框/阴影/圆角，仅保留文本（导出 PDF 同样生效）
+   Notes: 不影响 YAML fenced code block；不修改 HTML 结构；尽量避免 !important
+   Adjustable: --yml-fm-padding / --yml-fm-margin / --yml-fm-line-height
+   ======================================================================================= */
+
+/* 局部参数（可按需改） */
+#write{
+  --yml-fm-padding: .25rem 0;
+  --yml-fm-margin:  .2rem  0;
+  --yml-fm-line-height: 1.6;
+}
+
+/* 仅文首 Front-Matter：透明、纯文字 */
+#write > :is(.md-front-matter, .md-meta-block){
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding: var(--yml-fm-padding);
+  margin:  var(--yml-fm-margin);
+  color: inherit;
+  font:  inherit;            /* 跟正文一致 */
+  line-height: var(--yml-fm-line-height);
+}
+
+/* 清空铺底伪元素（若上游有加背景，确保不显示） */
+#write > :is(.md-front-matter, .md-meta-block)::before,
+#write > :is(.md-front-matter, .md-meta-block)::after{
+  content: none;
+  background: none;
+}
+
+/* 首块顶部更紧凑（可选） */
+#write > :is(.md-front-matter, .md-meta-block):first-child{
+  margin-top: .1rem;
+}
+
+/* 导出/打印时保持一致（文本透明显示，无强制底色） */
+@media print{
+  #write > :is(.md-front-matter, .md-meta-block){
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* 若极端情况下仍被外部样式着色，可解除注释启用强覆盖 */
+/* #write > :is(.md-front-matter, .md-meta-block){
+//   background: transparent !important;
+//   border: none !important;
+//   box-shadow: none !important;
+// }
+/* =============================== END OF PACKAGE ============================ */

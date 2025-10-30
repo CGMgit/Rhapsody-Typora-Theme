@@ -1,0 +1,293 @@
+/* =======================================================================================
+   Rhapsody · Global Background & Corner Badges（写作页全局底色 + 角标系统）
+   设计理念 / Design Concept
+   - 仅当「#write 存在且未打开 MegaMenu」时为 html/body 赋予全局底色与文字色。
+   - 角标采用“变量切换 + 单一渲染口”方案：html::after=BL，html::before=BR；不改 DOM。
+   - 角标默认关闭；通过 :has(...) 改写变量启用，content: none/"" 精准控生/不生伪元素。
+   - 尺寸与位置一次配置：--cb-size=clamp(72px,max(88px,7vmin),112px)；考虑 safe-area。
+   - BR 垂直位移随视口自适应（10px–min(420px, 100vh−size−safe-area−8px)）以避免遮挡。
+   - 保持你既定的颜色/尺寸/数值与区域内变量作用域，不跨区污染。
+   ======================================================================================= */
+
+/* ========================================================================== */
+/* REGION A — GLOBAL ROOT · Background & Text                                 */
+/* Scope: 仅在 #write 存在、且 MegaMenu 关闭时为 html/body 设定底色与正文色     */
+/* Function: 提供编辑态全局底色、文字色、SVG 随文字着色、基础行高               */
+/* Adjustable Params: 背景/文字/行高（这里保留你的既定数值）                   */
+/* 兼容性 / Compatibility: 可包裹 @supports(selector(:has(*)))；Typora 可用    */
+/* ========================================================================== */
+
+/* 默认：写作态启用 */
+body:not(.megamenu-opened) {
+  --bg-color:   #d5eafd;     /* 背景色 / Background */
+  --text-color: #232931;     /* 正文字色 / Body text */
+  --svg-fill:   currentColor;/* SVG/图标颜色随文字色 */
+  --line-height:1.625rem;    /* 基础行高 */
+
+  /* 📱 移动端自动文字缩放（桌面端基本无效，作为兼容位保留） */
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+
+  background: var(--bg-color);
+  color: var(--text-color);
+  fill: var(--svg-fill);
+  line-height: var(--line-height);
+}
+
+/* ========================================================================== */
+/* REGION B — CORNER BADGES (BL & BR) · 变量切换版（单监听、单渲染口）        */
+/* 约定：BL=左下（::after），BR=右下（::before）                              */
+/* 默认关闭角标；仅在 html 上用 :has 改变量；未命中时 content:none 不生成伪元素 */
+/* ========================================================================== */
+/* ── 全局几何：集中定义尺寸/安全区/偏移（不做状态切换） ── */
+html{
+  /* 尺寸（首选 88px；随视口轻微伸缩，72–112px） */
+  --cb-size: clamp(72px, max(88px, 7vmin), 112px);
+
+  /* 安全区（底部刘海 / 系统栏） */
+  --cb-safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* 左下角偏移（首选 20/10；适度随视口伸缩） */
+  --cb-bl-x: clamp(12px, max(20px, 1.8vmin), 28px);
+  --cb-bl-y: clamp(8px,  max(10px, 1.6vmin), 20px);
+
+  /* 右下角偏移 X（首选 20；适度随视口伸缩） */
+  --cb-br-x: clamp(12px, max(20px, 1.8vmin), 28px);
+
+  /* 右下角偏移 Y：与原版一致 */
+  --cb-br-y-max: min(420px, calc(100vh - var(--cb-size) - var(--cb-safe-bottom) - 8px));
+  --cb-br-y: clamp(10px, 350px, var(--cb-br-y-max));
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* BL（左下）：Outline / MegaMenu（就地挂载，fixed 定位到视口）                */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+/* Outline 激活 → 作业培根（挂载点：侧栏本体） */
+#typora-sidebar.active-tab-outline::after{
+  content: "";
+  position: fixed;
+  left:  var(--cb-bl-x);
+  bottom: calc(var(--cb-bl-y) + var(--cb-safe-bottom));
+  width:  var(--cb-size);
+  height: var(--cb-size);
+  background: url("../Logo/Background_Icon/Typora作业培根.ico") no-repeat center / contain;
+  pointer-events: none;
+  z-index: 900;
+}
+
+/* MegaMenu 打开 → 冒险培根（挂载点：html；覆盖 Outline） */
+body.megamenu-opened::after{
+  content: "";
+  position: fixed;
+  left:  var(--cb-bl-x);
+  bottom: calc(var(--cb-bl-y) + var(--cb-safe-bottom));
+  width:  var(--cb-size);
+  height: var(--cb-size);
+  background: url("../Logo/Background_Icon/冒险培根.ico") no-repeat center / contain;
+  pointer-events: none;
+  z-index: 901; /* 覆盖侧栏挂载的 900 */
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* BR（右下）：Files 列表 / 树形（就地挂载，fixed 定位到视口）                  */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+/* Files + 列表模式 → 厨师培根 */
+html:has(#typora-sidebar.active-tab-files.use-file-list-style):not(:has(.megamenu-opened)){
+  --cb-br-content: "";
+  --cb-br-icon: url("../Logo/Background_Icon/厨师培根.ico");
+}
+
+/* Files + 树形模式 → 睡觉培根 */
+html:has(#typora-sidebar.active-tab-files.use-file-tree-style):not(:has(.megamenu-opened)){
+  --cb-br-content: "";
+  --cb-br-icon: url("../Logo/Background_Icon/睡觉培根.ico");
+}
+
+/* 单一渲染口：BR 挂在 html::before */
+html::before{
+  content: var(--cb-br-content);
+  position: fixed;
+  right: var(--cb-br-x);
+  bottom: calc(var(--cb-br-y) + var(--cb-safe-bottom));
+  width:  var(--cb-size);
+  height: var(--cb-size);
+  background: var(--cb-br-icon) no-repeat center / contain;
+  pointer-events: none;
+  z-index: 900;
+}
+
+/* ==========================================================================
+   REGION C — VIEWPORT SCROLLBAR · Ultra-Minimal Pink
+   Scope: 仅命中主界面滚动条（content, html, body）
+   - 不影响侧栏、菜单、表格/代码等内嵌滚动容器
+   - 无动画、无滤镜、无发光；仅粉色拇指+浅灰轨道
+   ========================================================================== */
+/* REGION C — VIEWPORT SCROLLBAR · Root (content-only) */
+content{
+  --vp-size:   12px;
+  --vp-radius: 12px;
+  --track:     rgba(0,0,0,.06);
+  --thumb:     #F3B8CC;
+  --thumb-brd: #E6A1BB;
+}
+
+/* 尺寸（仅主视口 content） */
+content::-webkit-scrollbar{
+  width:  var(--vp-size);
+  height: var(--vp-size);
+}
+
+/* 轨道（仅主视口 content） */
+content::-webkit-scrollbar-track{
+  background:    var(--track);
+  border-radius: var(--vp-radius);
+}
+
+/* 拇指（仅主视口 content） */
+content::-webkit-scrollbar-thumb{
+  background:    var(--thumb);
+  border:        1px solid var(--thumb-brd);
+  border-radius: var(--vp-radius);
+}
+
+/* 角落（仅主视口 content） */
+content::-webkit-scrollbar-corner{ background: transparent; }
+  
+
+/* ========================================================================== */
+/* REGION D — TITLEBAR CONTROLS (Left + Right) · Ceramic White × Cyan Edge    */
+/* Scope: 写作态默认（未打开 MegaMenu）；统一管理 #top-titlebar 内所有按钮        */
+/* Targets: #w-menu-btn, #w-min, #w-max, #w-full, #w-pin, #w-unpin,            */
+/*          #w-restore, #w-close                                              */
+/* Notes: 1) 去掉 :has(#write) 降低匹配成本；                                    */
+/*        2) 变量仅在 body:not(.megamenu-opened) 下挂到 #top-titlebar；         */
+/*        3) 用 :where() 聚合 ID，降低特指度，便于热修；                         */
+/* ========================================================================== */
+
+/* —— 变量：仅当未打开 MegaMenu 时生效 —— */
+body:not(.megamenu-opened) #top-titlebar{
+  --wc-size: 24px;
+  --wc-radius: 8px;
+  --wc-fg: #333333;
+
+  --wc-ceramic-1: #F6F8FC;
+  --wc-ceramic-2: #E7EDF7;
+  --wc-hairline: rgba(211,220,235,.85);
+  --wc-glint: rgba(255,255,255,.80);
+  --wc-shadow: rgba(0,0,0,.22);
+
+  --wc-cyan-glow: rgba(153,229,255,.45);
+
+  --wc-danger-1: #FFF2F2;
+  --wc-danger-2: #FFE2E2;
+  --wc-danger-ring: rgba(255,77,79,.45);
+  --wc-danger-glow: rgba(255,77,79,.28);
+}
+
+/* —— 基础形态：统一左/右按钮的卡片容器 —— */
+body:not(.megamenu-opened) #top-titlebar
+  :where(#w-menu-btn,#w-min,#w-max,#w-full,#w-pin,#w-unpin,#w-restore,#w-close).toolbar-icon{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: var(--wc-size);
+  padding: 2px 8px;
+  border: 1px solid var(--wc-hairline);
+  border-radius: var(--wc-radius);
+  background: linear-gradient(180deg,var(--wc-ceramic-1),var(--wc-ceramic-2));
+  box-shadow:
+    inset 0 1px 0 var(--wc-glint),
+    inset 0 -1px 0 var(--wc-shadow),
+    0 0 0 1px rgba(255,255,255,.10);
+  color: var(--wc-fg);
+  fill: currentColor;
+  transition: background .18s ease, box-shadow .18s ease, filter .16s ease;
+}
+
+/* —— 微调距离：左/右各自外边距（避免写两遍规则） —— */
+body:not(.megamenu-opened) #top-titlebar #w-menu-btn.toolbar-icon{ margin-right: 6px; }
+body:not(.megamenu-opened) #top-titlebar
+  :where(#w-min,#w-max,#w-full,#w-pin,#w-unpin,#w-restore,#w-close).toolbar-icon{ margin-left: 6px; }
+
+/* —— Hover：青蓝指示灯（Close 例外见下） —— */
+@media (hover:hover){
+  body:not(.megamenu-opened) #top-titlebar
+    :where(#w-menu-btn,#w-min,#w-max,#w-full,#w-pin,#w-unpin,#w-restore).toolbar-icon:hover{
+    filter: brightness(1.02) saturate(1.04);
+    box-shadow:
+      inset 0 1px 0 var(--wc-glint),
+      inset 0 -1px 0 rgba(0,0,0,.26),
+      0 0 0 1px rgba(255,255,255,.12),
+      0 0 12px var(--wc-cyan-glow);
+  }
+}
+
+/* —— Active：轻压反馈 —— */
+body:not(.megamenu-opened) #top-titlebar
+  :where(#w-menu-btn,#w-min,#w-max,#w-full,#w-pin,#w-unpin,#w-restore,#w-close).toolbar-icon:active{
+  filter: brightness(.97) saturate(1.02);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.65),
+    inset 0 -1px 0 rgba(0,0,0,.35),
+    0 0 0 1px rgba(255,255,255,.12);
+}
+
+/* —— Close：hover 用淡红安全态 —— */
+@media (hover:hover){
+  body:not(.megamenu-opened) #top-titlebar #w-close.toolbar-icon:hover{
+    background: linear-gradient(180deg,var(--wc-danger-1),var(--wc-danger-2));
+    box-shadow:
+      inset 0 1px 0 var(--wc-glint),
+      inset 0 -1px 0 rgba(0,0,0,.22),
+      0 0 0 1px var(--wc-danger-ring),
+      0 0 12px var(--wc-danger-glow);
+    color: #a11217;
+  }
+}
+
+/* —— 左侧汉堡按钮的三线图形 —— */
+#top-titlebar #w-titlebar-left #w-menu-btn .ty-menu-btn-area{
+  display: inline-grid;
+  grid-auto-flow: row;
+  grid-template-rows: repeat(3, 2px);
+  gap: 3px;
+  width: 14px;
+}
+#top-titlebar #w-titlebar-left #w-menu-btn .ty-menu-btn-area-sub{
+  display: block;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg,#556b82,#344a5f);
+}
+
+/* —— 汉堡扫描：仅 hover 时启用、减少无谓动画 —— */
+@media (hover:hover){
+  body:not(.megamenu-opened) #top-titlebar #w-titlebar-left #w-menu-btn.toolbar-icon:hover
+  .ty-menu-btn-area-sub{
+    background-image:
+      linear-gradient(180deg,#556b82,#344a5f),
+      linear-gradient(90deg, rgba(122,215,255,0) 35%, rgba(122,215,255,.7) 50%, rgba(122,215,255,0) 65%);
+    background-size: 100% 100%, 300% 100%;
+    background-position: 50% 50%, -120% 0%;
+    animation: aiMenuScanX 2.6s linear infinite;
+  }
+}
+
+/* —— 减少动态：系统层面停掉动画 —— */
+@media (prefers-reduced-motion: reduce){
+  #top-titlebar #w-titlebar-left #w-menu-btn .ty-menu-btn-area-sub{
+    animation: none !important;
+    background-position: 50% 50%;
+  }
+}
+
+/* —— 关键帧 —— */
+@keyframes aiMenuScanX{
+  0%   { background-position: 50% 50%, -120% 0%; }
+  100% { background-position: 50% 50%, 160% 0%;  }
+}
+
+/* =============================== END OF PACKAGE ============================ */

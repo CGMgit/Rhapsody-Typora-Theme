@@ -1,0 +1,47 @@
+/* =======================================================================================
+   Rhapsody · Selection Highlight（正文选区高亮 · 玫瑰粉）
+   设计理念 / Design Concept
+   - 为正文提供统一的文字选中反馈，提升交互一致性与可感知性。
+   - 采用玫瑰粉半透明底色，配合米白文字，保证在深浅背景下均有良好对比度。
+   - 双层文字阴影（金黄 / 蓝色）制造柔和立体感，避免选区视觉呆板。
+   - 样式严格限定在 #write 内部，避免干扰 Typora UI 其它区域。
+   - 可通过变量灵活调整配色与透明度，便于快速主题适配。
+   ======================================================================================= */
+/* ========================================================================== */
+/* REGION A — SELECTION HIGHLIGHT（正文选区高亮 · 玫瑰粉）                     */
+/* Scope: #write 内的文字选中 (::selection / ::-moz-selection)                 */
+/* 作用 / Purpose:
+   - 提供统一的选中高亮色，强化交互反馈
+   - 玫瑰粉底色，辅以金黄/蓝色的文字阴影，保证对比与美感
+   Adjustable Params:
+   - --sel-bg: 背景色（含透明度）
+   - --sel-fg: 前景文字色
+   - --sel-shadow-a/b: 双层文字阴影色
+   ========================================================================== */
+
+#write {
+  /* Vars（仅本区使用，不外溢） */
+  --sel-bg: rgba(233, 64, 87, 0.85);     /* 背景色 · 玫瑰粉 */
+  --sel-fg: #f5f3e7;                     /* 前景色 · 米白 */
+  --sel-shadow-a: rgba(255, 215, 0, 0.45); /* 金黄微光 */
+  --sel-shadow-b: rgba(77, 168, 218, 0.6); /* 蓝色柔光 */
+}
+
+/* Chromium / WebKit */
+#write ::selection {
+  background-color: var(--sel-bg) !important;
+  color: var(--sel-fg) !important;
+  text-shadow:
+    0 0.5px 1px var(--sel-shadow-a),
+    0 0 4px var(--sel-shadow-b) !important;
+}
+
+/* Firefox */
+#write ::-moz-selection {
+  background-color: var(--sel-bg) !important;
+  color: var(--sel-fg) !important;
+  text-shadow:
+    0 0.5px 1px var(--sel-shadow-a),
+    0 0 4px var(--sel-shadow-b) !important;
+}
+/* =============================== END OF PACKAGE ============================ */

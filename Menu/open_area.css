@@ -1,0 +1,801 @@
+/* =======================================================================================
+   Rhapsody · MegaMenu — Global Design Concept（总设计理念 · 适配 Typora 限制）
+
+   Vision / 视觉基调
+   - 像素纸感 Pixel-Canvas：以“竖向主渐变 + 横向像素条 + 纵向轻噪点”构成像素缎带底（Ribbon）。
+   - 文字清晰 Readability：标题/按钮轻描边（sub-pixel text-shadow）保证在高饱和底纹上的可读性。
+   - 统一语汇 Consistency：卡片、按钮、表格、下拉、滚动条等统一使用“像素描边 + 彩膜 + 阶梯动效”。
+
+   Typora Constraints / 编辑器限制
+   - 不改 HTML 结构（no DOM hacks）；所有视觉由 CSS 变量驱动；仅在必要处使用 :has() 做“门闩联动”。
+   - 字体栈精确分区：正文/控件使用像素中文（SourceHanSansPixel），英文/数字段落用 Press Start 2P；
+     代码与图标显式排除（避免等宽/图标字体被覆盖）。FontAwesome 必须显式声明。
+   - 导出与兼容友好：动画统一尊重 prefers-reduced-motion，并可一键总阀关闭（区域级 --*-anim）。
+
+   Performance / 性能策略
+   - 少滤镜、少混合：主打渐变/重叠背景与 box-shadow，避免大面积 blur/brightness；关键帧使用 steps()。
+   - 精准作用域：通过“状态雨伞 + 局部变量”（例如挂在 #megamenu-section-open / body.megamenu-opened），
+     限域重绘，降低全局样式抖动与内存占用。
+   - :has() 双轨守护：支持则精准联动；不支持则提供“粗粒度回退”，仅在菜单打开时上色。
+
+   Maintainability / 维护策略
+   - 变量治理：区域内集中声明变量（--b-* / --c-* / --d-*），一处换色全域联动；命名前缀避免串扰。
+   - 模块注释：每个 REGION 带 Scope / Function / Adjustable / Notes，便于快速检索与调参。
+   - 可选补丁：英文像素段落的字号/行高微调作为“可选补丁”，默认关闭，需要时再启用。
+
+   Accessibility / 无障碍
+   - 高对比可读文本；焦点与 hover 有清晰描边/内发光；表格行 hover 有像素内描边强化定位。
+
+   ───────────────────────────────────────────────────────────────────────────────
+   Region Index / 区域清单（作用范围与职责）
+   ┌────────┬──────────────────────────────────────────────────────────────┬─────────────────────────────────────────────┐
+   │ 区域   │ Scope（作用范围）                                            │ Function（主要职责）                         │
+   ├────────┼──────────────────────────────────────────────────────────────┼─────────────────────────────────────────────┤
+   │ A      │ body.megamenu-opened:has(#m-open.active) 内的                 │ 字体基线：中文像素基线；英文/数字切至 Press  │
+   │        │ #megamenu-section-open, #megamenu-menu-sidebar               │ Start 2P；常见 UI 继承；代码/图标排除；描边  │
+   ├────────┼──────────────────────────────────────────────────────────────┼─────────────────────────────────────────────┤
+   │ B      │ #megamenu-section-open（右侧 Open 面板）                      │ 容器三层像素底；卡片彩膜+像素砖缝；标题动彩条 │
+   │        │                                                              │ 与长按钮像素条纹（统一动画阀 --b-anim）      │
+   ├────────┼──────────────────────────────────────────────────────────────┼─────────────────────────────────────────────┤
+   │ C      │ header + #megamenu-section-open（门闩联动）                   │ 仅在 Open 激活时上色；header 图标高亮与按钮  │
+   │        │                                                              │ 内发光；提供 :has 精准/无 :has 回退          │
+   ├────────┼──────────────────────────────────────────────────────────────┼─────────────────────────────────────────────┤
+   │ D      │ #megamenu-menu-sidebar（左侧菜单侧栏，Open 激活态）           │ 侧栏像素纸条头；列表项像素糖果条纹；标签配色 │
+   │        │                                                              │ 分组；滚动条统一风格（统一动画阀 --d-anim）  │
+   ├────────┼──────────────────────────────────────────────────────────────┼─────────────────────────────────────────────┤
+   │ Ω*     │ 可选补丁（英文/数字 Press Start 2P 的字号/行高/字距微调）     │ 默认关闭；仅当标题/控件溢出时打开；严格排除  │
+   │        │                                                              │ 代码/图标。若你原代码无“Ω”，可忽略本补丁。   │
+   └────────┴──────────────────────────────────────────────────────────────┴─────────────────────────────────────────────┘
+   *Naming Note：若不希望出现“Ω”命名，可将该补丁重命名为
+     “REGION A.PATCH — PRESS START 2P SCALE” 或直接删除整段补丁块。
+
+   Quick Toggles / 快速开关
+   - B 面板动效总阀：#megamenu-section-open { --b-anim: 0|1; }
+   - D 侧栏动效总阀：body.megamenu-opened { --d-anim: 0|1; }
+   - Ω 英文缩放补丁：默认注释关闭，需要时逐段解除注释即可。
+
+   Compatibility / 兼容性
+   - 现代浏览器 / Typora（Electron）；无 :has 的环境具备可用回退；不改 DOM 结构。
+   ======================================================================================= */
+
+/* ========================================================================== */
+/* REGION A — PIXEL FONT BASELINE（像素字体基线 · Open 激活态专用）             */
+/* Scope: body.megamenu-opened:has(#m-open.active) 内部的                      */
+/*        #megamenu-section-open 与 #megamenu-menu-sidebar                     */
+/* Function:                                                                 */
+/*   1) 提供中文为主的像素基线（SourceHanSansPixel 优先）                      */
+/*   2) 英文/数字切换到 Press Start 2P 强化像素感                             */
+/*   3) 常见 UI 元素继承像素字体，但代码/图标区域排除                          */
+/*   4) 标题与按钮轻描边，提高清晰度                                          */
+/* Notes: FontAwesome 图标字体需显式声明，避免被像素字体覆盖                  */
+/* Compatibility: 现代浏览器 / Typora(Electron)                               */
+/* ========================================================================== */
+
+/* 状态雨伞：仅当 Open 激活时生效 */
+body.megamenu-opened:has(#m-open.active) :is(#megamenu-section-open, #megamenu-menu-sidebar) {
+  /* 中文像素基线 */
+  font-family: 'SourceHanSansPixel','Press Start 2P',monospace,system-ui,-apple-system,
+               "Segoe UI","Microsoft YaHei",sans-serif;
+  font-kerning: none;
+  text-rendering: optimizeSpeed;
+}
+
+/* 英文/数字 → Press Start 2P */
+body.megamenu-opened:has(#m-open.active)
+:is(#megamenu-section-open, #megamenu-menu-sidebar)
+:where(:lang(en), [data-localize], [data-lg]) {
+  font-family: 'Press Start 2P','SourceHanSansPixel',monospace,system-ui,-apple-system,
+               "Segoe UI","Microsoft YaHei",sans-serif;
+}
+
+/* 常见 UI 元素继承像素字体 */
+body.megamenu-opened:has(#m-open.active)
+:is(#megamenu-section-open, #megamenu-menu-sidebar)
+:where(input,button,select,textarea,.btn,.long-btn,th,td,h1,h2,h3,h4,h5,h6,label,span,li > a) {
+  font-family: inherit;
+  letter-spacing: 0;
+}
+
+/* 排除区：代码/图标不受像素字体影响 */
+body.megamenu-opened:has(#m-open.active)
+:is(#megamenu-section-open, #megamenu-menu-sidebar)
+:where(code, pre, kbd, samp, i, .icon, [class^="ion-"], [class*=" ion-"], svg) {
+  font-family: inherit;
+}
+
+/* FontAwesome 图标字体强制修正（避免被覆盖） */
+body.megamenu-opened:has(#m-open.active)
+:is(#megamenu-section-open, #megamenu-menu-sidebar)
+:where(.fa, .fa::before, [class*="fa-"]::before) {
+  font-family: 'FontAwesome' !important;
+  font-style: normal;
+  font-weight: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 标题与按钮描边（分开控制 Open / Sidebar） */
+body.megamenu-opened:has(#m-open.active)
+#megamenu-section-open :where(h1,h2,.long-btn, #recent-document-table thead th) {
+  text-shadow: 0.5px 0.5px 0 #fff, -0.5px -0.5px 0 #fff;
+}
+body.megamenu-opened:has(#m-open.active)
+#megamenu-menu-sidebar :where(.megamenu-menu-header, #megamenu-menu-list > li > a) {
+  text-shadow: 0.5px 0.5px 0 #fff, -0.5px -0.5px 0 #fff;
+}
+
+/* =======================================================================================
+   Rhapsody · REGION Ω — PRESS START 2P SCALE PATCH（像素英文字号/行高微调·可选补丁）
+   目标 | Goals
+   - 仅针对英文/数字语段（:lang(en)、[data-localize]、[data-lg]）启用 Press Start 2P 的缩放与行高微调
+   - 关键控件再收一档，避免标题/按钮溢出
+   - 代码/图标区域明确排除，避免扰动等宽/图标字体
+
+   使用方式 | How to use
+   - 默认整段禁用（被注释）。需要时按需解除相应片段的注释。
+   - 参数旋钮：
+       --px-en-scale: 建议 0.82 ~ 0.90
+       --px-en-lh   : 建议 1.05 ~ 2.05（Sidebar 用 1.05 ~ 1.2；正文标题可更大）
+       --px-en-track: 建议 0 ~ 0.02em
+   兼容性 | Compatibility
+   - 现代浏览器 / Typora(Electron)
+   ======================================================================================= */
+
+/* -------------------------------------------
+   Ω-0 · 参数预设（按需解除注释）
+   ------------------------------------------- */
+/*
+#megamenu-section-open{
+  --px-en-scale: .90;
+  --px-en-lh: 2.05;
+  --px-en-track: 0.02em;
+}
+#megamenu-menu-sidebar{
+  --px-en-scale: 1;
+  --px-en-lh: 1.05;
+  --px-en-track: 0.02em;
+}
+*/
+
+/* -------------------------------------------
+   Ω-1 · 英文/数字：Press Start 2P + 缩放（按需解除注释）
+   ------------------------------------------- */
+/*
+#megamenu-section-open :where(:lang(en), [data-localize], [data-lg]),
+#megamenu-menu-sidebar :where(:lang(en), [data-localize], [data-lg]){
+  font-family: 'Press Start 2P','SourceHanSansPixel',monospace;
+  font-size: calc(1em * var(--px-en-scale, 1));
+  line-height: var(--px-en-lh, 1.2);
+  letter-spacing: var(--px-en-track, normal);
+}
+*/
+
+/* -------------------------------------------
+   Ω-2 · 关键控件再收一档（避免方框溢出，按需解除注释）
+   ------------------------------------------- */
+/*
+#megamenu-section-open :where(h1,h2,.long-btn span,#recent-file-panel-search-input,.dropdown-menu a,
+  #recent-document-table thead th,#recent-document-table tbody td .recent-file-name),
+#megamenu-menu-sidebar :where(.megamenu-menu-header,#megamenu-menu-list>li>a,#megamenu-menu-header-title){
+  font-size: calc(1em * var(--px-en-scale, 1));
+  line-height: var(--px-en-lh, 1.2);
+  letter-spacing: var(--px-en-track, normal);
+}
+*/
+
+/* -------------------------------------------
+   Ω-3 · 输入占位符跟随缩放（按需解除注释）
+   ------------------------------------------- */
+/*
+#megamenu-section-open input::placeholder{
+  font-size: calc(1em * var(--px-en-scale, 1));
+  line-height: var(--px-en-lh, 1.2);
+}
+*/
+
+/* -------------------------------------------
+   Ω-4 · 排除区：代码/图标不参与缩放（建议保持启用，按需解除注释）
+   ------------------------------------------- */
+/*
+#megamenu-section-open :where(code,pre,kbd,samp,i,svg,[class^="ion-"],[class*=" ion-"]),
+#megamenu-menu-sidebar :where(code,pre,kbd,samp,i,svg,[class^="ion-"],[class*=" ion-"]){
+  font-size: inherit;
+  line-height: normal;
+  letter-spacing: normal;
+}
+*/
+
+/* =======================================================================================
+   REGION B — OPEN PANEL SURFACE（Open 面板容器/卡片/标题/按钮 · 变量维护版）
+   Scope : #megamenu-section-open 及其子元素
+   Function :
+     - 容器像素彩带铺底（竖向主渐变 + 水平像素条 + 纵向轻噪点）
+     - 卡片“彩膜 + 斜向像素砖缝”视觉
+     - 标题保留动态彩条（可一键调节条宽/速度）
+     - 长按钮像素糖果条纹 + 边框彩流（统一动画开关）
+   Adjustable Params :
+     - 背景/条纹/噪点：--b-bg-v / --b-strip-h / --b-noise-v
+     - 描边与阴影：--b-bd / --b-shadow / --b-inset-white
+     - 标题条宽与动画速度：--b-title-strip-size / --b-title-scan-dur
+     - 长按钮条纹步进与边框彩流速度：--b-stripe-step / --b-border-dur / --b-stripe-dur
+     - 动画总开关：--b-anim（1 开/0 关，且尊重系统“减少动态”）
+   Compatibility : 现代浏览器 / Typora(Electron)；不使用 :has()；不改 DOM
+   ======================================================================================= */
+
+/* ---------------------------------------------------------------------------
+   B0 · Region-Local Vars（仅对 #megamenu-section-open 及子孙元素生效）
+   --------------------------------------------------------------------------- */
+#megamenu-section-open{
+  /* 容器内边距与公用描边/阴影 */
+  --b-pad: 20px 18px;
+  --b-bd: 2px solid #111;
+  --b-shadow: 3px 3px 0 0 #7b8ca3;
+  --b-inset-white: inset 0 0 0 2px #fff;
+
+  /* 三层基础底纹：竖向主渐变 / 水平像素条 / 纵向轻噪点 */
+  --b-bg-v: linear-gradient(180deg,#ffd2e1 0%, #ffe07a 35%, #8affc1 68%, #8ac2ff 100%);
+  --b-strip-h: repeating-linear-gradient(90deg,
+                    #ff4d6d 0 18px,#ff9f1c 18px 36px,#fbff12 36px 54px,
+                    #0aff99 54px 72px,#3a86ff 72px 90px,#8338ec 90px 108px);
+  --b-noise-v: repeating-linear-gradient(0deg,#ffffff66 0 2px,transparent 2px 4px);
+
+  /* 卡片彩膜与斜向像素砖缝 */
+  --b-card-grad: linear-gradient(180deg,#ffd6e6 0%, #ffe7a3 40%, #b9ffdf 75%, #bde0ff 100%);
+  --b-card-brick: repeating-linear-gradient(135deg,
+                       #ff6b81 0 8px,#ff6b81 8px 16px,
+                       #ffcf6b 16px 24px,#ffcf6b 24px 32px,
+                       #9bffb3 32px 40px,#9bffb3 40px 48px,
+                       #7be6ff 48px 56px,#7be6ff 56px 64px,
+                       #b39aff 64px 72px,#b39aff 72px 80px);
+
+  /* 标题渐变 + 动态彩条（条宽 & 动画时长可调） */
+  --b-title-grad: linear-gradient(180deg,#ffe0ea 0%, #fff0c9 100%);
+  --b-title-strip: repeating-linear-gradient(90deg,
+                        #ff4d6d 0 10px,#ff9f1c 10px 20px,#fbff12 20px 30px,
+                        #0aff99 30px 40px,#3a86ff 40px 50px,#8338ec 50px 60px,#ff4d6d 60px 70px);
+  --b-title-strip-size: 140px;
+  --b-title-scan-dur: .9s;
+
+  /* 长按钮配方与动画步进 */
+  --b-btn-grad: linear-gradient(180deg,#ffe3ed 0%, #fff09f 48%, #c7ffe8 100%);
+  --b-btn-strip: repeating-linear-gradient(90deg,
+                       #b3e0ff 0 12px,#8fd2ff 12px 24px,#b9ffd9 24px 36px,
+                       #ffe59a 36px 48px,#ffb3c7 48px 60px,#d5b3ff 60px 72px);
+  --b-stripe-step: 72px;      /* 条纹水平位移步进（像素糖果感） */
+  --b-border-dur: 1.2s;       /* 边框彩流周期 */
+  --b-stripe-dur: .6s;        /* 条纹流动周期 */
+
+  /* 动画总开关（0 关 / 1 开） */
+  --b-anim: 1;
+}
+
+/* 系统减少动态时自动关闭（仍可强制覆盖 --b-anim） */
+@media (prefers-reduced-motion: reduce){
+  #megamenu-section-open{ --b-anim: 0; }
+}
+
+/* ---------------------------------------------------------------------------
+   B1 · 容器：像素彩带铺底（三层底纹变量）
+   --------------------------------------------------------------------------- */
+#megamenu-section-open{
+  position: relative;
+  padding: var(--b-pad);
+  background: var(--b-bg-v), var(--b-strip-h), var(--b-noise-v);
+  image-rendering: pixelated;
+  box-shadow: inset 0 0 0 2px #111;
+}
+
+/* ---------------------------------------------------------------------------
+   B2 · 公共像素卡片：彩膜 + 斜向像素块
+   --------------------------------------------------------------------------- */
+#megamenu-section-open .megamenu-menu-panel{
+  border: var(--b-bd);
+  border-radius: 0;
+  margin: 0 0 16px;
+  padding: 14px 14px 16px;
+  background: var(--b-card-grad), var(--b-card-brick);
+  box-shadow: var(--b-inset-white), 0 0 0 2px #111, 4px 4px 0 0 #7b8ca3;
+  transition: transform .06s steps(2,end), box-shadow .06s steps(2,end);
+}
+#megamenu-section-open .megamenu-menu-panel:hover{
+  transform: translate(-1px,-1px);
+  box-shadow: var(--b-inset-white), 0 0 0 2px #111,
+              6px 6px 0 0 #65768e, 0 0 0 4px #fff inset;
+}
+
+/* ---------------------------------------------------------------------------
+   B3 · 标题：保留动态彩条（条宽/速度可调）
+   --------------------------------------------------------------------------- */
+#megamenu-section-open h1,
+#megamenu-section-open h2{
+  display:inline-block;
+  margin:0 0 10px;
+  padding: 3px 10px;
+  color:#111;
+  border: var(--b-bd);
+  border-radius:0;
+  box-shadow: 2px 2px 0 0 #7b8ca3;
+  background: var(--b-title-grad), var(--b-title-strip);
+  background-size: auto, var(--b-title-strip-size) 100%;
+  animation: b-title-scan var(--b-title-scan-dur) steps(7,end) infinite;
+}
+@keyframes b-title-scan{
+  from{ background-position: 0 0, 0 0; }
+  to  { background-position: 0 0, var(--b-title-strip-size) 0; }
+}
+
+/* ---------------------------------------------------------------------------
+   B4 · 长按钮：像素糖果条纹 + 彩流边框（统一动画开关）
+   --------------------------------------------------------------------------- */
+#megamenu-section-open .long-btn{
+  display:flex; align-items:center; gap:10px;
+  padding:12px 14px;
+  color:#111;
+  border: var(--b-bd); border-radius:0;
+  background: var(--b-btn-grad), var(--b-btn-strip);
+  box-shadow: var(--b-shadow), inset 0 0 0 2px #fff;
+  transition: transform .06s steps(2,end);
+}
+#megamenu-section-open .long-btn i{ color:#ff2a2a; }
+#megamenu-section-open .long-btn:hover{
+  transform: translate(-1px,-1px);
+  /* 当 --b-anim=0 时，这两段动画自然被禁用（calc(0*1)） */
+  animation:
+    calc(var(--b-anim) * 1) b-rainbow-border var(--b-border-dur) steps(5,end) infinite,
+    calc(var(--b-anim) * 1) b-stripe-x var(--b-stripe-dur) steps(6,end) infinite;
+}
+#megamenu-section-open .long-btn:active{
+  transform: translate(0,0);
+  box-shadow: 2px 2px 0 0 #6a7b92, inset 0 0 0 2px #fff;
+}
+
+/* 边框彩流与条纹流动（局部命名，避免与其他区域冲突） */
+@keyframes b-rainbow-border{
+  0%  { box-shadow: var(--b-shadow), 0 0 0 2px #ff4d6d inset; }
+  25% { box-shadow: var(--b-shadow), 0 0 0 2px #0aff99 inset; }
+  50% { box-shadow: var(--b-shadow), 0 0 0 2px #3a86ff inset; }
+  75% { box-shadow: var(--b-shadow), 0 0 0 2px #8338ec inset; }
+  100%{ box-shadow: var(--b-shadow), 0 0 0 2px #fbff12 inset; }
+}
+@keyframes b-stripe-x{
+  from{ background-position: 0 0, 0 0; }
+  to  { background-position: 0 0, var(--b-stripe-step) 0; }
+}
+
+/* ---------------------------------------------------------------------------
+   B5 · 搜索/更多按钮、下拉菜单、表格等（配方变量接管）
+   --------------------------------------------------------------------------- */
+
+/* 搜索区壳层与输入框（保持原视觉，抽变量可按需继续细化） */
+#megamenu-section-open #recent-file-panel{
+  background: linear-gradient(180deg,#ffdbe8 0%, #ffefb0 100%);
+  padding:6px 0 0;
+}
+#megamenu-section-open #recent-file-panel-search-input.search.quiet-focus{
+  width:100%; height:36px; padding:6px 10px; border-radius:0; outline:none;
+  color:#111; background:#fff;
+  border: var(--b-bd);
+  box-shadow: var(--b-inset-white), 2px 2px 0 0 #7b8ca3;
+  caret-color:#ff2a2a;
+}
+#megamenu-section-open #recent-file-panel-search-input.search.quiet-focus:focus{
+  border-color:#8338ec;
+  box-shadow: var(--b-inset-white), 3px 3px 0 0 #7b8ca3;
+  background:
+    linear-gradient(180deg,#ffdff3 0%, #fff3c7 65%, #d9fff3 100%),
+    repeating-linear-gradient(90deg,#ffd0e7 0 8px,#cfe6ff 8px 16px,#ccffe6 16px 24px,#fff0bf 24px 32px);
+}
+
+/* 右侧“更多”按钮 */
+#megamenu-section-open #recent-file-panel-action-btn.btn{
+  height:36px; min-width:36px; margin-left:8px; border-radius:0;
+  background:
+    linear-gradient(180deg,#ffdcec 0%, #ffe9a6 50%, #c8fff0 100%),
+    repeating-linear-gradient(90deg,#ffc0d6 0 8px,#ffd89a 8px 16px,#fff28a 16px 24px,#a8ffc0 24px 32px,#a8d6ff 32px 40px);
+  color:#111; border: var(--b-bd);
+  box-shadow: 2px 2px 0 0 #7b8ca3;
+  transition: transform .06s steps(2,end);
+}
+#megamenu-section-open #recent-file-panel-action-btn.btn:hover{
+  transform: translate(-1px,-1px);
+  box-shadow: 4px 4px 0 0 #6a7b92;
+}
+
+/* 下拉菜单：饱和像素纸张 */
+#megamenu-section-open .dropdown-menu{
+  border: var(--b-bd); border-radius:0; padding:6px 0;
+  background:
+    linear-gradient(180deg,#ffdceb 0%, #ffeaa8 60%, #c9fff0 100%),
+    repeating-linear-gradient(90deg,#ffd1e5 0 12px,#ffe7b3 12px 24px,#dbffd1 24px 36px,#cdeeff 36px 48px,#d9caff 48px 60px);
+  box-shadow: 4px 4px 0 0 #7b8ca3;
+}
+#megamenu-section-open .dropdown-menu a{ color:#111; }
+
+/* 表格外壳与表头/表体（视觉等效） */
+#megamenu-section-open #recent-document-table{
+  width:100%;
+  border-collapse:separate; border-spacing:0; border-radius:0;
+  border: var(--b-bd);
+  background: linear-gradient(180deg,#ffe0ed 0%, #ffefb6 55%, #cafff1 100%);
+  box-shadow: 3px 3px 0 0 #7b8ca3;
+}
+#megamenu-section-open #recent-document-table thead{
+  background:
+    linear-gradient(180deg,#ffe2ee 0%, #fff0c6 100%),
+    repeating-linear-gradient(90deg,#ff5a7a 0 16px,#ffa627 16px 32px,#ffe84a 32px 48px,#3fe796 48px 64px,#4da0ff 64px 80px,#9a77ff 80px 96px);
+}
+#megamenu-section-open #recent-document-table thead th{
+  padding:10px 10px; color:#111; font-weight:800;
+  border-bottom: var(--b-bd);
+}
+
+/* 表体：底层冷淡蓝条纹 + 每行彩纸纹 */
+#megamenu-section-open #recent-document-table tbody{
+  background:
+    linear-gradient(180deg,#eef7ff 0%, #e7f3ff 100%),
+    repeating-linear-gradient(0deg,#eef6ff 0 10px,#deedff 10px 20px);
+}
+#megamenu-section-open #recent-document-table tbody tr{
+  background:
+    linear-gradient(180deg,#ffe4ef 0%, #fff0c4 55%, #cafff2 100%),
+    repeating-linear-gradient(90deg,#ffd7e0 0 12px,#ffe8c9 12px 24px,#d7ffd7 24px 36px,#d0eeff 36px 48px,#d9cfff 48px 60px);
+  transition: box-shadow .06s steps(2,end), transform .06s steps(2,end);
+}
+#megamenu-section-open #recent-document-table.table-striped tbody tr:nth-child(odd){
+  background:
+    linear-gradient(180deg,#ffd9e9 0%, #ffe8b3 55%, #b9ffe9 100%),
+    repeating-linear-gradient(90deg,#ffc9d9 0 12px,#ffe0b0 12px 24px,#c8ffd6 24px 36px,#c2e4ff 36px 48px,#cfbfff 48px 60px);
+}
+#megamenu-section-open #recent-document-table.table-hover tbody tr:hover{
+  box-shadow: inset 0 0 0 2px #ff4d6d;
+  transform: translate(-1px,-1px);
+}
+#megamenu-section-open #recent-document-table td,
+#megamenu-section-open #recent-document-table th{
+  border-bottom: 2px solid #f0f2f5;
+}
+#megamenu-section-open #recent-document-table tbody td{
+  padding:8px 10px; color:#111; vertical-align:top;
+}
+
+/* 文件名与路径：冰蓝标签 */
+#megamenu-section-open #recent-document-table .recent-file-name{
+  font-weight:800; color:#0b6bff;
+  background: linear-gradient(0deg,#cfe4ff,#ffffff);
+  border: var(--b-bd);
+  padding:2px 6px; display:inline-block;
+  box-shadow: 2px 2px 0 0 #7b8ca3;
+}
+#megamenu-section-open #recent-document-table .recent-file-dir{
+  text-align:right; color:#4b5563;
+}
+
+/* 表内链接：像素下划线 + 彩色 hover */
+#megamenu-section-open #recent-document-table td a{
+  color:#111; text-decoration:none; border-bottom: 2px solid #111; padding-bottom:1px;
+}
+#megamenu-section-open #recent-document-table td a:hover{
+  color:#ff2a2a; border-bottom-color:#ff2a2a;
+}
+
+/* 提示文字（Import 按钮 hint）：双层彩膜 */
+#megamenu-section-open .preference-item-hint{
+  display:inline-block; margin-left:8px; padding:1px 6px; border: var(--b-bd);
+  background:
+    linear-gradient(180deg,#ffe5f3 0%, #ffffff 100%),
+    repeating-linear-gradient(90deg,#c8fff6 0 10px,#e0d4ff 10px 20px);
+  color:#333;
+  box-shadow: 2px 2px 0 0 #7b8ca3;
+}
+
+/* 无障碍：区域内一键静止（兜底） */
+@media (prefers-reduced-motion: reduce){
+  #megamenu-section-open *{ animation:none!important; transition:none!important; }
+}
+
+/* =======================================================================================
+   REGION C — OPEN GATE LATCH（门闩联动：仅在 Open 激活时上色 · 变量维护）
+   Scope : body.megamenu-opened + #m-open.active（header / #megamenu-section-open / 容器兜底）
+   Function :
+     - 仅当“菜单打开 + Open 项激活”时，为 header 与 Open 面板区域上像素彩带底
+     - 统一图标高亮 & 按钮描边内发光
+   Adjustable :
+     - 三层底纹：--c-grad-h / --c-strip-h / --c-noise-v
+     - 描边与阴影：--c-bd / --c-shadow
+   Compatibility : 现代浏览器（`:has`）/ Typora(Electron)
+   Notes :
+     - 用 @supports selector(:has(*)) 做守护；提供“粗粒度”无 :has 回退（仅按 megamenu-opened）
+   ======================================================================================= */
+
+/* C0 · 区域变量（挂到 megamenu-opened 下，避免污染全局） */
+body.megamenu-opened{
+  /* 三层彩带底：与 B 区域色阶一致（横向版本） */
+  --c-grad-h:  linear-gradient(90deg,#ffd2e1,#ffe07a,#8affc1,#8ac2ff);
+  --c-strip-h: repeating-linear-gradient(90deg,
+                   #ff4d6d 0 18px,#ff9f1c 18px 36px,#fbff12 36px 54px,
+                   #0aff99 54px 72px,#3a86ff 72px 90px,#8338ec 90px 108px);
+  --c-noise-v: repeating-linear-gradient(0deg,#ffffff66 0 2px,transparent 2px 4px);
+
+  --c-bd: 2px solid #111;
+  --c-shadow: 0 2px 0 0 #7b8ca3;
+}
+
+/* ============================  支持 :has 的内核（精准门闩）  ============================ */
+@supports selector(:has(*)){
+
+  /* C1 · 共同门闩：header 仅在 Open 激活时上像素彩带底 */
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) header{
+    background: var(--c-grad-h), var(--c-strip-h), var(--c-noise-v);
+    image-rendering: pixelated;
+    border-bottom: var(--c-bd);
+    box-shadow: var(--c-shadow);
+  }
+
+  /* C2 · 右侧 Open 面板与其最近容器兜底，防止右侧露白 */
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #megamenu-section-open,
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) *:has(> #megamenu-section-open){
+    background: var(--c-grad-h), var(--c-strip-h), var(--c-noise-v);
+    image-rendering: pixelated;
+    box-shadow: inset 0 0 0 2px #111;
+  }
+
+  /* C3 · Header 图标统一高亮（金黄） */
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) header :is(
+    .btn, .toolbar-icon, .icon, [class*="icon"], [class^="ion-"], i, svg, svg use
+  ){
+    color:#ffd93b; fill:#ffd93b; stroke:#ffd93b;
+    opacity:1; filter:none;
+  }
+
+  /* C4 · Header 按钮描边与内发光 */
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) header .btn{
+    border-color:#111;
+    box-shadow:0 0 0 2px #ffd93b33 inset;
+    opacity:1;
+  }
+}
+
+/* =======================================================================================
+   REGION D — MENU SIDEBAR OPEN THEME（侧栏·Open 激活态像素主题 · 变量维护）
+   Scope      : 仅当 body.megamenu-opened 且 #megamenu-menu-list 内 #m-open.active
+   Principle  : 不改 HTML 结构；能合并的尽量合并；变量就地定义，便于维护
+   Notes      : 为保精准联动，使用 :has()；并提供无 :has 的粗粒度回退
+   ======================================================================================= */
+
+/* -------------------------------------------
+   D0 · 局部变量（挂在 body.megamenu-opened，避免污染全局）
+   ------------------------------------------- */
+body.megamenu-opened{
+  /* 三层像素底：竖向主渐变 / 水平像素条 / 纵向轻噪点 */
+  --d-grad-v:  linear-gradient(180deg,#ffd2e1 0%, #ffe07a 35%, #8affc1 68%, #8ac2ff 100%);
+  --d-strip-h: repeating-linear-gradient(90deg,
+                    #ff4d6d 0 18px,#ff9f1c 18px 36px,#fbff12 36px 54px,
+                    #0aff99 54px 72px,#3a86ff 72px 90px,#8338ec 90px 108px);
+  --d-noise-v: repeating-linear-gradient(0deg,#ffffff66 0 2px,transparent 2px 4px);
+
+  /* 头部纸条 + 标题用的暖彩膜 */
+  --d-title-grad: linear-gradient(180deg,#ffe0ea 0%, #fff0c9 100%);
+
+  /* 列表项：像素糖果条纹 */
+  --d-btn-grad:  linear-gradient(180deg,#ffe3ed 0%, #fff09f 48%, #c7ffe8 100%);
+  --d-btn-strip: repeating-linear-gradient(90deg,
+                    #b3e0ff 0 12px,#8fd2ff 12px 24px,#b9ffd9 24px 36px,
+                    #ffe59a 36px 48px,#ffb3c7 48px 60px,#d5b3ff 60px 72px);
+
+  /* 通用描边/阴影与动画参数 */
+  --d-bd: 2px solid #111;
+  --d-shadow-soft: 0 2px 0 0 #7b8ca3;
+  --d-shadow-card: 3px 3px 0 0 #7b8ca3;
+  --d-inset-white: inset 0 0 0 2px #fff;
+  --d-anim: 1;                 /* 1 开 / 0 关 */
+  --d-border-dur: 1.2s;        /* 边框彩流周期 */
+  --d-stripe-dur: .6s;         /* 条纹流动周期 */
+}
+@media (prefers-reduced-motion: reduce){
+  body.megamenu-opened{ --d-anim: 0; }
+}
+
+/* D-anim keyframes（局部命名，避免与其他区域冲突） */
+@keyframes d-rainbow-border{
+  0%  { box-shadow: var(--d-shadow-card), 0 0 0 2px #ff4d6d inset; }
+  25% { box-shadow: var(--d-shadow-card), 0 0 0 2px #0aff99 inset; }
+  50% { box-shadow: var(--d-shadow-card), 0 0 0 2px #3a86ff inset; }
+  75% { box-shadow: var(--d-shadow-card), 0 0 0 2px #8338ec inset; }
+  100%{ box-shadow: var(--d-shadow-card), 0 0 0 2px #fbff12 inset; }
+}
+@keyframes d-stripe-x{
+  from{ background-position: 0 0, 0 0; }
+  to  { background-position: 0 0, 72px 0; } /* 与 d-btn-strip 步进相配 */
+}
+
+/* ===================  支持 :has 的精准联动（不改 HTML 的前提下保功能/效果）  =================== */
+@supports selector(:has(*)){
+
+  /* D1 · 侧栏容器：像素彩带 + 内描边 */
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #megamenu-menu-sidebar{
+    background: var(--d-grad-v), var(--d-strip-h), var(--d-noise-v);
+    image-rendering: pixelated;
+    border-left: var(--d-bd);
+    box-shadow: inset 0 0 0 2px #111;
+  }
+
+  /* D2 · Header：像素纸条背景 + 竖线 PATCH + 图标高亮 */
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #megamenu-menu-sidebar .megamenu-menu-header{
+    position: relative;
+    padding: 12px 10px;
+    border-bottom: var(--d-bd);
+    background: var(--d-title-grad),
+                repeating-linear-gradient(90deg,
+                  #ff4d6d 0 10px,#ff9f1c 10px 20px,#fbff12 20px 30px,
+                  #0aff99 30px 40px,#3a86ff 40px 50px,#8338ec 50px 60px,#ff4d6d 60px 70px);
+    box-shadow: var(--d-shadow-soft);
+  }
+  /* 右侧竖线补齐 */
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #megamenu-menu-sidebar .megamenu-menu-header::after{
+    content:""; position:absolute; top:0; right:0; bottom:0; width:1px;
+    background:#111;
+    box-shadow: inset 0 0 0 2px #fff, 0 0 0 2px #111, 2px 0 0 0 #7b8ca3;
+    pointer-events:none; image-rendering: pixelated;
+  }
+  /* Header 小件：返回图标 + 标题主色（公共部分合并） */
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active)
+  :is(#megamenu-back-btn i, #megamenu-menu-header-title){
+    color:#489745; text-shadow: 0 0 2px #ffd93b66;
+  }
+  /* 标题额外的像素边框与纸条底 */
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #megamenu-menu-header-title{
+    display:inline-block; padding: 2px 8px;
+    border: var(--d-bd);
+    background: linear-gradient(180deg,#ffe7f1 0%,#fff3c9 100%);
+    box-shadow: 2px 2px 0 0 #7b8ca3; font-weight:600;
+  }
+
+  /* D3 · 列表容器：像素缝外壳 */
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #megamenu-menu-list{
+    margin:10px 8px 12px; padding:6px 4px;
+    border: var(--d-bd);
+    background: linear-gradient(180deg,#ffdbe8 0%, #ffefb0 100%);
+    box-shadow: var(--d-shadow-card);
+  }
+
+  /* D4 · 列表项：基态 + hover（动画受 --d-anim 控制） */
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #megamenu-menu-list > li > a{
+    display:flex; align-items:center; gap:10px; position:relative;
+    margin:8px 6px; padding:10px 12px;
+    color:#111; text-decoration:none; border: var(--d-bd); border-radius:0;
+    background: var(--d-btn-grad), var(--d-btn-strip);
+    box-shadow: var(--d-shadow-card), var(--d-inset-white);
+    transition: transform .06s steps(2,end), box-shadow .06s steps(2,end);
+  }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #megamenu-menu-list > li > a:hover{
+    transform: translate(-1px,-1px);
+    box-shadow: 4px 4px 0 0 #6a7b92, var(--d-inset-white);
+    animation:
+      calc(var(--d-anim) * 1) d-rainbow-border var(--d-border-dur) steps(5,end) infinite,
+      calc(var(--d-anim) * 1) d-stripe-x      var(--d-stripe-dur) steps(6,end) infinite;
+  }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #megamenu-menu-list > li > a i{
+    color:#da0a0a; font-size:1em; order:0; margin-right:-20px;
+  }
+
+  /* D5 · 条目标签：11 条合并为 1 公共 + 3 色组 + 1 红（最小化）*/
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active)
+  :is(#m-new,#m-open,#m-save,#m-saved,#m-save-as,#m-export,#m-print,#m-theme,#m-preference,#m-about,#m-close) > span{
+    display:inline-block; padding:0 4px; border:1.5px solid #111; border-radius:0;
+    font-weight:800; font-size:.95em; line-height:1.2;
+    background: linear-gradient(0deg,#cfe4ff,#ffffff);
+    box-shadow: 1.5px 1.5px 0 0 #7b8ca3;
+  }
+  /* 颜色分组覆写 */
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active)
+  :is(#m-new,#m-open,#m-save,#m-saved,#m-save-as) > span{ color:#ff06a1; }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active)
+  :is(#m-export,#m-print) > span{ color:#06d7ff; }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active)
+  :is(#m-theme,#m-preference,#m-about) > span{ color:#26c105; }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #m-close > span{ color:#ff0606; }
+
+  /* D6 · 左侧 emoji 图标（公共样式 + 各项 content） */
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #megamenu-menu-list > li > a::before{
+    margin-right:-6px; filter: drop-shadow(0 0 0 #000); /* 防锯齿占位 */
+  }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #m-new::before{ content:"🆕"; }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #m-open::before{ content:"📂"; }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #m-save::before{ content:"💾"; }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #m-saved::before{ content:"🗂️"; }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #m-save-as::before{ content:"📝"; }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #m-export::before{ content:"📤"; }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #m-print::before{ content:"🖨️"; }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #m-theme::before{ content:"🎨"; }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #m-preference::before{ content:"⚙️"; }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #m-about::before{ content:"ℹ️"; }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #m-close::before{ content:"⏻"; }
+
+  /* Saved 的勾选图标移到最右 */
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #m-saved .fa-check-circle-o:before{
+    position:absolute; right:8px; top:50%; transform:translateY(-50%); margin:0;
+  }
+
+  /* D7 · 分隔线 */
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #megamenu-menu-list > li.divider{
+    height:10px; margin:6px 8px; border:2px solid #ff0000;
+    background: linear-gradient(180deg,#ffe7f1 0%, #fff5cc 100%),
+                repeating-linear-gradient(90deg,
+                  #ff4d6d 0 12px,#ff9f1c 12px 24px,#fbff12 24px 36px,
+                  #0aff99 36px 48px,#3a86ff 48px 60px,#8338ec 60px 72px);
+    box-shadow: 2px 2px 0 0 #7b8ca3;
+  }
+
+  /* D8 · 滚动条（侧栏 + 主内容区 · 6 组使用逗号合并，减少重复） */
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #megamenu-menu-sidebar::-webkit-scrollbar,
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) :is(html,body,#megamenu-section-open,.megamenu-section,.megamenu-menu-panel,.megamenu-content,#content,#write)::-webkit-scrollbar{
+    width:10px; height:10px;
+  }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #megamenu-menu-sidebar::-webkit-scrollbar-track,
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) :is(html,body,#megamenu-section-open,.megamenu-section,.megamenu-menu-panel,.megamenu-content,#content,#write)::-webkit-scrollbar-track{
+    background: var(--d-grad-v), var(--d-strip-h), var(--d-noise-v);
+    image-rendering: pixelated;
+    border-left: var(--d-bd); border-top: var(--d-bd);
+    box-shadow: inset 0 0 0 2px #111;
+    transition: filter .25s ease, transform .25s ease;
+  }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #megamenu-menu-sidebar::-webkit-scrollbar-track:hover,
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) :is(html,body,#megamenu-section-open,.megamenu-section,.megamenu-menu-panel,.megamenu-content,#content,#write)::-webkit-scrollbar-track:hover{
+    filter: brightness(1.08); transform: translateY(-1px);
+  }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #megamenu-menu-sidebar::-webkit-scrollbar-thumb,
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) :is(html,body,#megamenu-section-open,.megamenu-section,.megamenu-menu-panel,.megamenu-content,#content,#write)::-webkit-scrollbar-thumb{
+    background: var(--d-btn-grad),
+                repeating-linear-gradient(135deg,
+                  #b3e0ff 0 8px,#8fd2ff 8px 16px,#b9ffd9 16px 24px,
+                  #ffe59a 24px 32px,#ffb3c7 32px 40px,#d5b3ff 40px 48px);
+    border: 2px solid #111; border-radius:0;
+    box-shadow: var(--d-inset-white), 2px 2px 0 0 #7b8ca3;
+    transition: transform .25s ease;
+  }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #megamenu-menu-sidebar::-webkit-scrollbar-thumb:hover,
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) :is(html,body,#megamenu-section-open,.megamenu-section,.megamenu-menu-panel,.megamenu-content,#content,#write)::-webkit-scrollbar-thumb:hover{
+    transform: translate(-1px,-1px);
+    animation: calc(var(--d-anim) * 1) d-rainbow-border var(--d-border-dur) steps(5,end) infinite;
+  }
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) #megamenu-menu-sidebar::-webkit-scrollbar-corner,
+  body.megamenu-opened:has(#megamenu-menu-list #m-open.active) :is(html,body,#megamenu-section-open,.megamenu-section,.megamenu-menu-panel,.megamenu-content,#content,#write)::-webkit-scrollbar-corner{
+    background: linear-gradient(180deg,#ffe0ea 0%, #fff0c9 100%),
+                repeating-linear-gradient(90deg,
+                  #ff4d6d 0 10px,#ff9f1c 10px 20px,#fbff12 20px 30px,
+                  #0aff99 30px 40px,#3a86ff 40px 50px,#8338ec 50px 60px);
+    border: var(--d-bd);
+    box-shadow: inset 0 0 0 2px #111;
+  }
+}
+
+/* ===================  无 :has 回退（粗粒度，仅保证“菜单打开时”有像素主题）  =================== */
+@supports not selector(:has(*)){
+  body.megamenu-opened #megamenu-menu-sidebar{
+    background: var(--d-grad-v), var(--d-strip-h), var(--d-noise-v);
+    image-rendering: pixelated;
+    border-left: var(--d-bd);
+    box-shadow: inset 0 0 0 2px #111;
+  }
+  body.megamenu-opened #megamenu-menu-sidebar .megamenu-menu-header{
+    position: relative; padding:12px 10px; border-bottom: var(--d-bd);
+    background: var(--d-title-grad),
+                repeating-linear-gradient(90deg,
+                  #ff4d6d 0 10px,#ff9f1c 10px 20px,#fbff12 20px 30px,
+                  #0aff99 30px 40px,#3a86ff 40px 50px,#8338ec 50px 60px,#ff4d6d 60px 70px);
+    box-shadow: var(--d-shadow-soft);
+  }
+  body.megamenu-opened #megamenu-menu-sidebar .megamenu-menu-header::after{
+    content:""; position:absolute; top:0; right:0; bottom:0; width:1px;
+    background:#111; box-shadow: inset 0 0 0 2px #fff, 0 0 0 2px #111, 2px 0 0 0 #7b8ca3;
+  }
+  body.megamenu-opened :is(#megamenu-back-btn i, #megamenu-menu-header-title){
+    color:#489745; text-shadow: 0 0 2px #ffd93b66;
+  }
+  body.megamenu-opened #megamenu-menu-header-title{
+    display:inline-block; padding:2px 8px; border: var(--d-bd);
+    background: linear-gradient(180deg,#ffe7f1 0%,#fff3c9 100%); box-shadow: 2px 2px 0 0 #7b8ca3; font-weight:600;
+  }
+  /* 其它块可按需复制 D1~D8 的样式（若你希望“只要打开菜单就全部上色”） */
+}
+/* =============================== END OF PACKAGE ============================ */

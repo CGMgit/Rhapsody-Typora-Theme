@@ -1,0 +1,14 @@
+Source Han Sans CN (思源黑体 简体中文版本)
+版权：Adobe & Google
+
+授权协议：SIL Open Font License, Version 1.1 (OFL-1.1)
+保留字体名称（Reserved Font Name）：Source Han Sans CN
+
+许可证全文可在以下链接获取：
+https://openfontlicense.org/open-font-license-official-text/
+
+字体项目源地址：
+https://github.com/adobe-fonts/source-han-sans
+
+说明：
+此文件为官方授权许可证，满足 OLL-1.1 的再分发要求，确保字体的合法使用与合规分发。

@@ -1,0 +1,321 @@
+/* =======================================================================================
+   Rhapsody · Lists & Nested Lists （正文列表样式 · 有序 / 无序 / 嵌套）
+   设计理念 / Design Concept
+   - 使用变量集中维护（L- 前缀），实现多层级列表的缩进、配色、marker 内容统一管理。
+   - 无需改动 DOM，不依赖 :has，范围严格限制在 #write。
+   - 有序列表使用 counter + emoji 后缀；无序列表使用自定义 emoji 标记。
+   - 每级列表封装为卡片式容器，具备独立前景/背景/阴影，保证可读性与层次感。
+   - 兼顾编辑体验：修复 IME 光标抖动；Checklist 保留 Typora 原生交互。
+   ======================================================================================= */
+
+/* ========================================================================== */
+/* REGION A — ROOT VARS（变量集中维护 · L 前缀 · 仅 #write）                    */
+/* Scope: #write                                                               */
+/* Function: 集中维护列表系统变量（缩进/卡片/marker/层级配色与内容）            */
+/* Notes: 不改 DOM；不使用 :has；仅作用正文                                     */
+/* Adjustable: 仅在本区调整 L- 系列变量                                         */
+/* ========================================================================== */
+#write{
+  /* 基础缩进与层叠 */
+  --L-indent-left: 1rem;
+  --L-li-pad-left: .5rem;
+  --L-li-text-indent: -.5rem;
+
+  /* 卡片通用 */
+  --L-card-radius: 8px;
+  --L-card-shadow: 2px 2px 8px rgba(0,0,0,.1);
+
+  /* ::marker 字体族（仅用于数字等宽风格；输出由 ::before 接管） */
+  --L-marker-ff: "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",system-ui,sans-serif;
+  --L-marker-fs: 1em;
+  --L-marker-fw: 400;
+
+  /* 有序列表配色与内边距（1/2/3级） */
+  --L-ol1-fg:#2e3b4e;   --L-ol1-bg:rgba(240,240,240,.7); --L-ol1-pad:.5rem;
+  --L-ol2-fg:#9c27b0;   --L-ol2-bg:rgba(255,183,77,.2);  --L-ol2-pad:.4rem;
+  --L-ol3-fg:#1976d2;   --L-ol3-bg:rgba(33,150,243,.2);  --L-ol3-pad:.3rem;
+
+  /* 无序列表配色与内边距（1/2/3级） */
+  --L-ul1-fg:#388e3c;   --L-ul1-bg:rgba(56,142,60,.2);   --L-ul1-pad:.5rem;
+  --L-ul2-fg:#ff9800;   --L-ul2-bg:rgba(255,152,0,.2);   --L-ul2-pad:.4rem;
+  --L-ul3-fg:#f44336;   --L-ul3-bg:rgba(244,67,54,.2);   --L-ul3-pad:.3rem;
+
+  /* 无序 “标记内容/颜色”（供 ::before 使用） */
+  --L-ul1-marker-content:"🪐  "; --L-ul1-marker-color:#ffb300;
+  --L-ul2-marker-content:"📚  "; --L-ul2-marker-color:#8e24aa;
+  --L-ul3-marker-content:"🍎  "; --L-ul3-marker-color:#f44336;
+
+  /* 有序 “编号后缀/颜色”（供 ::before 使用） */
+  --L-ol1-marker-suffix:". 🚀  "; --L-ol1-marker-color:#ffb300;
+  --L-ol2-marker-suffix:". ⚡  ";  --L-ol2-marker-color:#8e24aa;
+  --L-ol3-marker-suffix:". ⭐  ";  --L-ol3-marker-color:#1976d2;
+}
+
+/* ========================================================================== */
+/* REGION B — BASE LAYOUT（基础缩进与稳定性 · ★以补丁为准·统一 ::before）         */
+/* Scope: #write ul/ol/li                                                      */
+/* Function: 列表缩进、悬挂缩进、稳定渲染；禁用过渡避免闪烁                      */
+/* Notes: 原先 ::marker 输出已移除，避免与补丁打架                               */
+/* ========================================================================== */
+
+#write ul,
+#write ol{
+  list-style: none;              /* 统一关闭原生标记——改由 ::before 输出 */
+  padding: 0;
+  margin: 0 0 0 var(--L-indent-left);
+  position: relative;
+  z-index: 2;
+  transition: none;
+}
+
+/* li 悬挂缩进：多行对齐 */
+#write li{
+  padding-left: var(--L-li-pad-left);
+  text-indent: var(--L-li-text-indent);
+  position: relative;            /* 供 ::before 定位 */
+}
+
+/* B' PATCH — 首段 <p> 行内化（IME 安全） */
+#write li:not(.task-list-item) > p:first-child{
+  display: inline-block;
+  margin: 0;
+  vertical-align: baseline;
+  white-space: normal;
+  line-height: inherit;
+  min-width: .1px;
+}
+
+/* 统一数字等宽外观（不再用 ::marker 输出内容） */
+#write li::marker{
+  font-family: var(--L-marker-ff);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--L-marker-fs);
+  font-weight: var(--L-marker-fw);
+  color: inherit;
+  content: "";
+}
+
+/* ========================================================================== */
+/* REGION C — ORDERED LIST CARDS（有序列表卡片）                                */
+/* ========================================================================== */
+#write ol{
+  color: var(--L-ol1-fg);
+  background-color: var(--L-ol1-bg);
+  padding: var(--L-ol1-pad);
+  border-radius: var(--L-card-radius);
+  box-shadow: var(--L-card-shadow);
+  transition: none;
+}
+#write ol ol{
+  color: var(--L-ol2-fg);
+  background-color: var(--L-ol2-bg);
+  padding: var(--L-ol2-pad);
+  border-radius: var(--L-card-radius);
+  box-shadow: var(--L-card-shadow);
+  transition: none;
+}
+#write ol ol ol{
+  color: var(--L-ol3-fg);
+  background-color: var(--L-ol3-bg);
+  padding: var(--L-ol3-pad);
+  border-radius: var(--L-card-radius);
+  box-shadow: var(--L-card-shadow);
+  transition: none;
+}
+
+/* ========================================================================== */
+/* REGION D — UNORDERED LIST CARDS（无序列表卡片）                              */
+/* ========================================================================== */
+#write ul{
+  color: var(--L-ul1-fg);
+  background-color: var(--L-ul1-bg);
+  padding: var(--L-ul1-pad);
+  border-radius: var(--L-card-radius);
+  box-shadow: var(--L-card-shadow);
+  transition: none;
+}
+#write ul ul{
+  color: var(--L-ul2-fg);
+  background-color: var(--L-ul2-bg);
+  padding: var(--L-ul2-pad);
+  border-radius: var(--L-card-radius);
+  box-shadow: var(--L-card-shadow);
+  transition: none;
+}
+#write ul ul ul{
+  color: var(--L-ul3-fg);
+  background-color: var(--L-ul3-bg);
+  padding: var(--L-ul3-pad);
+  border-radius: var(--L-card-radius);
+  box-shadow: var(--L-card-shadow);
+  transition: none;
+}
+
+/* ========================================================================== */
+/* REGION E — MARKERS（原方案移除，→ 由补丁的 ::before 槽位法接管）               */
+/* Notes: 保留分区标题与注释，不再使用 ::marker 输出内容                         */
+/* ========================================================================== */
+/* （空置：以补丁为准，见下方 SLOT & ::before 输出） */
+
+/* ========================================================================== */
+/* === PATCH ① · 防止列表文字右侧溢出（长英文/URL 自动换行） === */
+#write li,
+#write li > p {
+  overflow-wrap: anywhere;   /* 允许任意位置换行 */
+  word-break: break-word;    /* 兼容旧浏览器 */
+  hyphens: auto;             /* 自动加连字符（若字体支持） */
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* === 修正 · 禁止原生 marker 重影（以补丁为准） === */
+#write ul,
+#write ul li,
+#write ul li::marker {
+  list-style: none !important;
+  content: none !important;
+}
+
+/* === Unordered Bullets: 固定在首行，不随文本换行/挤压（以补丁为准） === */
+/* 变量：可按需微调 */
+#write{
+  --L-ul-gutter: 1.8em;            /* 点位槽宽：1个彩色 emoji 的安全宽度 */
+  --L-spacer: 0.35em;              /* 点与文字的可见间距 */
+  --L-marker-shift: 0em;           /* 垂直基线微调 */
+}
+
+/* 关闭 ul 原生/::marker，仅对 ul 生效；ol 由后文单独处理 */
+#write ul { list-style: none; }
+#write ul > li::marker { content: ""; }
+
+/* 给文本让出固定槽位；多行自然与内容列对齐 */
+#write ul > li{
+  position: relative;
+  padding-left: calc(var(--L-ul-gutter) + var(--L-spacer));
+  text-indent: 0;
+}
+
+/* 在固定槽内绘制“点”（首行固定，永不换行） */
+#write ul > li::before{
+  content: var(--L-ul1-marker-content);
+  color: var(--L-ul1-marker-color);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--L-ul-gutter);
+  white-space: nowrap;
+  line-height: inherit;
+  transform: translateY(var(--L-marker-shift));
+}
+
+/* 二、三级无序列表沿用各自的内容与颜色 */
+#write ul ul > li::before{
+  content: var(--L-ul2-marker-content);
+  color: var(--L-ul2-marker-color);
+}
+#write ul ul ul > li::before{
+  content: var(--L-ul3-marker-content);
+  color: var(--L-ul3-marker-color);
+}
+
+/* === PATCH · 无序列表 图标 + 文字同步左移（不动卡片整体 · 以补丁为准） === */
+/* 可调变量：负值=向左，正值=向右 */
+#write { --L-ul-content-shift: -2.5em; }
+
+#write ul > li {
+  position: relative;
+  padding-left: calc(var(--L-ul-gutter) + var(--L-spacer) + var(--L-ul-content-shift));
+  text-indent: 0; /* 保证换行对齐 */
+}
+
+/* 图标同量左移，保持首行固定不随换行 */
+#write ul > li::before { left: var(--L-ul-content-shift); }
+
+/* === 修正 · 禁止有序原生 marker 重影（与 ::before 共存 · 以补丁为准） === */
+#write ol,
+#write ol li,
+#write ol li::marker {
+  list-style: none !important;
+  content: none !important;
+}
+
+/* === Ordered Numbers: 固定首行编号，不随文本换行/挤压（以补丁为准） === */
+/* 变量：根据编号位数与后缀 emoji 规模微调 */
+#write{
+  --L-ol-digit-ch: 3.2ch;   /* 1~999 建议 3.2ch；1~99 可 2.2ch */
+  --L-ol-suffix-em: 1.4em;  /* ". " + emoji 的保守宽度 */
+  --L-ol-gutter: calc(var(--L-ol-digit-ch) + var(--L-ol-suffix-em));
+  --L-ol-marker-shift: 0em;
+  --L-ol-content-shift: -2.0em;  /* 与无序左移量呼应 */
+}
+
+/* 给文本让出固定槽位；多行自然与内容列对齐 */
+#write ol > li{
+  position: relative;
+  padding-left: calc(var(--L-ol-gutter) + var(--L-spacer) + var(--L-ol-content-shift));
+  text-indent: 0;
+}
+
+/* 在固定槽内绘制“编号+后缀”（首行固定，永不换行） */
+#write ol > li::before{
+  position: absolute;
+  left: var(--L-ol-content-shift); /* 与内容一起水平移动 */
+  top: 0;
+  width: var(--L-ol-gutter);       /* 固定宽度的编号槽 */
+  white-space: nowrap;             /* 编号自身绝不换行 */
+  line-height: inherit;
+  transform: translateY(var(--L-ol-marker-shift));
+  color: var(--L-ol1-marker-color);
+  font-family: var(--L-marker-ff);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--L-marker-fs);
+  font-weight: var(--L-marker-fw);
+  content: counter(list-item, decimal) var(--L-ol1-marker-suffix);
+}
+
+/* 二级/三级：编号体系与配色沿用你的变量 */
+#write ol ol > li::before{
+  color: var(--L-ol2-marker-color);
+  content: counter(list-item, upper-alpha) var(--L-ol2-marker-suffix);
+}
+#write ol ol ol > li::before{
+  color: var(--L-ol3-marker-color);
+  content: counter(list-item, upper-roman) var(--L-ol3-marker-suffix);
+}
+
+/* ========================================================================== */
+/* REGION F — CHECKLIST（复选列表兜底，不覆盖原生）                              */
+/* Scope: #write task-list（ul/ol/li）                                          */
+/* Function: 清空 ::before；移除默认缩进；不干扰内置复选框                       */
+/* Notes: 保留你的注释与风格                                                     */
+/* ========================================================================== */
+#write li.task-list-item::marker{ content: ""; }
+#write li.task-list-item::before{ content: none; }   /* 不自绘点/编号 */
+#write ul.task-list,
+#write ol.task-list{ list-style: none; padding-left: 0; }
+
+/* 行距微调（列表段落） */
+#write li > p{ margin: .25rem 0; }
+
+#write ul.task-list > li.task-list-item,
+#write ol.task-list > li.task-list-item{
+  position: relative;
+  padding-left: 1.6em;      /* 给复选框留位 */
+}
+#write li.task-list-item input[type="checkbox"]{
+  position: absolute;
+  left: 0;
+  top: .1em;                /* 轻微基线校准 */
+}
+
+/* 嵌套组合统一去外边距，避免错乱 */
+#write ul ul ul,
+#write ul ul ol,
+#write ul ol ul,
+#write ul ol ol,
+#write ol ul ul,
+#write ol ul ol,
+#write ol ol ul,
+#write ol ol ol{ margin: 0; }
+
+/* =============================== END OF PACKAGE ============================ */

@@ -1,0 +1,172 @@
+
+/* =======================================================================================
+   Rhapsody · FOOTER WORD COUNT PANEL（底栏词数统计面板 · 极光夜空）
+   设计理念 / Design Concept
+   - 主题意象：星蓝纸感为底，青蓝—月白的极光渐变作为交互强化，夜紫作高光点缀。
+   - 背景策略：主图仅作氛围层（soft-light + scrim + vignette），常态静止、低干扰。
+   - 可读性优先：数值列以“冷光小卡片”凸显，单位列降饱和处理以弱化干扰。
+   - 性能与限域：fixed 浮层 + isolation + contain: paint，严格限域渲染；尊重减少动态设置。
+   ======================================================================================= */
+
+/* ========================================================================== */
+/* REGION A — FOOTER WORD COUNT ROOT                                          */
+/* Scope: <ul id="footer-word-count-info" class="dropdown-menu">              */
+/* Function: 定义底栏词数统计面板的整体容器、局部变量、背景与字体等核心样式        */
+/* Adjustable Params: 背景色/描边/圆角、极光渐变色、背景图位置与透明度、阴影层级 */
+/* Compatibility: 现代浏览器 / Typora(Electron)；旧内核忽略 isolation/contain   */
+/* ========================================================================== */
+ul#footer-word-count-info.dropdown-menu{
+  /* —— 局部变量 —— */
+  --wc-bg: #0E1724;                       /* 星蓝底（冷·低对比纸感） */
+  --wc-fg: #EAF2FF;                       /* 乳白前景（微冷） */
+  --wc-muted: #f3bac2;                    /* 次级说明（冷灰蓝） */
+  --wc-border: rgba(134,175,220,.28);     /* 冷蓝描边 */
+  --wc-radius: 12px;
+  --wc-shadow: 0 16px 32px rgba(0,0,0,.30);
+
+  /* 极光渐变（Hover）— 绿 → 青蓝 → 夜紫高光 */
+  --wc-g1:#3CCB8A;    /* 极光绿 */
+  --wc-g2:#31A6DE;    /* 青蓝 */
+  --wc-g3:#D6D9FF;    /* 月白高光 */
+
+  /* 点缀（选中/分隔） */
+  --wc-aurora-violet:#7C7BFF;             /* 夜紫高光 */
+  --wc-aurora-soft: rgba(49,166,222,.26); /* 青蓝柔光 */
+
+  /* 背景主图（极光夜空） */
+  --wc-bg-img: url('../Assets/UI/梦幻森林.jpg');
+
+  /* 背景层控制（建议范围：0.12–0.26） */
+  --wc-img-pos-y: 42%;
+  --wc-img-opacity: .99;
+  --wc-scrim: rgba(0,0,0,.22);
+  --wc-vignette: radial-gradient(120% 130% at 50% 40%,
+                     rgba(0,0,0,0) 0%,
+                     rgba(0,0,0,.10) 55%,
+                     rgba(0,0,0,.20) 100%);
+
+  position: fixed;
+  z-index: 2147483647;
+  isolation: isolate;
+  contain: paint;                          /* 限域重绘 */
+  padding: 8px 0 10px;
+  min-width: 280px;
+  max-width: 520px;
+  max-height: 56vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
+  color: var(--wc-fg);
+  background: var(--wc-bg);
+  border: 1px solid var(--wc-border);
+  border-radius: var(--wc-radius);
+  box-shadow: var(--wc-shadow);
+  font-family: 'AliPuHuiTi','Microsoft YaHei',sans-serif;
+}
+
+/* 背景：极光光斑 + 主图（soft-light，低干扰） */
+ul#footer-word-count-info.dropdown-menu::before{
+  content:""; position:absolute; inset:0; z-index:0; border-radius:var(--wc-radius);
+  background:
+    radial-gradient(120% 130% at 20% 18%, rgba(60,203,138,.18), transparent 62%),
+    radial-gradient(120% 130% at 84% 86%, rgba(49,166,222,.16), transparent 60%),
+    var(--wc-vignette),
+    linear-gradient(var(--wc-scrim), var(--wc-scrim)),
+    var(--wc-bg-img);
+  background-size: cover, cover, cover, cover, cover;
+  background-position:
+    20% 18%,
+    84% 86%,
+    center,
+    center,
+    center var(--wc-img-pos-y);
+  background-blend-mode: normal, normal, normal, multiply, soft-light;
+  opacity: var(--wc-img-opacity);
+  pointer-events:none;
+}
+
+/* 内容层 */
+ul#footer-word-count-info > *{ position:relative; z-index:1; }
+
+/* 顶部文字行 */
+ul#footer-word-count-info .footer-word-count-info-line{
+  display:flex; gap:10px; align-items:center;
+  padding: 0 14px 6px;
+  color: var(--wc-muted);
+}
+ul#footer-word-count-info .footer-word-count-selection.footer-word-count-info-line{
+  color: var(--wc-fg);
+}
+
+/* 分隔线（细·冰蓝） */
+ul#footer-word-count-info .divider{
+  height:1px; margin:8px 0;
+  background: linear-gradient(90deg, transparent, rgba(214,217,255,.55), transparent);
+}
+
+/* 表格 */
+ul#footer-word-count-info table{
+  width:100%; border-collapse: collapse; margin: 2px 0;
+  color: var(--wc-fg);
+}
+ul#footer-word-count-info table tr{ transition: background .26s ease, color .18s ease; }
+ul#footer-word-count-info table tr:nth-child(odd){ background: rgba(49,166,222,.06); }
+ul#footer-word-count-info table tr:nth-child(even){ background: rgba(60,203,138,.06); }
+ul#footer-word-count-info table td{
+  padding: 6px 14px;
+  border-bottom: 1px dashed rgba(134,175,220,.22);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* 左侧数值列（小卡片视觉，冷光微亮） */
+ul#footer-word-count-info #footer-read-time-count-td,
+ul#footer-word-count-info #footer-line-count-td,
+ul#footer-word-count-info #footer-word-count-td,
+ul#footer-word-count-info #footer-char-count-td,
+ul#footer-word-count-info #footer-word-count-td-sel,
+ul#footer-word-count-info #footer-char-count-td-sel{
+  min-width: 4.5em;
+  font-weight: 800;
+  letter-spacing: .02em;
+  color: #21d2be;
+  background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(214,217,255,.18));
+  border: 1px solid rgba(134,175,220,.34);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+  text-align: right;
+}
+
+/* 单位列 */
+ul#footer-word-count-info td + td{ color: var(--wc-muted); }
+
+/* Hover 行：极光渐变 + 轻霜光 */
+ul#footer-word-count-info tr:hover{
+  background: linear-gradient(135deg, var(--wc-g1), var(--wc-g2), var(--wc-g3));
+  background-size: 280% 280%;
+  color: #0f1522;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 0 10px var(--wc-aurora-soft);
+  animation: wcAuroraFlow 7s ease infinite;
+}
+
+/* 滚动条（细、极光绿→青蓝） */
+ul#footer-word-count-info::-webkit-scrollbar{ width: 10px; }
+ul#footer-word-count-info::-webkit-scrollbar-thumb{
+  background: linear-gradient(180deg, #3CCB8A, #31A6DE);
+  border: 2px solid transparent; background-clip: padding-box;
+  border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+}
+ul#footer-word-count-info::-webkit-scrollbar-track{ background: transparent; }
+
+/* 动画关键帧 */
+@keyframes wcAuroraFlow{
+  0%{   background-position: 0% 50%; }
+  50%{  background-position: 100% 50%; }
+  100%{ background-position: 0% 50%; }
+}
+
+/* 减少动态偏好 */
+@media (prefers-reduced-motion: reduce){
+  ul#footer-word-count-info *{ animation:none !important; transition:none !important; }
+}
+/* =============================== END OF PACKAGE ============================ */

@@ -1,0 +1,92 @@
+
+/* =======================================================================================
+   Rhapsody · HR Dividers （正文分隔线 · 渐变 / 动效可选）
+   设计理念 / Design Concept
+   - 提供清晰、低干扰的分隔线样式：默认静态渐变，避免滚动文档时的持续重绘；
+   - 动态脉冲动画仅在显式开关类存在时启用（或 hover 时触发），保证性能优先；
+   - 使用颜色映射链（--typo-link-color → brand → fallback）+ 本地兜底，确保变量缺失时仍有可见色；
+   - 圆角与粗细可通过类名快速调整（.hr-thin / .hr-thick），增强灵活性；
+   - 尊重用户偏好：prefers-reduced-motion 时强制静态，保证可达性；
+   - 不修改 DOM，仅作用于 #write 下的 hr 标签，避免跨区污染。
+   ======================================================================================= */
+
+/* =============================================================================
+   REGION A — HR DIVIDERS（正文分隔线 · 渐变/可选动画）
+   Scope:
+     #write hr  （不影响侧栏/菜单/对话框）
+   Function:
+     - 提供清晰、低干扰的分隔线视觉（静态为默认；可选开启动画脉冲）
+     - 动画仅在显式开关下启用；尊重 prefers-reduced-motion
+   Adjustable Params:
+     --hr-h / --hr-radius / --hr-gap / --hr-base / --hr-grad / --hr-size / --hr-dur / --hr-ease
+   Notes:
+     - 建议维持静态为默认，避免在大文档中产生无谓的合成与重绘
+     - 仅使用渐变与 background-position 变化，不使用滤镜与大阴影
+   ========================================================================== */
+
+/* 根参数（挂在 #write，便于全局调参） */
+#write {
+  --hr-h: 1.5px;                                 /* 线高 */
+  --hr-radius: 2px;                               /* 圆角 */
+  --hr-gap: 2rem;                                 /* 上下间距 */
+  --typo-link-color:#007fff;   
+  --hr-base: #14181c;                             /* 两端基色 */
+  --hr-grad: linear-gradient(90deg,
+                 var(--hr-base),
+                 var(--typo-link-color),
+                 var(--hr-base));                 /* 中心高亮色使用主题链接色 */
+  --hr-size: 200%;                                /* 背景尺寸（决定过渡宽度） */
+
+  --hr-dur: 2.8s;                                 /* 动画时长 */
+  --hr-ease: cubic-bezier(.4,.0,.2,1);            /* 动画节奏 */
+}
+
+/* 默认：静态渐变分隔线（性能友好） */
+#write hr {
+  height: var(--hr-h);
+  margin: var(--hr-gap) ;
+  border: none;
+  border-radius: var(--hr-radius);
+  background: var(--hr-grad);
+  background-size: var(--hr-size);
+  /* 不默认开启动画，避免大文档滚动时的持续重绘 */
+}
+
+/* 可选：按需开启动画（在 hr 上加 .is-animated，或在 #write 上加 .hr-animated） */
+#write.hr-animated hr,
+#write hr.is-animated {
+  animation: hrPulse var(--hr-dur) var(--hr-ease) infinite;
+}
+
+@keyframes hrPulse {
+  0%   { background-position:   0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position:   0% 50%; }
+}
+
+/* Hover 才动（更省电）：如果你想“需要时才动”，给 hr 加 .anim-on-hover */
+@media (hover:hover){
+  #write hr.anim-on-hover { animation: none; }
+  #write hr.anim-on-hover:hover {
+    animation: hrPulse var(--hr-dur) var(--hr-ease) infinite;
+  }
+}
+
+/* 减少动态偏好：强制静态 */
+@media (prefers-reduced-motion: reduce){
+  #write.hr-animated hr,
+  #write hr.is-animated,
+  #write hr.anim-on-hover:hover {
+    animation: none !important;
+  }
+}
+
+/* 细款/粗款可选尺寸（按需给 hr 增加类名） */
+#write hr.hr-thin { --hr-h: 1px; }
+#write hr.hr-thick{ --hr-h: 3px; }
+
+/* 主题变体：若需更柔的中性色，只覆盖 --hr-grad 即可 */
+#write.hr-soft {
+  --hr-grad: linear-gradient(90deg, var(--hr-base), #8aa5b7, var(--hr-base));
+}
+/* =============================== END OF PACKAGE ============================ */

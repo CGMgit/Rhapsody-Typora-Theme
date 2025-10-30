@@ -1,0 +1,210 @@
+
+/* =======================================================================================
+   Rhapsody · SIDEBAR FILES MENU · 一口吃掉（高饱和红 · 青蓝 · 冰蓝）
+   设计理念 / Design Concept
+   - 视觉源自“红苹果一口”：主红梯度做动效，青蓝/冰蓝点缀突出层级。
+   - 背景图仅作氛围层：低透明度 + 遮罩 + 暗角，不干扰文字聚焦。
+   - 常态静止，hover 微亮与描边增强；尊重 prefers-reduced-motion。
+   - 不改 DOM；仅限侧边栏文件菜单；允许滚动，导出时可降低背景层。
+   ======================================================================================= */
+
+/* ========================================================================== */
+/* REGION A — SIDEBAR FILES MENU · 一口吃掉（高饱和红 · 青蓝 · 冰蓝）            */
+/* Scope: ul#sidebar-files-menu.dropdown-menu                                 */
+/* Function: 固定定位的侧边栏文件菜单皮肤；不改 DOM。提供三层背景（暗角/遮罩/主图）*/
+/*           与内容层分离，常态静止；hover 仅做微亮与描边增强，允许滚动。        */
+/* Adjustable Params:                                                          */
+/*   颜色：--ap-bg, --ap-fg, --ap-muted, --ap-border                           */
+/*   渐变：--ap-g1, --ap-g2, --ap-g3                                           */
+/*   点缀：--ap-leaf, --ap-leaf-soft, --ap-ice                                 */
+/*   形态：--ap-radius, --ap-shadow                                            */
+/*   背景：--ap-bg-img, --ap-img-pos-y, --ap-img-opacity, --ap-scrim, --ap-vignette */
+/* Compatibility: 现代浏览器 / Typora(Electron)；尊重 prefers-reduced-motion；  */
+/*                导出场景可下调 --ap-img-opacity 以降低渲染/压缩伪影。          */
+/* ========================================================================== */
+
+ul#sidebar-files-menu.dropdown-menu{
+  /* —— 局部变量 —— */
+  --ap-bg: #0E1318;                         /* 深冷底（衬托高饱和红） */
+  --ap-fg: #F6F7F9;                         /* 乳白前景 */
+  --ap-muted: #BFC7D1;                      /* 次级说明（冷灰） */
+  --ap-border: rgba(226, 40, 40, .28);      /* 主红相关描边（低强度） */
+  --ap-radius: 12px;
+  --ap-shadow: 0 16px 32px rgba(0,0,0,.38);
+
+  /* Hover 渐变（深红 → 亮红 → 奶白高光） */
+  --ap-g1:#8D0F0F;     /* 深红 */
+  --ap-g2:#D21F1F;     /* 标志红 */
+  --ap-g3:#FFF4E0;     /* 奶白高光 */
+
+  /* 点缀（选中/小图标） */
+  --ap-leaf:#00ffed;                         /* 青蓝 */
+  --ap-leaf-soft: rgba(43,168,74,.28);
+  --ap-ice: #DFF3FF;                         /* 冰蓝微光 */
+
+  /* 背景主图（替换为你的相对路径） */
+  --ap-bg-img: url('../Assets/UI/一口吃掉.png');
+
+  /* 主图垂直位置（百分比越大越往下） */
+  --ap-img-pos-y: 42%;
+
+  /* 背景层控制 */
+  --ap-img-opacity: .99;                     /* 建议 0.12–0.26 */
+  --ap-scrim: rgba(0,0,0,.22);               /* 轻遮罩，提可读性 */
+  --ap-vignette: radial-gradient(120% 130% at 50% 40%,
+                     rgba(0,0,0,.00) 0%,
+                     rgba(0,0,0,.10) 55%,
+                     rgba(0,0,0,.20) 100%);
+
+  position: fixed; z-index:2147483647; isolation:isolate;
+  min-width: 280px; max-width: 520px; max-height: 62vh;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 8px 0;
+
+  color: var(--ap-fg);
+  background: var(--ap-bg);
+  border: 1px solid var(--ap-border);
+  border-radius: var(--ap-radius);
+  box-shadow: var(--ap-shadow);
+  font-family: 'AliPuHuiTi','Microsoft YaHei',sans-serif;
+}
+
+/* 背景层：暗角 + 轻遮罩 + 红苹果主图（soft-light，低干扰） */
+ul#sidebar-files-menu.dropdown-menu::before{
+  content:""; position:absolute; inset:0; z-index:0; border-radius:var(--ap-radius);
+  background:
+    var(--ap-vignette),
+    linear-gradient(var(--ap-scrim), var(--ap-scrim)),
+    var(--ap-bg-img);
+  background-size: cover, cover, cover;
+  background-position:
+    center,
+    center,
+    center var(--ap-img-pos-y);
+  background-blend-mode: normal, multiply, soft-light;
+  opacity: var(--ap-img-opacity);
+  pointer-events:none;
+}
+
+/* 内容层 */
+ul#sidebar-files-menu > *{ position:relative; z-index:1; }
+
+/* —— 分组标题 —— */
+ul#sidebar-files-menu .menuitem-group-label{
+  padding: 4px 14px 6px;
+  font-weight: 700;
+  color: var(--ap-fg);
+  text-shadow: 0 1px 0 rgba(0,0,0,.25);
+  display:flex; align-items:center; justify-content:space-between;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.06));
+  border-top: 1px solid rgba(255,255,255,.06);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+ul#sidebar-files-menu .menuitem-group-label span[data-lg]{
+  color: var(--ap-leaf);
+}
+
+/* 关闭按钮图标（右侧 X） */
+ul#sidebar-files-menu #close-sidebar-menu-btn{
+  color: var(--ap-muted);
+  transition: color .18s ease, transform .08s ease;
+}
+ul#sidebar-files-menu #close-sidebar-menu-btn:hover{
+  color: var(--ap-fg); transform: scale(1.06);
+}
+
+/* —— 菜单项 —— */
+ul#sidebar-files-menu .file-action-item > a{
+  display:flex; align-items:center; gap:8px;
+  height: 34px; padding: 0 14px;
+  color: var(--ap-fg); text-decoration:none; white-space:nowrap;
+  transition: background .26s ease, color .18s ease, box-shadow .26s ease, transform .06s ease;
+  border-left: 2px solid transparent;
+}
+
+/* Hover：红苹果流动渐变 + 冰蓝霜光 */
+ul#sidebar-files-menu .file-action-item > a:hover{
+  background: linear-gradient(135deg, var(--ap-g1), var(--ap-g2), var(--ap-g3));
+  background-size: 300% 300%;
+  color:#FFFFFF;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.10),
+    0 0 10px rgba(210,31,31,.30),
+    0 0 14px rgba(223,243,255,.22);
+  animation: apRedFlow 7s ease infinite;
+}
+
+/* —— 排序按钮组（小图标按钮） —— */
+ul#sidebar-files-menu .sort-button-area .ty-side-sort-btn{
+  margin-left: 4px;
+  color: var(--ap-muted);
+  border-radius: 6px;
+  padding: 2px;
+  transition: background .2s ease, color .18s ease, box-shadow .2s ease, transform .06s ease;
+}
+ul#sidebar-files-menu .sort-button-area .ty-side-sort-btn:hover{
+  color: var(--ap-fg);
+  background: linear-gradient(135deg, rgba(210,31,31,.16), rgba(255,244,224,.12));
+  box-shadow: 0 0 8px rgba(210,31,31,.25), inset 0 0 0 1px rgba(255,255,255,.06);
+}
+ul#sidebar-files-menu .sort-button-area .ty-side-sort-btn.active{
+  color: var(--ap-leaf);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 0 10px var(--ap-leaf-soft);
+}
+
+/* —— 最近位置条目 —— */
+ul#sidebar-files-menu .folder-menu-item > a{
+  display:flex; align-items:center; gap:10px;
+  height: 34px; padding: 0 14px;
+  color: var(--ap-fg); text-decoration:none; white-space:nowrap;
+  transition: background .26s ease, color .18s ease, box-shadow .26s ease;
+  border-left: 2px solid transparent;
+}
+ul#sidebar-files-menu .folder-menu-item > a i.fa{ color: currentColor; }
+
+/* 选中文件夹（.selected-folder-menu-item） */
+ul#sidebar-files-menu .folder-menu-item.selected-folder-menu-item > a{
+  border-left-color: var(--ap-leaf);
+  background: linear-gradient(135deg, rgba(210,31,31,.42), rgba(255,244,224,.22));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+  font-weight: 700;
+}
+
+/* 右侧小图标（Pin/Remove） */
+ul#sidebar-files-menu .sidebar-folder-right-icon{
+  margin-left: 10px; color: var(--ap-muted);
+  transition: color .18s ease, transform .06s ease;
+}
+ul#sidebar-files-menu .sidebar-folder-right-icon:hover{
+  color: var(--ap-leaf); transform: translateY(-1px);
+}
+
+/* 分隔线（细·冰蓝） */
+ul#sidebar-files-menu .menuitem-group-label + .file-action-item:not(.show)::before,
+ul#sidebar-files-menu .divider,
+ul#sidebar-files-menu .folder-menu-groupm + .empty-menu-group{
+  content:""; display:block; height:1px; margin:6px 0;
+  background: linear-gradient(90deg, transparent, rgba(223,243,255,.55), transparent);
+}
+
+/* 滚动条（细、红→冰蓝） */
+ul#sidebar-files-menu::-webkit-scrollbar{ width: 10px; }
+ul#sidebar-files-menu::-webkit-scrollbar-thumb{
+  background: linear-gradient(180deg, #D21F1F, #DFF3FF);
+  border: 2px solid transparent; background-clip: padding-box;
+  border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+}
+ul#sidebar-files-menu::-webkit-scrollbar-track{ background: transparent; }
+
+/* 动画关键帧 */
+@keyframes apRedFlow{
+  0%{   background-position: 0% 50%; }
+  50%{  background-position: 100% 50%; }
+  100%{ background-position: 0% 50%; }
+}
+
+/* 减少动态偏好 */
+@media (prefers-reduced-motion: reduce){
+  ul#sidebar-files-menu *{ animation:none !important; transition:none !important; }
+}
+/* =============================== END OF PACKAGE ============================ */

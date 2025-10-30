@@ -1,0 +1,597 @@
+
+/* =======================================================================================
+   Rhapsody · MegaMenu — Theme Section（主题面板 · Skyline + Sidebar + Preview）
+
+   设计理念 / Design Concept
+   - Skyline 插画：采用“三层合成”（暗角 / 渐变染色 / 插画层），通过变量就近声明避免全局污染，
+     背景统一 pixelated 处理，提供 scroll/fixed 可切换的视差体验。
+   - 字体基线：正文走 AliPuHuiTi/SourceHanSansSC；英文/数字用 JetBrains Mono NL；代码块强制等宽；
+     图标保持原字形，Pixel 场景允许局部挂 Press Start 2P。
+   - Header 联动：Theme 激活时，Header 上色、图标金黄、按钮内发光，统一像素描边。
+   - Sidebar 区域：纸感渐变背景 + 内框像素描边；列表项糖果色 hover 渐变；标签分色/图标占位符一键换色。
+   - Preview 栅格：半透明模糊网格 + 卡片硬描边；hover 粉红扫描条动画；active 提供蓝色勾选/焦点环。
+
+   Typora Constraints / 编辑器限制
+   - 不改 HTML 结构（no DOM hacks）；仅用 CSS 控制；:has() 单次门闩限制作用域。
+   - 所有动画均尊重 prefers-reduced-motion；涉及滚动条/扫描条均可局部关闭。
+   - 字体与图标：明确区分 UI 字体、代码字体、图标字体（FontAwesome），避免互相覆盖。
+
+   Performance / 性能策略
+   - 多使用渐变、box-shadow，少用大面积滤镜；必要时合成在局部变量层。
+   - 变量集中声明（--hero-* / --sb-* / --pv-*），支持一处换色全域联动。
+   - 滚动条 hover 动效采用轻量位移/亮度调节，避免过度重绘。
+
+   Maintainability / 维护策略
+   - 区域划分清晰：A 字体基线 / B Skyline Surface / C Header Latch / D Sidebar / E Preview Grid / F Scrollbars。
+   - 每个 REGION 附 Scope / Function / Notes，方便快速检索与调参。
+   - 提供 Firefox 滚动条回退（scrollbar-color），保证跨内核兼容。
+
+   Accessibility / 无障碍
+   - 高对比文本与描边；按钮 hover/焦点有清晰反馈；预览卡 active/焦点均有强视觉定位。
+   ======================================================================================= */
+
+/* ========================================================================== */
+/* REGION A — TYPE BASE（字体基线 · THEME 专用）                               */
+/* Scope : #megamenu-section-theme；以及 Theme 激活时的 #megamenu-menu-sidebar */
+/* Function : 中文无衬线基线；英文/数字 JetBrains Mono；代码等宽；图标原字形     */
+/* ========================================================================== */
+
+/* 全局基线（Theme 面板 + Theme 激活时的左侧菜单） */
+#megamenu-section-theme,
+body.megamenu-opened:has(#megamenu-menu-list #m-theme.active) #megamenu-menu-sidebar{
+  font-family: 'AliPuHuiTi','SourceHanSansSC',system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+  font-kerning: normal;
+  text-rendering: optimizeLegibility;
+}
+
+/* 英文/数字优先走 JetBrains Mono（科技/窄体感） */
+#megamenu-section-theme :where(:lang(en), [data-localize], [data-lg]),
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-sidebar :where(:lang(en), [data-localize], [data-lg]){
+  font-family: 'JetBrainsMonoNL','RobotoMono','AliPuHuiTi','SourceHanSansSC',monospace,system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+  letter-spacing: 0;
+}
+
+/* 常见 UI 元素继承（不拉开字距） */
+#megamenu-section-theme :where(input,button,select,textarea,.btn,.long-btn,th,td,h1,h2,h3,h4,h5,h6,label,span),
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-sidebar :where(input,button,select,textarea,.btn,li>a,span,label,h1,h2,h3,h4,h5,h6){
+  font-family: inherit;
+  letter-spacing: 0;
+}
+
+/* 代码区块：强制等宽 */
+#megamenu-section-theme :where(code, pre, kbd, samp),
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-sidebar :where(code, pre, kbd, samp){
+  font-family: 'JetBrainsMonoNL','RobotoMono',monospace;
+}
+
+/* 图标保持原字形/图标字体 */
+#megamenu-section-theme :where(i, .icon, [class^="ion-"], [class*=" ion-"], svg),
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-sidebar :where(i, .icon, [class^="ion-"], [class*=" ion-"], svg){
+  font-family: inherit;
+}
+
+/* 轻像素描边增强可读性 */
+#megamenu-section-theme :where(h1,h2,.long-btn,#recent-document-table thead th),
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-sidebar :where(.megamenu-menu-header,#megamenu-menu-list>li>a){
+  text-shadow: 0.5px 0.5px 0 #fff, -0.5px -0.5px 0 #fff;
+}
+
+/* 像素味（可选，局部挂类） */
+#megamenu-section-theme :where(.is-pixel, .pixel, .badge-pixel),
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-sidebar :where(.is-pixel, .pixel, .badge-pixel){
+  font-family: 'Press Start 2P','SourceHanSansPixel',monospace;
+}
+
+/* ========================================================================== */
+/* REGION B — SKYLINE SURFACE · Consolidated（变量+背景合一，不用 :has）        */
+/* Scope : #megamenu-section-theme（Theme 面板自身，未激活时通常隐藏）          */
+/* Function : 暗角 + 染色 + 插画三层；变量就近声明，减少全局污染                 */
+/* Notes : 避免用 background 简写清空层；可用 --hero-attach 控制第三层附着        */
+/* ========================================================================== */
+
+#megamenu-section-theme{
+  /* —— Skyline 变量（就近作用域） —— */
+  --hero-url: url("../assets/Menu/纯净都市.png"); /* 插画路径：相对 menu/ 到 assets/ */
+  --hero-pos: 68% 0%;                             /* 插画对齐点：水平 58–72% 微调，垂直 0% 顶贴 */
+  --hero-tint-top: rgba(0,156,255,.26);           /* 上方蓝系染色（调冷/降亮） */
+  --hero-tint-bottom: rgba(255,77,109,.12);       /* 下方粉/红染色（和 UI 主色呼应） */
+  --hero-vignette: rgba(17,17,17,.16);            /* 轻暗角（.10–.24 之间微调） */
+  --hero-attach: scroll;                          /* 第三层附着：scroll | fixed */
+
+  /* —— 预合成层，减少重复计算 —— */
+  --sky-vignette: radial-gradient(120% 100% at 50% 12%,
+                    transparent 60%, var(--hero-vignette) 100%);
+  --sky-tint: linear-gradient(180deg,
+                    var(--hero-tint-top) 0%, var(--hero-tint-bottom) 100%);
+
+  /* —— 三层背景：暗角 / 染色 / 插画 —— */
+  background-image:
+    var(--sky-vignette),
+    var(--sky-tint),
+    var(--hero-url);
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-position: center, center, var(--hero-pos);
+  background-size: cover, cover, cover;
+  /* 可选视差：只影响插画层；如需固定，改为 fixed */
+  background-attachment: scroll, scroll, var(--hero-attach);
+}
+
+/* ========================================================================== */
+/* REGION C — HEADER LATCH（Header 联动 · Theme 激活 · 变量化）                */
+/* Scope : body.megamenu-opened:has(#m-theme.active) header                   */
+/* Function : Header 上色、图标高亮、按钮内发光；不覆盖 section 背景           */
+/* ========================================================================== */
+
+body.megamenu-opened:has(#megamenu-menu-list #m-theme.active) header{
+  /* —— 可调参数 —— */
+  --hdr-bg1: #fff0f4;          /* 底层横向渐变起点 */
+  --hdr-bg2: #f5f9ff;          /* 底层横向渐变终点 */
+  --hdr-accent: #ff4d6d;       /* 左侧 18px 功能条颜色 */
+  --hdr-bd: #111;              /* 下边框主描边色 */
+  --hdr-shadow: #93a5b8;       /* Header 阴影色 */
+  --hdr-icon: #ffcc00;         /* 图标/按钮主前景（Theme 金黄） */
+  --hdr-btn-inset: #ffd93b33;  /* 按钮内发光（透明度可调） */
+
+  /* —— 背景与描边 —— */
+  background:
+    linear-gradient(90deg, var(--hdr-bg1), var(--hdr-bg2)),
+    linear-gradient(90deg, var(--hdr-accent) 0, var(--hdr-accent) 18px, transparent 18px);
+  image-rendering: pixelated;
+  border-bottom: 2px solid var(--hdr-bd);
+  box-shadow: 0 2px 0 0 var(--hdr-shadow);
+}
+
+/* 兜底：父级联动（避免覆盖 Skyline 多层背景；仅补像素风与内框） */
+body.megamenu-opened:has(#megamenu-menu-list #m-theme.active) #megamenu-section-theme,
+body.megamenu-opened:has(#m-theme.active) *:has(> #megamenu-section-theme){
+  image-rendering: pixelated;
+  box-shadow: inset 0 0 0 2px #111; /* 如需统一可改为 var(--hdr-bd) */
+}
+
+/* Header 图标与按钮（统一吃变量） */
+body.megamenu-opened:has(#megamenu-menu-list #m-theme.active) 
+header :is(.btn,.toolbar-icon,.icon,[class*="icon"],[class^="ion-"],i,svg,svg use){
+  color: var(--hdr-icon); 
+  fill:  var(--hdr-icon); 
+  stroke:var(--hdr-icon);
+  opacity: 1; 
+  filter: none;
+}
+
+body.megamenu-opened:has(#megamenu-menu-list #m-theme.active) header .btn{
+  border-color: var(--hdr-bd);
+  box-shadow: 0 0 0 2px var(--hdr-btn-inset) inset;
+  opacity: 1;
+}
+
+/* ========================================================================== */
+/* REGION D — MENU SIDEBAR · Consolidated（左侧菜单 · Theme 激活 · 变量化）     */
+/* Scope : body.megamenu-opened:has(#m-theme.active) #megamenu-menu-sidebar    */
+/* Function : 侧栏渐变 / 标题片 / 列表项 / 分隔线 / 标签分色 / 图标占位 / 竖线补齐 */
+/* Notes : 单次 :has 门闩；内部全部后代选择；可一键换色                          */
+/* ========================================================================== */
+
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-sidebar{
+  /* —— 可调参数 —— */
+  --sb-bd: #111;               /* 主描边色 */
+  --sb-fg: #111;               /* 文本前景 */
+  --sb-shadow: #93a5b8;        /* 默认阴影 */
+  --sb-shadow-deep: #6f7f90;   /* hover 加深阴影 */
+  --sb-accent-red: #ff4d6d;    /* 红粉功能色（标签/图标） */
+  --sb-accent-blue: #009cff;   /* 蓝色功能色（hover 背景/标签） */
+  --sb-accent-blue-2: #0078d4; /* 蓝色渐变尾 */
+  --sb-accent-warn: #ff8a00;   /* 橙色功能色 */
+  --sb-accent-close:#e60026;   /* 关闭色 */
+
+  /* —— 背景/纹理 —— */
+  --sb-bg:      linear-gradient(180deg,#fff5f8 0%,#f3f7fb 68%,#fff5f8 100%);
+  --sb-hdr-bg:  linear-gradient(180deg,#fff5f8 0%,#eef5ff 100%);
+  --sb-list-bg: linear-gradient(180deg,#fff0f4 0%,#f6f9fd 100%);
+  --sb-item-bg: linear-gradient(180deg,#fff5f8 0%,#f3f7fb 50%,#fff5f8 100%);
+  --sb-div-bg1: linear-gradient(180deg,#fff0f4 0%,#f4f8fd 100%);
+  --sb-div-str: repeating-linear-gradient(90deg,var(--sb-accent-red) 0 12px,var(--sb-accent-red) 12px 24px,transparent 24px 36px);
+
+  /* —— 自身外观 —— */
+  background: var(--sb-bg);
+  image-rendering: pixelated;
+  border-left: 2px solid var(--sb-bd);
+  box-shadow: inset 0 0 0 2px var(--sb-bd);
+  color: var(--sb-fg);
+}
+
+/* Header 条幅 */
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-sidebar .megamenu-menu-header{
+  padding:12px 10px;
+  border-bottom:2px solid var(--sb-bd);
+  background: var(--sb-hdr-bg);
+  box-shadow: 0 2px 0 0 var(--sb-shadow);
+  position: relative; /* 供右侧竖线定位 */
+}
+
+/* 右侧竖线补齐（主黑线 + 内白描边 + 外冷灰蓝阴影） */
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-sidebar .megamenu-menu-header::after{
+  content:"";
+  position:absolute; top:0; right:0; bottom:0; width:2px;
+  background: var(--sb-bd);
+  box-shadow:
+    inset 0 0 0 2px #fff,
+    0 0 0 2px var(--sb-bd),
+    2px 0 0 0 var(--sb-shadow);
+  pointer-events:none;
+  image-rendering:pixelated;
+}
+
+/* 返回按钮图标强调 */
+body.megamenu-opened:has(#m-theme.active) #megamenu-back-btn i{
+  color: var(--sb-accent-red);
+  text-shadow: 0 0 2px #ffd93b66;
+}
+
+/* 标题片 */
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-header-title{
+  display:inline-block; padding:2px 8px;
+  border:2px solid var(--sb-bd);
+  background: linear-gradient(180deg,#fff5f8 0%,#f3f7fb 100%);
+  box-shadow: 2px 2px 0 0 var(--sb-shadow);
+  font-weight:600; color: var(--sb-accent-blue);
+}
+
+/* 列表容器 */
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-list{
+  margin:10px 8px 12px; padding:6px 4px;
+  border:2px solid var(--sb-bd);
+  background: var(--sb-list-bg);
+  box-shadow: 3px 3px 0 0 var(--sb-shadow);
+}
+
+/* 列表项 */
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-list > li > a{
+  display:flex; align-items:center; gap:10px; position:relative;
+  margin:8px 6px; padding:10px 12px;
+  color:var(--sb-fg); text-decoration:none;
+  border:2px solid var(--sb-bd); border-radius:0;
+  background: var(--sb-item-bg);
+  box-shadow: 2px 2px 0 0 var(--sb-shadow), inset 0 0 0 2px #fff;
+  transition: transform .06s steps(2,end), box-shadow .06s steps(2,end), background .12s;
+}
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-list > li > a i{
+  color: var(--sb-accent-red);
+}
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-list > li > a:hover{
+  transform: translate(-1px,-1px);
+  box-shadow: 4px 4px 0 0 var(--sb-shadow-deep), inset 0 0 0 2px #fff;
+  background: linear-gradient(180deg,var(--sb-accent-blue) 0%,var(--sb-accent-blue-2) 100%);
+  color:#fff;
+}
+
+/* 标签分色（合并写法） */
+body.megamenu-opened:has(#m-theme.active)
+#megamenu-menu-list :where(#m-new,#m-open,#m-theme,#m-save,#m-saved,#m-save-as,#m-export,#m-print,#m-preference,#m-about,#m-close) > span{
+  background: linear-gradient(0deg,#edf3ff,#ffffff);
+  border:1.5px solid var(--sb-bd);
+  padding:0 4px; display:inline-block;
+  font-size:.95em; line-height:1.2; border-radius:0;
+  box-shadow:1.5px 1.5px 0 0 var(--sb-shadow);
+  font-weight:800;
+}
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-list :where(#m-new,#m-open,#m-theme,#m-save,#m-saved,#m-save-as) > span{
+  color: var(--sb-accent-red);
+}
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-list :where(#m-export,#m-print) > span{
+  color: var(--sb-accent-blue);
+}
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-list :where(#m-preference,#m-about) > span{
+  color: var(--sb-accent-warn);
+}
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-list #m-close > span{
+  color: var(--sb-accent-close);
+}
+
+/* 图标占位（Theme 专属 · 与 Open 不重复） */
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-list > li > a::before{
+  display:inline-block; width:1.25em; text-align:center;
+  font-size:1em; line-height:1; transform-origin:center; margin-right:-6px;
+}
+/* 单项映射（emoji 方案） */
+body.megamenu-opened:has(#m-theme.active) #m-new::before        { content: "✨"; }
+body.megamenu-opened:has(#m-theme.active) #m-open::before       { content: "📁"; }
+body.megamenu-opened:has(#m-theme.active) #m-save::before       { content: "💽"; }
+body.megamenu-opened:has(#m-theme.active) #m-saved::before      { content: "🔖"; }
+body.megamenu-opened:has(#m-theme.active) #m-save-as::before    { content: "✍️"; }
+body.megamenu-opened:has(#m-theme.active) #m-export::before     { content: "⤴️"; }
+body.megamenu-opened:has(#m-theme.active) #m-print::before      { content: "🧾"; }
+body.megamenu-opened:has(#m-theme.active) #m-theme::before      { content: "🖌️"; }
+body.megamenu-opened:has(#m-theme.active) #m-preference::before { content: "🛠️"; }
+body.megamenu-opened:has(#m-theme.active) #m-about::before      { content: "📘"; }
+body.megamenu-opened:has(#m-theme.active) #m-close::before      { content: "❎"; }
+
+/* Saved 的原打勾 i 放最右 */
+body.megamenu-opened:has(#m-theme.active) #m-saved .fa-check-circle-o:before{
+  position:absolute; right:8px; top:50%; transform: translateY(-50%); margin:0;
+}
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-list > li > a > i{
+  order:0; margin-right:-20px; color:var(--sb-accent-red); font-size:1em;
+}
+
+/* 分隔线（粉条） */
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-list > li.divider{
+  height:10px; margin:6px 8px;
+  border:2px solid var(--sb-bd);
+  background: var(--sb-div-bg1), var(--sb-div-str);
+  box-shadow: 2px 2px 0 0 var(--sb-shadow);
+}
+
+/* fa 字体修正（仅 Theme 模式菜单） */
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-list i.fa,
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-list i[class*="fa-"]{
+  font-family:"FontAwesome","Segoe UI Symbol","Noto Sans Symbols",
+               system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif !important;
+  font-style: normal;
+}
+
+/* ========================================================================== */
+/* REGION E — THEME PREVIEW GRID · Vars（预览区：栅格/卡/交互 · 变量化）         */
+/* Scope : #megamenu-section-theme 第一个面板内的 h1 + #theme-preview-grid      */
+/* Function : 半透明+轻模糊网格；卡片硬描边/扫描；active 勾/键盘可达/角标        */
+/* Notes : 动效尊重 prefers-reduced-motion；扫描宽/时长/steps 可调              */
+/* ========================================================================== */
+
+/* —— 预览区变量就近挂在面板根 —— */
+#megamenu-section-theme{
+  /* Grid 容器 */
+  --pv-gap: 14px;
+  --pv-col-min: 220px;
+  --pv-grid-bg: rgba(255,255,255,.82);
+  --pv-grid-blur: 2.5px;
+  --pv-grid-sat: 1.02;
+  --pv-grid-bd: #111;
+  --pv-grid-shadow: #93a5b8;
+
+  /* 预览卡 */
+  --pv-card-bg: rgba(255,255,255,.94);
+  --pv-card-bd: #111;
+  --pv-card-inset: #fff;          /* 内侧 2px 白描边 */
+  --pv-card-shadow: #93a5b8;
+  --pv-card-shadow-hover: #6f7f90;
+
+  /* 扫描导条 */
+  --pv-scan-color: #ff4d6d;
+  --pv-scan-width: 160px;
+  --pv-scan-steps: 7;
+  --pv-scan-dur: .9s;
+
+  /* 状态/强调 */
+  --pv-accent-blue: #009cff;
+  --pv-accent-blue-2: #0078d4;
+  --pv-focus-ring: #111;
+  --pv-focus-accent: #009cff;
+  --pv-focus-shadow: #7aa2d61f;
+
+  /* 角标 */
+  --pv-badge-bg: linear-gradient(0deg,#e7f0ff,#fff5f8);
+  --pv-badge-bd: #111;
+  --pv-badge-shadow: #93a5b8;
+  --pv-badge-color: #111;
+}
+
+/* 栅格容器 */
+#megamenu-section-theme > .megamenu-menu-panel:first-of-type > h1 + #theme-preview-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--pv-col-min), 1fr));
+  gap: var(--pv-gap);
+  margin-top: 8px;
+  padding: 10px;
+  background: var(--pv-grid-bg);
+  backdrop-filter: blur(var(--pv-grid-blur)) saturate(var(--pv-grid-sat));
+  border: 2px solid var(--pv-grid-bd);
+  box-shadow: 3px 3px 0 0 var(--pv-grid-shadow);
+}
+
+/* 预览卡 */
+#megamenu-section-theme #theme-preview-grid .theme-preview-div{
+  position: relative;
+  aspect-ratio: 16/10;
+  background: var(--pv-card-bg);
+  border: 2px solid var(--pv-card-bd);
+  box-shadow: inset 0 0 0 2px var(--pv-card-inset), 2.5px 2.5px 0 0 var(--pv-card-shadow);
+  overflow: hidden;
+  transition: transform .06s steps(2,end), box-shadow .06s steps(2,end), filter .12s ease;
+  cursor: pointer;
+}
+@supports not (aspect-ratio: 16/10){
+  #megamenu-section-theme #theme-preview-grid .theme-preview-div{ height: 150px; }
+}
+
+/* 预览内容 */
+#megamenu-section-theme .theme-preview-div .theme-preview-content{
+  width: 100%; height: 100%; border: 0; display: block; background: #fff;
+}
+
+/* 覆盖层事件捕捉 */
+#megamenu-section-theme .theme-preview-div > div[style*="position:absolute"]{ pointer-events: auto; }
+
+/* 右上打勾（默认隐藏） */
+#megamenu-section-theme .theme-preview-div > .fa-check-circle{
+  position: absolute; right: 8px; top: 8px; font-size: 18px;
+  color: var(--pv-accent-blue);
+  text-shadow: 0 0 2px #ffffff, 0 0 2px #ffffff;
+  opacity: 0; transform: scale(.9);
+  transition: opacity .12s ease, transform .12s ease;
+}
+
+/* hover：位移 + 粉红导条扫描 */
+#megamenu-section-theme .theme-preview-div:hover{
+  transform: translate(1px,10px);
+  box-shadow: 4px 4px 0 0 var(--pv-card-shadow-hover), inset 0 0 0 2px #fff;
+  background:
+    linear-gradient(180deg,#ffffff 0%,#f7fbff 100%),
+    repeating-linear-gradient(90deg,var(--pv-scan-color) 0 8px,var(--pv-scan-color) 8px 16px,transparent 16px 32px);
+  background-size: auto, var(--pv-scan-width) 100%;
+  animation: theme-preview-scan var(--pv-scan-dur) steps(var(--pv-scan-steps), end) infinite;
+  filter: saturate(1.03) brightness(1.02);
+}
+@media (prefers-reduced-motion: reduce){
+  #megamenu-section-theme .theme-preview-div:hover{ animation: none; }
+}
+@keyframes theme-preview-scan{
+  from{ background-position: 0 0, 0 0; }
+  to  { background-position: 0 0, var(--pv-scan-width) 0; }
+}
+
+/* active：功能边 + 勾显现 */
+#megamenu-section-theme .theme-preview-div.active{
+  border-color: var(--pv-accent-blue);
+  box-shadow: inset 0 0 0 2px #e9f2ff, 0 0 0 2px #111, 5px 5px 0 0 var(--pv-focus-shadow);
+}
+#megamenu-section-theme .theme-preview-div.active > .fa-check-circle{ opacity: 1; transform: scale(1); }
+
+/* 键盘可达 */
+#megamenu-section-theme .theme-preview-div:focus-within{
+  outline: 0;
+  box-shadow: 0 0 0 2px var(--pv-focus-ring), 0 0 0 4px var(--pv-focus-accent), 5px 5px 0 0 var(--pv-focus-shadow);
+}
+
+/* 右下角 data-theme 微标签 */
+#megamenu-section-theme .theme-preview-div::after{
+  content: attr(data-theme);
+  position: absolute; right: 6px; bottom: 6px; padding: 2px 6px;
+  font-size: 10px; line-height: 1.2; color: var(--pv-badge-color);
+  background: var(--pv-badge-bg);
+  border: 2px solid var(--pv-badge-bd);
+  box-shadow: 2px 2px 0 0 var(--pv-badge-shadow);
+  max-width: 80%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+
+/* 第二个面板里的“Open Theme Folder”按钮 */
+#megamenu-section-theme #open-theme-folder-btn.long-btn{
+  justify-content: center; gap: 10px; color: #111;
+  border: 2px solid #111; border-radius: 0;
+  background: linear-gradient(180deg,#fff5f8 0%,#f3f7fb 50%,#fff5f8 100%);
+  box-shadow: 3px 3px 0 0 var(--pv-grid-shadow), inset 0 0 0 2px #fff;
+  transition: transform .06s steps(2,end), background .12s ease;
+}
+#megamenu-section-theme #open-theme-folder-btn.long-btn:hover{
+  transform: translate(-1px,-1px);
+  background: linear-gradient(180deg,var(--pv-accent-blue) 0%,var(--pv-accent-blue-2) 100%);
+  color:#fff;
+}
+
+/* 另一版选中图标（描边菱形）—— 若使用，保持与上方打勾逻辑一致 */
+#megamenu-section-theme .theme-preview-div > .fa-check-circle{
+  position: absolute; left: 300px; top: 6px; font-size: 18px; line-height: 1;
+  z-index: 5; pointer-events: none;
+  font-family: 'FontAwesome','Segoe UI Symbol','Noto Sans Symbols',system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+  color: transparent; -webkit-text-stroke: 2px #ef00ff;
+  text-shadow: none; opacity: 0; transform: scale(.9);
+  transition: opacity .12s ease, transform .12s ease;
+}
+#megamenu-section-theme .theme-preview-div.active > .fa-check-circle{ opacity: 1; transform: scale(1); }
+#megamenu-section-theme .theme-preview-div > .fa-check-circle:before{ content: "\f219"; } /* fa-diamond */
+#megamenu-section-theme .theme-preview-div > .fa-check-circle::after{ content: none; }
+
+/* ========================================================================== */
+/* REGION F — SCROLLBARS · THEME（滚动条 · Theme 激活态 · 变量化）               */
+/* Scope : Theme 激活时的 Sidebar 与页面右侧主滚动条（单门闩 + 分组选择器）       */
+/* Function : 粉/蓝功能滚动条；拐角/内框像素化；必要处小范围覆盖                   */
+/* ========================================================================== */
+
+/* —— 变量挂载：Theme 激活总伞 —— */
+body.megamenu-opened:has(#m-theme.active){
+  /* 尺寸 */
+  --th-sb-w: 10px;
+  --th-sb-h: 10px;
+
+  /* 轨道 / 边框 / 内框 */
+  --th-track-bg: linear-gradient(180deg,#fff0f4 0%,#f5f9ff 100%);
+  --th-bd: #111;
+  --th-track-left: 2px solid var(--th-bd);
+  --th-track-top:  2px solid var(--th-bd);
+  --th-inset: inset 0 0 0 2px var(--th-bd);
+
+  /* 拇指（Sidebar：红粉；Page：蓝） */
+  --th-thumb-red:  linear-gradient(180deg,#ff4d6d 0%,#e60026 100%);
+  --th-thumb-blue: linear-gradient(180deg,#009cff 0%,#0078d4 100%);
+  --th-thumb-bd: 2px solid var(--th-bd);
+  --th-thumb-inset: inset 0 0 0 2px #fff;
+  --th-thumb-shadow: 2px 2px 0 0 #93a5b8;
+
+  /* 拐角 */
+  --th-corner-bg: linear-gradient(180deg,#fff0f4 0%,#eef5ff 100%);
+
+  /* 交互 */
+  --th-track-hover-brightness: 1.06;
+  --th-hover-shift: -1px;        /* hover 位移量（负为向左上） */
+  --th-track-hover-lift: -1px;   /* 轨道 hover 上移量 */
+}
+
+/* —— 统一入口（Sidebar + 页面右侧容器） —— */
+body.megamenu-opened:has(#m-theme.active)
+:is(#megamenu-menu-sidebar, html, body, #megamenu-section-theme, .megamenu-section, .megamenu-menu-panel, .megamenu-content, #content, #write)::-webkit-scrollbar{
+  width: var(--th-sb-w);
+  height: var(--th-sb-h);
+}
+
+body.megamenu-opened:has(#m-theme.active)
+:is(#megamenu-menu-sidebar, html, body, #megamenu-section-theme, .megamenu-section, .megamenu-menu-panel, .megamenu-content, #content, #write)::-webkit-scrollbar-track{
+  background: var(--th-track-bg);
+  border-left: var(--th-track-left);
+  border-top:  var(--th-track-top);
+  box-shadow: var(--th-inset);
+  transition: filter .25s ease, transform .25s ease;
+}
+body.megamenu-opened:has(#m-theme.active)
+:is(#megamenu-menu-sidebar, html, body, #megamenu-section-theme, .megamenu-section, .megamenu-menu-panel, .megamenu-content, #content, #write)::-webkit-scrollbar-track:hover{
+  filter: brightness(var(--th-track-hover-brightness));
+  transform: translateY(var(--th-track-hover-lift));
+}
+
+/* —— Sidebar：红粉拇指 —— */
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-sidebar::-webkit-scrollbar-thumb{
+  background: var(--th-thumb-red);
+  border: var(--th-thumb-bd);
+  box-shadow: var(--th-thumb-inset), var(--th-thumb-shadow);
+  border-radius: 0;
+  transition: transform .25s ease;
+}
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-sidebar::-webkit-scrollbar-thumb:hover{
+  transform: translate(var(--th-hover-shift), var(--th-hover-shift));
+}
+body.megamenu-opened:has(#m-theme.active) #megamenu-menu-sidebar::-webkit-scrollbar-corner{
+  background: var(--th-corner-bg);
+  border: 2px solid var(--th-bd);
+  box-shadow: var(--th-inset);
+}
+
+/* —— 页面右侧：蓝拇指 —— */
+body.megamenu-opened:has(#m-theme.active)
+:where(html, body, #megamenu-section-theme, .megamenu-section, .megamenu-menu-panel, .megamenu-content, #content, #write)::-webkit-scrollbar-thumb{
+  background: var(--th-thumb-blue);
+  border: var(--th-thumb-bd);
+  box-shadow: var(--th-thumb-inset), var(--th-thumb-shadow);
+  border-radius: 0;
+  transition: transform .25s ease;
+}
+body.megamenu-opened:has(#m-theme.active)
+:where(html, body, #megamenu-section-theme, .megamenu-section, .megamenu-menu-panel, .megamenu-content, #content, #write)::-webkit-scrollbar-thumb:hover{
+  transform: translate(var(--th-hover-shift), var(--th-hover-shift));
+}
+body.megamenu-opened:has(#m-theme.active)
+:where(html, body, #megamenu-section-theme, .megamenu-section, .megamenu-menu-panel, .megamenu-content, #content, #write)::-webkit-scrollbar-corner{
+  background: var(--th-corner-bg);
+  border: 2px solid var(--th-bd);
+  box-shadow: var(--th-inset);
+}
+
+/* 动效可及性：减少运动时禁用位移 */
+@media (prefers-reduced-motion: reduce){
+  body.megamenu-opened:has(#m-theme.active)
+  :is(#megamenu-menu-sidebar, html, body, #megamenu-section-theme, .megamenu-section, .megamenu-menu-panel, .megamenu-content, #content, #write)::-webkit-scrollbar-track{
+    transition: none;
+  }
+  body.megamenu-opened:has(#m-theme.active)
+  :is(#megamenu-menu-sidebar, html, body, #megamenu-section-theme, .megamenu-section, .megamenu-menu-panel, .megamenu-content, #content, #write)::-webkit-scrollbar-thumb{
+    transition: none;
+  }
+}
+
+/* =============================== END OF PACKAGE ============================ */

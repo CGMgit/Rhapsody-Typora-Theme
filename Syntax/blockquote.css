@@ -1,0 +1,367 @@
+/* =======================================================================================
+   Rhapsody · Quotes & Admonitions（引用块与扩展提示，仅 #write）
+   设计理念 / Design Concept
+   - 仅在写作区域生效：所有选择器挂载 #write，避免外溢与无谓匹配开销。
+   - 不改动 HTML 结构：完全依赖伪元素与局部变量实现视觉与动效，兼容 Typora 限制。
+   - 性能优先：常态静止、悬停才动（@media (hover:hover)）；尊重 @media (prefers-reduced-motion)。
+   - GPU 友好：交互只用 transform / opacity，禁止持续背景位移与昂贵滤镜的循环动画。
+   - 区域化与解耦：A=blockquote 核心；B=md-alert 通用壳；C~G 分别为 tip/important/note/caution/warning，
+     各区自带局部变量，不跨区污染，命名尽量前缀化（如 bq-/al-）。
+   - 可维护性：将共同排版与结构属性收敛于 B 区（通用壳），类型区只保留配色、阴影与图标动画差异。
+   - 温和装饰：使用轻渐变、柔阴影与 Emoji/图标点题；若平台字形不稳，可替换为稳定字体或 SVG mask。
+   - 安全边界：必要处加 contain: paint 与 isolation: isolate，降低重绘传播；不使用 :has() 主动扫描。
+   - 优雅降级：旧内核降级为静态色块与无动画形态，不影响阅读与导出。
+   ======================================================================================= */
+
+/* =======================================================================================
+   REGION A — BLOCKQUOTE CORE（引用块 · 机械朋克风，仅 #write）
+   Scope: #write blockquote / #write blockquote p / hover-only interactions
+   Function:
+     - 定义正文内引用块的“机械银灰”视觉与轻交互（hover 缩放、齿轮旋转）
+     - 段落排版紧凑化（等宽/文艺体混排，轻字距）
+   Adjustable Params:
+     --bq-pad, --bq-margin, --bq-border, --bq-bg, --bq-fg, --bq-radius, --bq-shadow
+     --bq-icon-size, --bq-icon-color, --bq-scale, --bq-anim-dur
+   Compatibility: 现代 Chromium/Electron (Typora)；旧内核退化为静态
+   Notes:
+     - 动效仅在具备鼠标的设备启用（@media (hover: hover)）
+     - 尊重用户“减少动态”偏好（@media (prefers-reduced-motion: reduce)）
+   ======================================================================================= */
+
+#write blockquote{
+  /* ---- Local Vars (scoped here) ---- */
+  --bq-pad: 2rem 2.5rem;
+  --bq-margin: 1.5rem 0;
+  --bq-border: 8px solid #b0b0b0;
+  --bq-bg: #dcdcdc;
+  --bq-fg: #333;
+  --bq-radius: 10px;
+  --bq-shadow: 0 6px 18px rgba(0,0,0,.2);
+  --bq-icon-size: 1.5rem;
+  --bq-icon-color: #b0b0b0;
+  --bq-scale: 1.03;
+  --bq-anim-dur: .3s;
+
+  padding: var(--bq-pad);
+  margin: var(--bq-margin);
+  border-left: var(--bq-border);
+  background: var(--bq-bg);
+  color: var(--bq-fg);
+  font-size: 1.2rem;
+  line-height: 1.6;
+  border-radius: var(--bq-radius);
+  box-shadow: var(--bq-shadow);
+  position: relative;
+  z-index: 10;
+  transition: transform var(--bq-anim-dur) ease, box-shadow var(--bq-anim-dur) ease;
+}
+
+/* 段落排版（紧凑） */
+#write blockquote p{
+  font-family: 'RobotoMono','ZhanKuWenYiTi',sans-serif;
+  line-height: 1.28;
+  letter-spacing: 0.01em;
+  font-size: 1.09rem;
+  margin: .10em 0;
+  padding: 0;
+}
+
+/* 齿轮 icon（常态静止；仅 hover 旋转） */
+#write blockquote::before{
+  content: "⚙️";
+  position: absolute;
+  left: .8rem;
+  top: 50%;
+  transform: translateY(-50%) rotate(0deg);
+  font-size: var(--bq-icon-size);
+  color: var(--bq-icon-color);
+  pointer-events: none;
+  filter: drop-shadow(0 0 2px rgba(0,0,0,.15));
+}
+
+/* 旋转动画（A区私有命名避免冲突） */
+@keyframes bq-gear-rotate{
+  0%   { transform: translateY(-50%) rotate(0deg); }
+  100% { transform: translateY(-50%) rotate(360deg); }
+}
+
+/* 仅鼠标设备启用轻交互 */
+@media (hover: hover){
+  #write blockquote:hover{
+    transform: scale(var(--bq-scale));
+    box-shadow: 0 10px 28px rgba(0,0,0,.22);
+  }
+  #write blockquote:hover::before{
+    animation: bq-gear-rotate 4.6s linear infinite;
+  }
+}
+
+/* A11y：减少动态偏好 */
+@media (prefers-reduced-motion: reduce){
+  #write blockquote{ transition: none !important; }
+  #write blockquote::before{ animation: none !important; }
+}
+
+
+/* =======================================================================================
+   REGION B — MD-ALERT CORE（扩展语法容器通用壳，仅 #write）
+   Scope: #write .md-alert（统一壳：圆角/定位/层级）+ 全局 a11y 熄火
+   Function:
+     - 提供 admonitions 的基础容器形态；独立于各类型配色与动效
+   Adjustable Params:
+     --al-radius, --al-z
+   Notes:
+     - 各类型（C~G）自行定义配色与动画，不跨区变量
+   ======================================================================================= */
+
+#write .md-alert{
+  --al-radius: 16px;
+  --al-z: 6;
+  position: relative;
+  z-index: var(--al-z);
+  border-radius: var(--al-radius);
+}
+
+/* 全局 a11y 熄火（含 ::before 动画） */
+@media (prefers-reduced-motion: reduce){
+  #write .md-alert{ transition: none !important; }
+  #write .md-alert::before{ animation: none !important; }
+}
+
+
+/* =======================================================================================
+   REGION C — MD-ALERT: TIP（💡 提示）
+   Scope: #write .md-alert.md-alert-tip
+   Function: 蓝系冷光、轻浮动（仅 hover）
+   Adjustable:
+     --tip-left, --tip-bg1, --tip-bg2, --tip-fg, --tip-icon, --tip-shadow, --tip-scale
+   ======================================================================================= */
+
+#write .md-alert.md-alert-tip{
+  --tip-left: 8px;
+  --tip-bg1: #e3f2fd; --tip-bg2: #b9e2ff; --tip-fg: #168fcf; --tip-icon: #23b3fc;
+  --tip-shadow: 0 4px 20px 2px rgba(36,180,255,.13), 0 1.5px 14px rgba(36,180,255,.09);
+  --tip-scale: 1.035;
+
+  display:block;
+  border-left: var(--tip-left) solid var(--tip-icon);
+  background: linear-gradient(90deg,var(--tip-bg1) 83%,var(--tip-bg2) 100%);
+  color: var(--tip-fg);
+  font-family:'SourceHanSansSoft','AliPuHuiTi',sans-serif;
+  font-size:1.07rem; line-height:1.45; letter-spacing:.01em;
+  padding:1.12em 1.6em 1.1em 3.1em; margin:1.15em 0;
+  box-shadow: var(--tip-shadow);
+  transition: transform .26s cubic-bezier(.45,.09,.49,.94),
+              box-shadow .32s cubic-bezier(.47,.1,.65,.53),
+              background .28s cubic-bezier(.38,.1,.51,.89);
+}
+#write .md-alert.md-alert-tip::before{
+  content:"💡"; position:absolute; left:1.22em; top:1.13em;
+  font-size:1.55em; color:var(--tip-icon); opacity:.93;
+  filter: drop-shadow(0 0 10px #23b3fc50);
+  pointer-events:none;
+  transform: translateY(0) scale(1);
+}
+@keyframes tipFloat{
+  0%,100%{ transform: translateY(0) scale(1);    filter: drop-shadow(0 0 10px #23b3fc50); }
+  50%    { transform: translateY(-7px) scale(1.07); filter: drop-shadow(0 0 28px #23b3fc); }
+}
+@media (hover: hover){
+  #write .md-alert.md-alert-tip:hover{
+    transform: scale(var(--tip-scale));
+    background: linear-gradient(93deg,#e6f7ff 70%,#b2e6ff 100%);
+    box-shadow: 0 8px 38px 4px rgba(36,180,255,.17), 0 4px 20px rgba(36,180,255,.10);
+    border-left: calc(var(--tip-left) + 2px) solid #00e5ff;
+  }
+  #write .md-alert.md-alert-tip:hover::before{ animation: tipFloat 2.5s ease-in-out infinite; }
+}
+
+
+/* =======================================================================================
+   REGION D — MD-ALERT: IMPORTANT（⭐ 重点）
+   Scope: #write .md-alert.md-alert-important
+   Function: 暖黄能量、星辉脉动（仅 hover）
+   Adjustable:
+     --imp-left, --imp-bg1, --imp-bg2, --imp-fg, --imp-icon, --imp-shadow, --imp-scale
+   ======================================================================================= */
+
+#write .md-alert.md-alert-important{
+  --imp-left: 8px;
+  --imp-bg1: #fffde7; --imp-bg2: #ffe082; --imp-fg: #b08900; --imp-icon: #ffb300;
+  --imp-shadow: 0 4px 20px 2px rgba(255,179,0,.13), 0 1.5px 14px rgba(255,179,0,.09);
+  --imp-scale: 1.035;
+
+  display:block;
+  border-left: var(--imp-left) solid var(--imp-icon);
+  background:linear-gradient(90deg,var(--imp-bg1) 83%,var(--imp-bg2) 100%);
+  color:var(--imp-fg);
+  font-family:'SourceHanSansSoft','AliPuHuiTi',sans-serif;
+  font-size:1.07rem; line-height:1.45; letter-spacing:.01em;
+  padding:1.12em 1.6em 1.1em 3.1em; margin:1.15em 0;
+  box-shadow:var(--imp-shadow);
+  transition: transform .26s cubic-bezier(.45,.09,.49,.94), box-shadow .32s, background .28s;
+}
+#write .md-alert.md-alert-important::before{
+  content:"⭐️"; position:absolute; left:1.15em; top:1.09em;
+  font-size:1.46em; color:var(--imp-icon); opacity:.95;
+  filter: drop-shadow(0 0 10px #ffec7f60);
+  pointer-events:none;
+  transform: rotate(-4deg) scale(1);
+}
+@keyframes importantPulse{
+  0%,100%{ transform: scale(1) rotate(-4deg); filter:drop-shadow(0 0 10px #ffec7f60); opacity:.97; }
+  20%    { transform: scale(1.15) rotate(8deg);  filter:drop-shadow(0 0 32px #ffe232) drop-shadow(0 0 4px #ffb300); opacity:1; }
+  55%    { transform: scale(.98) rotate(-3deg);   filter:drop-shadow(0 0 14px #ffe082); opacity:.87; }
+  75%    { transform: scale(1.08) rotate(6deg);   filter:drop-shadow(0 0 18px #ffec7f); opacity:.97; }
+}
+@media (hover: hover){
+  #write .md-alert.md-alert-important:hover{
+    transform: scale(var(--imp-scale));
+    background: linear-gradient(93deg,#fffbe1 70%,#ffe082 100%);
+    box-shadow: 0 8px 38px 4px rgba(255,179,0,.17), 0 4px 20px rgba(255,179,0,.10);
+    border-left: calc(var(--imp-left) + 2px) solid #ffe232;
+  }
+  #write .md-alert.md-alert-important:hover::before{ animation: importantPulse 1.2s cubic-bezier(.63,.09,.47,.88) infinite; }
+}
+
+
+/* =======================================================================================
+   REGION E — MD-ALERT: NOTE（📝 说明）
+   Scope: #write .md-alert.md-alert-note
+   Function: 青绿呼吸、轻柔放大（仅 hover）
+   Adjustable:
+     --note-left, --note-bg1, --note-bg2, --note-fg, --note-icon, --note-shadow, --note-scale
+   ======================================================================================= */
+
+#write .md-alert.md-alert-note{
+  --note-left: 8px;
+  --note-bg1: #e0f7fa; --note-bg2: #b2fff7; --note-fg: #009b7a; --note-icon: #1de9b6;
+  --note-shadow: 0 4px 20px 2px rgba(29,233,182,.12), 0 1.5px 14px rgba(29,233,182,.10);
+  --note-scale: 1.035;
+
+  display:block;
+  border-left: var(--note-left) solid var(--note-icon);
+  background:linear-gradient(90deg,var(--note-bg1) 82%,var(--note-bg2) 100%);
+  color:var(--note-fg);
+  font-family:'SourceHanSansSoft','AliPuHuiTi',sans-serif;
+  font-size:1.07rem; line-height:1.45; letter-spacing:.01em;
+  padding:1.12em 1.6em 1.1em 3.1em; margin:1.15em 0;
+  box-shadow:var(--note-shadow);
+  transition: transform .26s cubic-bezier(.45,.09,.49,.94), box-shadow .32s, background .28s;
+}
+#write .md-alert.md-alert-note::before{
+  content:"📝"; position:absolute; left:1.13em; top:1.13em;
+  font-size:1.44em; color:var(--note-icon); opacity:.96;
+  filter: drop-shadow(0 0 14px #b2fff7);
+  pointer-events:none;
+  transform: scale(1);
+}
+@keyframes noteBreathe{
+  0%,100%{ opacity:.88; filter:drop-shadow(0 0 8px #b2fff7) drop-shadow(0 0 0 #1de9b6); transform:scale(1); }
+  45%    { opacity:1;    filter:drop-shadow(0 0 22px #1de9b6) drop-shadow(0 0 6px #b2fff7); transform:scale(1.10); }
+  75%    { opacity:.94;  filter:drop-shadow(0 0 14px #1de9b6) drop-shadow(0 0 2px #b2fff7); transform:scale(1.03); }
+}
+@media (hover: hover){
+  #write .md-alert.md-alert-note:hover{
+    transform: scale(var(--note-scale));
+    background: linear-gradient(93deg,#e6fffb 70%,#b2fff7 100%);
+    box-shadow: 0 8px 38px 4px rgba(29,233,182,.15), 0 4px 20px rgba(29,233,182,.10);
+    border-left: calc(var(--note-left) + 2px) solid #10bfa5;
+  }
+  #write .md-alert.md-alert-note:hover::before{ animation: noteBreathe 2.3s cubic-bezier(.41,.09,.56,.89) infinite; }
+}
+
+
+/* =======================================================================================
+   REGION F — MD-ALERT: CAUTION（⚠️ 注意）
+   Scope: #write .md-alert.md-alert-caution
+   Function: 电紫霓虹、警示微光（仅 hover）
+   Adjustable:
+     --cau-left, --cau-bg1, --cau-bg2, --cau-fg, --cau-icon, --cau-shadow, --cau-scale
+   ======================================================================================= */
+
+#write .md-alert.md-alert-caution{
+  --cau-left: 8px;
+  --cau-bg1: #f5eaff; --cau-bg2: #ecc7ff; --cau-fg: #7c36b8; --cau-icon: #c158ff;
+  --cau-shadow: 0 4px 20px 2px rgba(193,88,255,.13), 0 1.5px 14px rgba(193,88,255,.10);
+  --cau-scale: 1.035;
+
+  display:block;
+  border-left: var(--cau-left) solid var(--cau-icon);
+  background:linear-gradient(90deg,var(--cau-bg1) 82%,var(--cau-bg2) 100%);
+  color:var(--cau-fg);
+  font-family:'SourceHanSansSoft','AliPuHuiTi',sans-serif;
+  font-size:1.07rem; line-height:1.45; letter-spacing:.01em;
+  padding:1.12em 1.6em 1.1em 3.1em; margin:1.15em 0;
+  box-shadow:var(--cau-shadow);
+  transition: transform .26s cubic-bezier(.45,.09,.49,.94), box-shadow .32s, background .28s;
+}
+#write .md-alert.md-alert-caution::before{
+  content:"⚠️"; position:absolute; left:1.08em; top:1.09em;
+  font-size:1.5em; color:var(--cau-icon); opacity:.98;
+  filter: drop-shadow(0 0 18px #ecc7ffb0);
+  pointer-events:none;
+}
+@keyframes cautionNeonGlow{
+  0%,100%{ filter: drop-shadow(0 0 8px #ecc7ffb0); }
+  33%    { filter: drop-shadow(0 0 28px #c158ff); }
+  66%    { filter: drop-shadow(0 0 14px #ae7cf5); }
+}
+@media (hover: hover){
+  #write .md-alert.md-alert-caution:hover{
+    transform: scale(var(--cau-scale));
+    background: linear-gradient(93deg,#f7eaff 70%,#eac8ff 100%);
+    box-shadow: 0 8px 38px 4px rgba(193,88,255,.17), 0 4px 20px rgba(193,88,255,.12);
+    border-left: calc(var(--cau-left) + 2px) solid #9c32d9;
+  }
+  #write .md-alert.md-alert-caution:hover::before{ animation: cautionNeonGlow 1.48s cubic-bezier(.62,.05,.51,1.04) infinite; }
+}
+
+
+/* =======================================================================================
+   REGION G — MD-ALERT: WARNING（❗ 警告）
+   Scope: #write .md-alert.md-alert-warning
+   Function: 红能量脉冲、强警示（仅 hover）
+   Adjustable:
+     --war-left, --war-bg1, --war-bg2, --war-fg, --war-icon, --war-shadow, --war-scale
+   ======================================================================================= */
+
+#write .md-alert.md-alert-warning{
+  --war-left: 8px;
+  --war-bg1: #ffeaea; --war-bg2: #ffbaba; --war-fg: #c02020; --war-icon: #ff2a2a;
+  --war-shadow: 0 4px 20px 2px rgba(255,42,42,.15), 0 1.5px 14px rgba(255,42,42,.08);
+  --war-scale: 1.035;
+
+  display:block;
+  border-left: var(--war-left) solid var(--war-icon);
+  background:linear-gradient(90deg,var(--war-bg1) 82%,var(--war-bg2) 100%);
+  color:var(--war-fg);
+  font-family:'SourceHanSansSoft','AliPuHuiTi',sans-serif;
+  font-size:1.07rem; line-height:1.45; letter-spacing:.01em;
+  padding:1.12em 1.6em 1.1em 3.1em; margin:1.15em 0;
+  box-shadow:var(--war-shadow);
+  transition: transform .26s cubic-bezier(.45,.09,.49,.94), box-shadow .32s, background .28s;
+}
+#write .md-alert.md-alert-warning::before{
+  content:"❗️"; position:absolute; left:1.12em; top:1.13em;
+  font-size:1.52em; color:var(--war-icon); opacity:.99;
+  filter: drop-shadow(0 0 16px #ffbaba90);
+  pointer-events:none;
+  transform: scale(1);
+}
+@keyframes warningPulse{
+  0%,100%{ transform:scale(1);   filter:drop-shadow(0 0 8px #ffbaba90); opacity:.97; }
+  20%    { transform:scale(1.18); filter:drop-shadow(0 0 24px #ff1744);   opacity:1; }
+  55%    { transform:scale(.95);  filter:drop-shadow(0 0 14px #ffbaba);   opacity:.83; }
+  75%    { transform:scale(1.09); filter:drop-shadow(0 0 18px #ff1744);   opacity:.97; }
+}
+@media (hover: hover){
+  #write .md-alert.md-alert-warning:hover{
+    transform: scale(var(--war-scale));
+    background: linear-gradient(93deg,#fff3f3 70%,#ffc4c4 100%);
+    box-shadow: 0 8px 38px 4px rgba(255,42,42,.21), 0 4px 20px rgba(255,42,42,.13);
+    border-left: calc(var(--war-left) + 2px) solid #ff1744;
+  }
+  #write .md-alert.md-alert-warning:hover::before{ animation: warningPulse 1.08s cubic-bezier(.47,.1,.65,.53) infinite; }
+}
+/* =============================== END OF PACKAGE ============================ */

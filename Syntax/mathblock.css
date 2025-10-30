@@ -1,0 +1,321 @@
+/* =======================================================================================
+   Rhapsody · Display Math Blocks（行间公式 · 正文/告警一体）
+   设计理念 / Design Concept
+   - 与正文与 md-alert 视觉统一：居中排版、合适留白与比例放大，MathJax/SVG 共用变量。
+   - 悬停仅做轻量强调：柔和流动底色 + 霓虹描边 + 文字符号高亮，不喧宾夺主。
+   - 全量变量化（--dm-*）：块容器、Hover、编辑区 Rawblock、预览、装饰卡片分层可控；不改 DOM。
+   - 稳定与可访问：动画可降级、过渡时长受控，避免编辑态跳动与输入干扰。
+   ======================================================================================= */
+
+/* —— Region Root Vars —— */
+#write{
+  /* A 区：块容器与 SVG 基本 */
+  --dm-block-margin-top: 2.2rem;
+  --dm-block-margin-bottom: 2rem;
+  --dm-block-pad-y: 0.4rem;
+  --dm-block-pad-x: 0.2rem;
+  --dm-block-z: 3;
+
+  --dm-svg-size: 1.4em;                /* 行间公式整体放大比例 */
+  --dm-font-math: 'LatinmodernmathRegular';
+  --dm-svg-fg: #ed008e;                 /* 行间公式主色 */
+  --dm-shadow-a: 0 0.7px 0.8px #fff;
+  --dm-shadow-b: 0 1.2px 4px #23b3fc19;
+  --dm-svg-trans-dur: 0.2s;
+  --dm-svg-trans-ease: ease;
+
+  /* B 区：Hover 动效（背景/描边/阴影/字体高亮） */
+  --dm-hover-grad: linear-gradient(
+    135deg,
+    rgba(180, 255, 220, 0.12),
+    rgba(100, 255, 180, 0.18),
+    rgba(180, 255, 220, 0.12)
+  );
+  --dm-hover-bg-size: 200% 200%;
+  --dm-hover-anim-dur: 8s;
+  --dm-hover-anim-ease: ease-in-out;
+  --dm-hover-bd: rgba(120, 255, 200, 0.28);
+  --dm-hover-radius: 1.2em;
+  --dm-hover-shadow: 0 0 8px rgba(100, 255, 200, 0.12),
+                     0 0 18px rgba(100, 255, 200, 0.10),
+                     inset 0 0 12px rgba(60, 255, 180, 0.08);
+  --dm-hover-blur: 6px;
+  --dm-hover-brightness: 1.03;
+  --dm-hover-trans: 0.3s;
+  --dm-hover-z: 5;
+
+  --dm-hover-svg-fg: #2100fa;
+  --dm-hover-svg-shadow: 0 1.2px 1.2px #fff,
+                         0 1.6px 6px #ffd70022,
+                         0 0 4px #f2080d88;
+  --dm-hover-svg-trans-dur: 0.25s;
+  --dm-hover-svg-trans-ease: ease;
+
+  /* C 区：Rawblock 编辑区（古典棕） */
+  --dm-raw-bg: rgba(210, 180, 140, 0.3);
+  --dm-raw-trans: 0.25s;
+  --dm-raw-hover-bg: rgba(160, 130, 100, 0.3);
+  --dm-raw-hover-bd: rgba(218, 165, 32, 0.5);
+  --dm-raw-hover-shadow: 0 0 6px rgba(160, 82, 45, 0.4),
+                         0 0 12px rgba(255, 215, 0, 0.08);
+
+  --dm-raw-aux-fg: #5b3a29;             /* before/after 文字色 */
+  --dm-raw-aux-font: 'Georgia', serif;
+
+  --dm-raw-cm-color: #2d1e12;
+  --dm-raw-cm-font: 'Fira Code', monospace;
+
+  --dm-raw-select-bg: rgba(139, 69, 19, 0.3);
+  --dm-rawblock-bg: rgba(250, 235, 215, 0.15);
+  --dm-rawblock-radius: 0.8em;
+
+  /* D 区：预览黑红反转 */
+  --dm-prev-bg: #1c1c1c;
+  --dm-prev-fg: #e53935;
+  --dm-prev-margin-y: 0.4em;
+  --dm-prev-radius: 0.6em;
+  --dm-prev-z: 3;
+  --dm-prev-trans: 0.35s ease;
+
+  --dm-prev-hover-bg: #e53935;
+  --dm-prev-hover-shadow: 0 2px 12px rgba(229, 57, 53, 0.35),
+                          0 0 4px rgba(255, 255, 255, 0.2),
+                          inset 0 0 6px rgba(0, 0, 0, 0.1);
+  --dm-prev-invert-fg: #1c1c1c;
+
+  /* E 区：装饰卡片 */
+  --dm-card-bg: rgba(255,255,255,0.15);
+  --dm-card-bd-color: rgba(255,255,255,0.3);
+  --dm-card-bd-width: 1.5px;
+  --dm-card-radius: 1.2em;
+  --dm-card-pad-y: 1.2em;
+  --dm-card-pad-x: 1.8em;
+  --dm-card-blur: 4px;
+  --dm-card-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* ======================================================================================= */
+/* REGION A — DISPLAY MATH BLOCKS（行间公式块 · 正文 + md-alert 通用）                     */
+/* Scope: #write 内所有 mjx-container[display="true"]（包含 md-alert）                      */
+/* 功能 / Function: 居中排版的行间公式，统一字体/颜色/阴影；Hover 时启用动态效果             */
+/* 可调参数 / Adjustable Params: margin, color, font-family, text-shadow, hover effects     */
+/* ======================================================================================= */
+
+/* 外层容器：居中展示、上下留白 */
+#write mjx-container.MathJax[display="true"] {
+  display: block;
+  text-align: center;
+  margin: var(--dm-block-margin-top) auto var(--dm-block-margin-bottom) auto;
+  padding: var(--dm-block-pad-y) var(--dm-block-pad-x);
+  position: relative;
+  z-index: var(--dm-block-z);
+}
+
+/* SVG 区域：自适应缩放、统一配色 */
+#write mjx-container.MathJax[display="true"] svg {
+  font-size: var(--dm-svg-size); /* ⬅️ 调整这里，整体放大行间公式 */
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+  font-family: var(--dm-font-math);
+  color: var(--dm-svg-fg);
+  fill: none; /* ← 原地修改：默认不填充，避免 \boxed 的 <rect> 变实心 */
+  box-sizing: border-box;
+  transition: color var(--dm-svg-trans-dur) var(--dm-svg-trans-ease),
+              fill  var(--dm-svg-trans-dur) var(--dm-svg-trans-ease);
+  text-shadow: var(--dm-shadow-a), var(--dm-shadow-b);
+}
+/* 仅给字形路径上色；几何图形保持透明填充 */
+#write mjx-container.MathJax[display="true"] svg path { 
+  fill: currentColor;
+}
+
+/* —— 保持几何元素默认透明填充（用于 \boxed 等空心效果） —— */
+#write mjx-container.MathJax[display="true"] svg rect,
+#write mjx-container.MathJax[display="true"] svg polyline,
+#write mjx-container.MathJax[display="true"] svg polygon,
+#write mjx-container.MathJax[display="true"] svg circle,
+#write mjx-container.MathJax[display="true"] svg ellipse { 
+  fill: none !important;
+}
+
+/* —— 把“被清掉的数学横线/符号”加回来 —— */
+/* 1) 分数线（mfrac）、根号横线（msqrt/mroot）、上/下划线（mover/munder/munderover） */
+#write mjx-container.MathJax[display="true"] g[data-mml-node="mfrac"] rect,
+#write mjx-container.MathJax[display="true"] g[data-mml-node="msqrt"] rect,
+#write mjx-container.MathJax[display="true"] g[data-mml-node="mroot"] rect,
+#write mjx-container.MathJax[display="true"] g[data-mml-node="mover"] rect,
+#write mjx-container.MathJax[display="true"] g[data-mml-node="munder"] rect,
+#write mjx-container.MathJax[display="true"] g[data-mml-node="munderover"] rect {
+  fill: currentColor !important;
+}
+
+/* 2) 可拉伸符号（长大括号、长等号、积分号等），以及箭头三角形 */
+#write mjx-container.MathJax[display="true"] svg path.mjx-stretchy,
+#write mjx-container.MathJax[display="true"] svg polygon.mjx-arrow {
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* 3) 任何 <line>（有些构型用 line 画）一律用当前文字色描边 */
+#write mjx-container.MathJax[display="true"] svg line { 
+  stroke: currentColor !important;
+}
+
+/* 让带 stroke 的元素（如 \boxed 的 <rect>）使用当前文字色描边 */
+#write mjx-container.MathJax[display="true"] svg [stroke] {
+  stroke: currentColor;
+}
+
+
+/* ======================================================================================= */
+/* REGION B — DISPLAY MATH HOVER（行间公式 Hover 动效）                                    */
+/* Scope: #write mjx-container[display="true"]:hover                                        */
+/* 功能 / Function: 鼠标悬停时加底色流动背景、柔光边框、字体高亮                             */
+/* ======================================================================================= */
+
+/* 🚫 移除 Typora 默认 hover 蓝背景（编辑态） */
+#write .md-rawblock:hover,
+#write .md-rawblock:hover > .md-rawblock-container {
+  background: transparent !important;
+}
+
+/* Hover 主容器：柔和流动绿光背景 */
+#write mjx-container.MathJax[display="true"]:hover {
+  background: var(--dm-hover-grad);
+  background-size: var(--dm-hover-bg-size);
+  animation: formula-hover-flow var(--dm-hover-anim-dur) var(--dm-hover-anim-ease) infinite;
+
+  border: 1.5px solid var(--dm-hover-bd);
+  border-radius: var(--dm-hover-radius);
+
+  box-shadow: var(--dm-hover-shadow);
+
+  backdrop-filter: blur(var(--dm-hover-blur)) brightness(var(--dm-hover-brightness));
+  transition: all var(--dm-hover-trans) ease-in-out;
+  z-index: var(--dm-hover-z);
+}
+
+/* Hover 时字体高亮 */
+#write mjx-container.MathJax[display="true"]:hover svg {
+  color: var(--dm-hover-svg-fg);
+  /* ← 原地修改：移除 fill: currentColor; 仅提升文字色与阴影 */
+  text-shadow: var(--dm-hover-svg-shadow);
+  transition: color var(--dm-hover-svg-trans-dur) var(--dm-hover-svg-trans-ease),
+              text-shadow var(--dm-hover-svg-trans-dur) var(--dm-hover-svg-trans-ease);
+}
+
+/* 路径颜色保持一致 */
+#write mjx-container.MathJax[display="true"]:hover svg path {
+  fill: var(--dm-hover-svg-fg);
+}
+#write mjx-container.MathJax[display="true"]:hover svg [stroke] {
+  stroke: var(--dm-hover-svg-fg);
+}
+
+/* 动态背景动画（流动感） */
+@keyframes formula-hover-flow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+
+/* ======================================================================================= */
+/* REGION C — DISPLAY MATH RAWBLOCK（编辑区 · 古典棕色主题）                               */
+/* Scope: #write .md-rawblock-control（公式编辑区）                                         */
+/* 功能 / Function: 行间公式编辑区域的 CodeMirror 外壳与 hover 样式                          */
+/* ======================================================================================= */
+
+#write .md-rawblock-control {
+  background: var(--dm-raw-bg);
+  z-index: var(--dm-block-z);
+  transition: all var(--dm-raw-trans) ease;
+}
+
+#write .md-rawblock-control:hover {
+  background: var(--dm-raw-hover-bg);
+  border-color: var(--dm-raw-hover-bd);
+  box-shadow: var(--dm-raw-hover-shadow);
+}
+
+#write .md-rawblock-control .ty-input-before,
+#write .md-rawblock-control .ty-input-after {
+  background: transparent;
+  color: var(--dm-raw-aux-fg);
+  border: none;
+  font-family: var(--dm-raw-aux-font);
+  font-weight: bold;
+}
+
+#write .md-rawblock-control .CodeMirror {
+  background: transparent;
+  color: var(--dm-raw-cm-color);
+  font-family: var(--dm-raw-cm-font);
+}
+
+#write .md-rawblock-control .cm-s-typora span.CodeMirror-selectedtext {
+  background-color: var(--dm-raw-select-bg);
+}
+
+#write .md-rawblock {
+  background: var(--dm-rawblock-bg);
+  border-radius: var(--dm-rawblock-radius);
+}
+
+
+/* ======================================================================================= */
+/* REGION D — DISPLAY MATH PREVIEW（黑红反转预览风格）                                     */
+/* Scope: #write .md-mathjax-preview                                                       */
+/* 功能 / Function: 编辑态预览的反转黑红风格，hover 时切换前景/背景                         */
+/* ======================================================================================= */
+
+#write .md-mathjax-preview {
+  background: var(--dm-prev-bg);
+  color: var(--dm-prev-fg);
+  display: block;
+  margin: var(--dm-prev-margin-y) 0;
+  border-radius: var(--dm-prev-radius);
+  position: relative;
+  z-index: var(--dm-prev-z);
+  cursor: pointer;
+  transition: all var(--dm-prev-trans);
+  box-sizing: border-box;
+}
+
+/* 原地替换：只给字形填充色，描边同色；不再对 * 统一填充 */
+#write .md-mathjax-preview mjx-container svg path {
+  fill: var(--dm-prev-fg);
+}
+#write .md-mathjax-preview mjx-container svg [stroke] {
+  stroke: var(--dm-prev-fg);
+}
+
+#write .md-mathjax-preview:hover {
+  background: var(--dm-prev-hover-bg);
+  box-shadow: var(--dm-prev-hover-shadow);
+}
+#write .md-mathjax-preview:hover mjx-container svg path {
+  fill: var(--dm-prev-invert-fg);
+}
+#write .md-mathjax-preview:hover mjx-container svg [stroke] {
+  stroke: var(--dm-prev-invert-fg);
+}
+
+
+/* ======================================================================================= */
+/* REGION E — DISPLAY MATH DECORATIVE CARD（背景卡片装饰）                                 */
+/* Scope: #write .md-rawblock-control mjx-container                                         */
+/* 功能 / Function: 为编辑区公式块添加毛玻璃+描边的卡片装饰                                 */
+/* ======================================================================================= */
+
+#write .md-rawblock-control mjx-container.MathJax[display="true"] {
+  background: var(--dm-card-bg);
+  border: var(--dm-card-bd-width) solid var(--dm-card-bd-color);
+  border-radius: var(--dm-card-radius);
+  padding: var(--dm-card-pad-y) var(--dm-card-pad-x);
+  backdrop-filter: blur(var(--dm-card-blur));
+  box-shadow: var(--dm-card-shadow);
+}
+/* =============================== END OF PACKAGE ============================ */

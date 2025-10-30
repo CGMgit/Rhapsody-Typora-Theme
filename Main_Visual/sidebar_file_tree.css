@@ -1,0 +1,443 @@
+/* =======================================================================================
+   Rhapsody · Files Sidebar · Tree Mode（文件侧栏 · 树形模式 · 样式包）
+   设计理念 / Design Concept
+   - 严格“分区自持变量”：A=容器底色/前景/描边；B=交互与关键帧；C=搜索；D=滚动条；
+     E=字体；F=分隔拖拽条；G=文件右键菜单。各分区仅在自身作用域内取用变量，不跨区。
+   - 不改动 DOM（Typora 限制）；仅锚定已知 ID/类；大量使用 :is/:where 降低特异性，
+     防止样式渗漏并便于后续覆盖与维护。
+   - 动画“按需启用”：B 区流动渐变默认暂停，仅在容器 hover 时运行；同时尊重
+     prefers-reduced-motion，提供无动画降级。
+   - 性能优先：A 区只做“容器级”纯色与描边，交互渐变仅在 B 区出现；避免跨区变量与
+     亮层级选择器重算；:has() 仅用于 F 区开关（并有 MegaMenu 打开时的显式回退）。
+   - 主题：树形模式使用“孔雀绿”体系（亮绿基底 + 绿青流动 + 青柠提亮）；
+     右键菜单使用“天空蓝”体系（亮空底 + 群青/靛蓝/幽蓝渐变 + 星芒高光）。
+
+   使用说明 / Usage Notes
+   - 仅当 #typora-sidebar.active-tab-files.use-file-tree-style 存在时激活，
+     不影响列表/大纲/写作区。
+   - 可与其它区域样式并行加载；MegaMenu 打开时，F 区分隔条显式还原；
+     G 区用 ul#file-menu 直锚以适配 Portal（不依赖 :has()）。
+
+   兼容性 / Compatibility
+   - 优化于 Chromium/Electron（Typora）；旧内核自动降级为静态底色与无动画。
+   - D 区滚动条为 WebKit 私有实现，非 WebKit 内核自动忽略。
+
+   可调参数 / Adjustable Params
+   - A：--files-core-bg / --files-core-fg / --files-core-border
+   - B：渐变三色/时长、圆角、发光强度、左侧强调线、动画开关
+   - C：搜索壳/输入框的底色、前景、描边、圆角、插入符色
+   - D：滚动条宽高、圆角、光泽与悬停亮度
+   - E：--files-font-ui / --files-font-head / --files-font-code
+   - F：分隔条宽度、idle/hover/active 背景与描边阴影
+   - G：右键菜单配色、半径、阴影、动效时长与可访问性描边
+
+   QA / Scope Fence
+   - 仅命中 Files×Tree；关键帧命名以 catalystTabFlow--filesTree / --filemenu 前缀避免冲突；
+     不向其它区域（A–G 以外）泄露变量或样式。
+   ======================================================================================= */
+
+
+/* ========================================================================== */
+/* REGION A — SIDEBAR CORE ROOT（侧边栏核心 · 仅 Files 激活 & 树形模式）       */
+/* Scope: #typora-sidebar.active-tab-files.use-file-tree-style                 */
+/* Function: 定义“容器级”底色/前景/描边，并应用到常见容器；不对交互着色。          */
+/* Adjustable Params: --files-core-bg / --files-core-fg / --files-core-border  */
+/* Compatibility: Chromium/Electron (Typora)。旧内核退化为静态底色。           */
+/* ========================================================================== */
+#typora-sidebar.active-tab-files.use-file-tree-style{
+  /* —— container-only palette：Peacock Green —— */
+  --files-core-bg: #07ceb1;                 /* 鲜青绿亮基底（建议：#0a6f60 ≈ peacock deep） */
+  --files-core-fg: #ffffff;                 /* 前景（文字） */
+  --files-core-border: rgba(16,233,128,.18);/* 细描边（翡翠绿系） */
+
+  /* 仅 A 区使用：统一容器与常见子容器为“core”底色/前景/描边 */
+  background: var(--files-core-bg);
+  color: var(--files-core-fg);
+  border-color: var(--files-core-border);
+}
+
+/* ========================================================================== */
+/* REGION B — SIDEBAR INTERACTABLES（交互项 · Files×树形）                      */
+/* Scope: #typora-sidebar.active-tab-files.use-file-tree-style                 */
+/* Function: 仅定义交互变量与状态（静态/hover/active 的渐变、发光、圆角等）。      */
+/* Adjustable Params: 渐变三色/时长、圆角、发光强度、左侧强调线、动画开关。        */
+/* Compatibility: 全现代内核。prefers-reduced-motion 将自动降级。               */
+/* ========================================================================== */
+#typora-sidebar.active-tab-files.use-file-tree-style{
+  /* —— B 区专属变量（不跨区） —— */
+  --files-int-active-anim: paused;           /* 默认暂停；容器 hover 时再 running */
+  --files-int-radius: 8px;                   /* 交互项圆角 */
+  --files-int-border: 1px solid transparent; /* 边框 */
+  --files-int-stroke: inset 0 0 0 1px rgba(16,233,128,.18);
+
+  /* Peacock tri-gradient（交互用）：emerald → teal → lime */
+  --files-grad-1: #10e980;   /* emerald */
+  --files-grad-2: #00c7a1;   /* teal-green */
+  --files-grad-3: #b6ff3b;   /* lime accent */
+  --files-flow-duration: 6s; /* 渐变时长 */
+
+  --files-glow-a: rgba(0,199,161,.40);       /* 发光（hover） */
+  --files-glow-b: rgba(182,255,59,.28);
+  --files-glow-active: rgba(0,199,161,.52);  /* 发光（active） */
+
+  --files-accent: #10e980;                   /* 左侧强调线（Active） */
+}
+/* 容器 hover 才播放 active 的流动动画 */
+#typora-sidebar.active-tab-files.use-file-tree-style       { --files-int-active-anim: paused;  }
+#typora-sidebar.active-tab-files.use-file-tree-style:hover { --files-int-active-anim: running; }
+
+/* 静态态（非 active 且未 hover）—— 树节点背景 */
+#typora-sidebar.active-tab-files.use-file-tree-style :is(
+  .file-tree-node > .file-node-background,
+  .file-tree-node .file-node-collapsed,
+  .file-tree-node .file-node-expanded,
+  .sidebar-footer-item
+):not(.active):not(:hover){
+  background: inherit;
+  color: inherit;
+  border: var(--files-int-border);
+  box-shadow: var(--files-int-stroke);
+  filter: none;
+  border-radius: var(--files-int-radius);
+  transition:
+    background .25s ease, color .25s ease,
+    box-shadow .25s ease, border-color .25s ease, filter .25s ease;
+}
+
+/* Hover（仅 hover 才开流动渐变） */
+#typora-sidebar.active-tab-files.use-file-tree-style :is(
+  .file-tree-node > .file-node-background:hover,
+  .file-tree-node .file-node-collapsed:hover,
+  .file-tree-node .file-node-expanded:hover,
+  .sidebar-footer-item:hover
+){
+  background: linear-gradient(135deg, var(--files-grad-1), var(--files-grad-2), var(--files-grad-3));
+  background-size: 300% 300%;
+  animation: catalystTabFlow--filesTree var(--files-flow-duration) ease infinite;
+  color:#0a2430; /* 绿系高亮下的可读亮青文字，也可用 #fff 按需调整 */
+  border-color: transparent;
+  box-shadow:
+    inset 0 0 0 1px rgba(16,233,128,.16),
+    0 0 10px var(--files-glow-a),
+    0 0 18px var(--files-glow-b);
+  border-radius: var(--files-int-radius);
+}
+
+/* Active（静态渐变 + 左侧强调线） */
+#typora-sidebar.active-tab-files.use-file-tree-style :is(
+  .file-tree-node.active > .file-node-background,
+  .file-tree-node.active .file-node-expanded
+){
+  background: linear-gradient(135deg, var(--files-grad-2), var(--files-grad-3), var(--files-grad-1));
+  background-size: 300% 300%;
+  color:#0a2430; border-color:transparent;
+  box-shadow:
+    inset 3px 0 0 0 var(--files-accent),
+    inset 0 0 0 1px rgba(16,233,128,.16),
+    0 0 12px var(--files-glow-active);
+  border-radius: var(--files-int-radius);
+  animation: catalystTabFlow--filesTree var(--files-flow-duration) ease infinite;
+  animation-play-state: var(--files-int-active-anim); /* paused | running */
+}
+
+/* Active + Hover（轻提亮） */
+#typora-sidebar.active-tab-files.use-file-tree-style :is(
+  .file-tree-node.active > .file-node-background:hover,
+  .file-tree-node.active .file-node-expanded:hover
+){
+  filter: brightness(1.08);
+  border-color: transparent;
+  box-shadow:
+    inset 3px 0 0 0 var(--files-accent),
+    inset 0 0 0 1px rgba(16,233,128,.14),
+    0 0 16px rgba(0,199,161,.55),
+    0 0 20px rgba(182,255,59,.35);
+}
+
+/* 关键帧（B 区专属） */
+@keyframes catalystTabFlow--filesTree{
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
+
+/* 降动态偏好 */
+@media (prefers-reduced-motion: reduce){
+  #typora-sidebar.active-tab-files.use-file-tree-style :is(
+    .file-tree-node > .file-node-background,
+    .file-tree-node .file-node-collapsed,
+    .file-tree-node .file-node-expanded,
+    .sidebar-footer-item
+  ){
+    animation:none !important;
+    background-position:50% 50%;
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION C — SEARCH PANEL ROOT（搜索区 root · Files×树形）                     */
+/* Scope: #typora-sidebar.active-tab-files.use-file-tree-style #file-library-search-panel */
+/* Function: 搜索壳与输入框的底色/前景/描边/圆角，仅本区变量。                   */
+/* Adjustable Params: shell 边框、输入框底色/文字/描边/圆角/插入符色。           */
+/* Compatibility: 现代内核。                                                   */
+/* ========================================================================== */
+#typora-sidebar.active-tab-files.use-file-tree-style{
+  /* —— C 区专属变量（孔雀绿协调） —— */
+  --files-search-shell-border: 1px solid rgba(16,233,128,.22);
+  --files-search-input-bg: #04ddc1;    /* 亮一阶孔雀绿，内凹可读 */
+  --files-search-input-fg: #0400f8;    /* 淡薄荷白 */
+  --files-search-input-border: 1px solid rgba(0,0,0,.12);
+  --files-search-input-radius: 6px;
+}
+#typora-sidebar.active-tab-files.use-file-tree-style #file-library-search-panel{
+  border: var(--files-search-shell-border);
+  box-shadow:none;
+  background: inherit;
+  border-radius: 8px;
+}
+#typora-sidebar.active-tab-files.use-file-tree-style #file-library-search-panel input[type="search"]{
+  background: var(--files-search-input-bg);
+  color: var(--files-search-input-fg);
+  border: var(--files-search-input-border);
+  outline: none;
+  border-radius: var(--files-search-input-radius);
+  padding: 6px 10px;
+  caret-color: var(--files-search-input-fg);
+}
+
+
+/* ========================================================================== */
+/* REGION D — SCROLLBAR ROOT（翡翠青 · 仅 Files 侧栏内部）                       */
+/* Scope: #typora-sidebar.active-tab-files.use-file-tree-style 内部滚动容器      */
+/* Function: 侧栏内部滚动条拇指/轨道外观（不影响主视口/其他滚动容器）。            */
+/* Adjustable Params: 三色、光泽、阴影、宽高、圆角、悬停亮度。                     */
+/* Compatibility: WebKit 滚动条。非 WebKit 内核自动忽略。                        */
+/* ========================================================================== */
+#typora-sidebar.active-tab-files.use-file-tree-style *::-webkit-scrollbar{
+  width:12px; height:12px; background:transparent;
+}
+#typora-sidebar.active-tab-files.use-file-tree-style *::-webkit-scrollbar-track{
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
+  border-radius:10px;
+}
+#typora-sidebar.active-tab-files.use-file-tree-style *::-webkit-scrollbar-thumb{
+  border-radius:10px; border:1px solid rgba(255,255,255,.16);
+  background-image: linear-gradient(180deg, #66f3d1, #12cbb0 45%, #0a8a7a);
+  background-size:200% 200%;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.72),
+    inset 0 -1px 0 rgba(0,0,0,.35),
+    0 0 0 1px rgba(255,255,255,.10),
+    0 0 12px rgba(18,203,176,.40);
+  transition: filter .18s ease, box-shadow .18s ease, background-position .6s ease;
+}
+#typora-sidebar.active-tab-files.use-file-tree-style *::-webkit-scrollbar-thumb:horizontal{
+  background-image: linear-gradient(90deg, #66f3d1, #12cbb0 45%, #0a8a7a);
+}
+#typora-sidebar.active-tab-files.use-file-tree-style *::-webkit-scrollbar-thumb:hover{
+  filter: brightness(1.08) saturate(1.12);
+  background-position: 100% 50%;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.72),
+    inset 0 -1px 0 rgba(0,0,0,.40),
+    0 0 0 1px rgba(255,255,255,.14),
+    0 0 16px rgba(18,203,176,.45);
+}
+#typora-sidebar.active-tab-files.use-file-tree-style *::-webkit-scrollbar-corner{
+  background:transparent;
+}
+@media (prefers-reduced-motion: reduce){
+  #typora-sidebar.active-tab-files.use-file-tree-style *::-webkit-scrollbar-thumb{
+    transition:none; background-position:50% 50%;
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION E — FONT ROOT（字体设置 · 仅 Files 侧栏）                             */
+/* Scope: #typora-sidebar.active-tab-files.use-file-tree-style 内部文字         */
+/* Function: 侧栏 UI/标题/代码的字体家族（本区独立变量，不跨区）。               */
+/* Adjustable Params: --files-font-ui / --files-font-head / --files-font-code  */
+/* Compatibility: 现代内核。                                                   */
+/* ========================================================================== */
+#typora-sidebar.active-tab-files.use-file-tree-style{
+  --files-font-ui: 'AliPuHuiTi','Microsoft YaHei',sans-serif;
+  --files-font-code:'JetBrainsMonoNL','RobotoMono',monospace;
+  --files-font-head:'GuDuYanHei','AliPuHuiTi',sans-serif;
+}
+/* ① UI 基础字体（降特异性版本） */
+#typora-sidebar.active-tab-files.use-file-tree-style,
+#typora-sidebar.active-tab-files.use-file-tree-style :where(
+  .sidebar, #sidebar, #sidebar-content, .sidebar-content,
+  #file-library, .file-tree, .file-tree-node,
+  .info-panel-tab-title-group, .info-panel-tab-title,
+  .sidebar-footer, .sidebar-menu
+){
+  font-family: var(--files-font-ui);
+}
+/* ② 标题用 Head 字体（自然覆盖 ①） */
+#typora-sidebar.active-tab-files.use-file-tree-style :is(.info-panel-tab-title-group, .info-panel-tab-title){
+  font-family: var(--files-font-head);
+}
+/* ③ 代码用等宽字体（自然覆盖 ①） */
+#typora-sidebar.active-tab-files.use-file-tree-style code{
+  font-family: var(--files-font-code);
+}
+
+
+/* ========================================================================== */
+/* REGION F — RESIZER BAR（分隔拖拽条 · Files×树形×非 MegaMenu）                */
+/* Scope: （推荐）#typora-sidebar ~ .typora-sidebar-resizer-bar                 */
+/* Function: 分隔条的宽度/颜色/悬停与拖动态（本区独立变量）。                     */
+/* Adjustable Params: 宽度、idle/hover/active 背景、描边阴影。                    */
+/* Compatibility: 现代内核。MegaMenu 打开时回退为主题默认。                      */
+/* ========================================================================== */
+body:not(.megamenu-opened):has(#typora-sidebar.active-tab-files.use-file-tree-style){
+  --files-resizer-w: 8px;
+  --files-resizer-bg: #0a8a7a;    /* 孔雀绿系 */
+  --files-resizer-hover: #0e9f8c;
+  --files-resizer-active: #12cbb0;
+  --files-resizer-shadow: 0 0 0 1px rgba(16,233,128,.22);
+}
+body:not(.megamenu-opened):has(#typora-sidebar.active-tab-files.use-file-tree-style)
+  .typora-sidebar-resizer-bar{
+  width: var(--files-resizer-w);
+  background: var(--files-resizer-bg);
+  box-shadow: var(--files-resizer-shadow);
+  cursor: col-resize;
+  transition: background .18s ease, box-shadow .18s ease;
+}
+body:not(.megamenu-opened):has(#typora-sidebar.active-tab-files.use-file-tree-style)
+  .typora-sidebar-resizer-bar:hover{
+  background: var(--files-resizer-hover);
+  box-shadow: 0 0 0 1px rgba(16,233,128,.30);
+}
+body:not(.megamenu-opened):has(#typora-sidebar.active-tab-files.use-file-tree-style)
+  .typora-sidebar-resizer-bar:active,
+body:not(.megamenu-opened):has(#typora-sidebar.active-tab-files.use-file-tree-style)
+  .typora-sidebar-resizer-bar.dragging{
+  background: var(--files-resizer-hover);
+  box-shadow: inset 0 0 0 2px var(--files-resizer-active),
+              0 0 10px rgba(16,233,128,.32);
+}
+/* MegaMenu 打开时显式还原 */
+body.megamenu-opened .typora-sidebar-resizer-bar{
+  background: initial;
+  box-shadow: none;
+}
+@media (prefers-reduced-motion: reduce){
+  body:not(.megamenu-opened):has(#typora-sidebar.active-tab-files.use-file-tree-style)
+    .typora-sidebar-resizer-bar{ transition:none; }
+}
+
+
+/* ========================================================================== */
+/* REGION G — FILE CONTEXT MENU（天空蓝 · 仅右键菜单）                           */
+/* Scope: ul#file-menu.dropdown-menu.context-menu.ext-context-menu（右键弹出）   */
+/* Function: 右键文件菜单外观与交互（本区自带变量；不影响底部菜单等其它入口）。     */
+/* Notes: 不使用 :has；菜单可能通过 Portal 挂在 body，下列选择器已直接锚定 ID。     */
+/* ========================================================================== */
+/* ===== Files×Tree 专用右键菜单（Portal 安全，使用 :has 守门） =============== */
+@supports selector(:has(*)) {
+
+  /* 主容器（只有 Tree 激活时命中） */
+  body:has(#typora-sidebar.active-tab-files.use-file-tree-style)
+  ul#file-menu.dropdown-menu.context-menu.ext-context-menu{
+    /* —— G 区专属变量：Starry Blue —— */
+    --fm-bg:#1591da; --fm-fg:#eaf2ff; --fm-border:rgba(64,123,255,.28);
+    --fm-radius:10px; --fm-shadow:0 10px 24px rgba(0,0,0,.35);
+    --fm-grad-1:#1b2a6b; --fm-grad-2:#2740a6; --fm-grad-3:#0b6ad1;
+    --fm-flow-duration:6s;
+    --fm-glow-a:rgba(64,140,255,.36); --fm-glow-b:rgba(20,60,160,.36);
+    --fm-item-radius:8px; --fm-item-stroke:inset 0 0 0 1px rgba(255,255,255,.12);
+    --fm-item-pad-y:.48rem; --fm-item-pad-x:1rem;
+    --fm-font-ui:'AliPuHuiTi','Microsoft YaHei',sans-serif;
+    --fm-shortcut-fg:rgba(234,242,255,.88);
+    --fm-divider:rgba(234,242,255,.18); --fm-disabled-fg:rgba(234,242,255,.55);
+    --fm-focus-ring:#7fb3ff;
+
+    font-family: var(--fm-font-ui);
+    background: var(--fm-bg); color: var(--fm-fg);
+    border:1px solid var(--fm-border); border-radius:var(--fm-radius);
+    box-shadow:var(--fm-shadow); padding:.38rem 0; min-width:188px; z-index:9999;
+    overflow:visible; isolation:isolate;
+  }
+
+  /* 分组标题 */
+  body:has(#typora-sidebar.active-tab-files.use-file-tree-style)
+  ul#file-menu li.menuitem-group-label{
+    padding:.42rem var(--fm-item-pad-x); margin:.15rem 0 .25rem; font-weight:700; opacity:.95;
+  }
+
+  /* 菜单项（默认态） */
+  body:has(#typora-sidebar.active-tab-files.use-file-tree-style)
+  ul#file-menu li > a[role="menuitem"]{
+    display:block; padding:var(--fm-item-pad-y) var(--fm-item-pad-x);
+    color:var(--fm-fg); text-decoration:none; border-radius:var(--fm-item-radius);
+    background:var(--fm-bg); box-shadow:var(--fm-item-stroke);
+    transition: background .25s ease, color .25s ease, box-shadow .25s ease, filter .25s ease;
+  }
+
+  /* Hover（仅可悬停设备 & 非禁用项） */
+  @media (hover:hover){
+    body:has(#typora-sidebar.active-tab-files.use-file-tree-style)
+    ul#file-menu li > a[role="menuitem"]:not([aria-disabled="true"]):hover{
+      background: linear-gradient(135deg, var(--fm-grad-1), var(--fm-grad-2), var(--fm-grad-3));
+      background-size:300% 300%;
+      animation: catalystTabFlow--filemenu var(--fm-flow-duration) ease infinite;
+      color:#fff;
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.10),
+        0 0 10px var(--fm-glow-a),
+        0 0 18px var(--fm-glow-b);
+    }
+  }
+
+  /* Active（如有 .active） */
+  body:has(#typora-sidebar.active-tab-files.use-file-tree-style)
+  ul#file-menu li.active > a[role="menuitem"]{
+    background: linear-gradient(135deg, var(--fm-grad-2), var(--fm-grad-3), var(--fm-grad-1));
+    background-size:300% 300%; color:#fff;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.10), 0 0 12px rgba(64,140,255,.48);
+  }
+
+  /* Disabled（语义化禁用，并停动画） */
+  body:has(#typora-sidebar.active-tab-files.use-file-tree-style)
+  ul#file-menu li > a[role="menuitem"][aria-disabled="true"]{
+    color: var(--fm-disabled-fg); cursor:not-allowed; filter: grayscale(.15) opacity(.85);
+    animation:none !important; background-position:50% 50%;
+  }
+
+  /* Focus 可访问性 */
+  body:has(#typora-sidebar.active-tab-files.use-file-tree-style)
+  ul#file-menu li > a[role="menuitem"]:focus-visible{
+    outline:2px solid var(--fm-focus-ring); outline-offset:2px;
+  }
+
+  /* 右侧快捷键 & 图标/分隔线 */
+  body:has(#typora-sidebar.active-tab-files.use-file-tree-style)
+  ul#file-menu .ty-menu-shortcut{ float:right; color:var(--fm-shortcut-fg); margin-left:1.25rem; font-size:.92em; letter-spacing:.02em; }
+
+  body:has(#typora-sidebar.active-tab-files.use-file-tree-style)
+  ul#file-menu li > a[role="menuitem"] :is(.ty-icon, .fa, .ion){ color: currentColor; }
+
+  body:has(#typora-sidebar.active-tab-files.use-file-tree-style)
+  ul#file-menu li.divider{ height:1px; margin:4px 0; background:var(--fm-divider); pointer-events:none; }
+
+  /* 关键帧（名称不变） */
+  @keyframes catalystTabFlow--filemenu{
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+  }
+
+  /* 降动态偏好 */
+  @media (prefers-reduced-motion: reduce){
+    body:has(#typora-sidebar.active-tab-files.use-file-tree-style)
+    ul#file-menu li > a[role="menuitem"]:hover{
+      animation:none !important; background-position:50% 50%;
+    }
+  }
+}
+/* =============================== END OF PACKAGE ============================ */

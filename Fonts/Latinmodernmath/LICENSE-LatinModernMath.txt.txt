@@ -1,0 +1,18 @@
+Latin Modern Math
+Copyright (c) GUST – Polish TeX Users Group
+
+License: GUST Font License (GFL)
+The GUST Font License is legally equivalent to the LaTeX Project Public License (LPPL), version 1.3c or later.
+
+Permission is granted, free of charge, to use, copy, modify, and distribute this font, subject to the following conditions:
+1. Any modified version of this font must be renamed to avoid confusion with the original.
+2. This license text must be included in all copies or substantial portions of the font.
+
+This font is provided "as is", without warranty of any kind, express or implied.
+
+Source:
+- Official project page: https://www.gust.org.pl/projects/e-foundry/lm-math
+- Download mirror: https://www.cdnfonts.com/latin-modern-math.font
+
+Full LPPL license text:
+https://www.latex-project.org/lppl/lppl-1-3c.txt

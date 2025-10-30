@@ -1,0 +1,225 @@
+/* =======================================================================================
+   Rhapsody · Write Card Package  (#write 卡片化写作区 · 外扩光带 + 太阳角标)
+   设计理念 / Design Concept
+   - 以“卡片化写作场”为核心：A 提供结构与绘制收敛；B 为外扩光带；C 为太阳高光与角标。
+   - 严格遵循 Typora 限制：不改动任何 HTML 结构，仅使用选择器与伪元素(::before/::after)。
+   - 动效按需启动：默认暂停，交互 (:hover / :focus-within) 时才运行；尊重系统减动设定。
+   ======================================================================================= */
+
+/* ========================================================================== */
+/* REGION A — CARD ROOT                                                       */
+/* Scope: #write 主体容器                                                     */
+/* Function: 提供写作卡片的背景、圆角、投影与内边距；作为能量层的承载面          */
+/* Adjustable Params: 背景色、圆角尺寸、阴影层叠、最大宽度、内外边距            */
+/* Compatibility: 现代浏览器 / Typora(Electron)；旧内核忽略 contain 回退为静态 */
+/* ========================================================================== */
+#write {
+  /* —— Adjustable Params（可维护变量） —— */
+  --card-bg: #fff8fa;
+  --card-radius: 2.2rem;
+  --card-shadow:
+    0 16px 32px -8px #23b3fccc,
+    0 6px 16px -2px #14181c99,
+    0 0px 4px -2px #fff7bbcc,
+    8px 0 24px -10px #ff2a2acc,
+    0 0 0 1.5px rgba(0,0,0,0.99);
+  --card-width: 820px;
+  --card-margin: 3.5rem auto;
+  --card-padding: 2.5rem 3.5rem;
+  --card-min-h: 80vh;
+
+  /* —— Static Styles —— */
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  max-width: var(--card-width);
+  margin: var(--card-margin);
+  padding: var(--card-padding);
+  min-height: var(--card-min-h);
+  position: relative;
+  overflow: visible;
+  z-index: 1;
+
+  /* 绘制收敛 · Rendering isolation */
+  contain: paint;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* ========================================================================== */
+/* REGION B — ENERGY LAYER ROOT                                               */
+/* Scope: #write::before 伪元素                                               */
+/* Function: 外扩光带层（静态渐变+动态亮度插值），仅交互时运行动画             */
+/* Adjustable Params: 光带不透明度、亮度插值范围、动画周期                     */
+/* Compatibility: Chrome/Safari/Typora(Electron)；降级时回退为静态层           */
+/* ========================================================================== */
+/* —— 注册亮度变量（可插值数值） —— */
+@property --br {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 1.6;
+}
+
+#write::before {
+  /* —— Adjustable Params —— */
+  --br-min: 1.6;       /* 最小亮度 */
+  --br-max: 2.2;       /* 最大亮度 */
+  --br-init: 1.6;      /* 初始亮度 */
+  --br-dur: 42s;       /* 呼吸周期时长 */
+  --glow-radius: 2.43rem;
+  --glow-opacity: .25;
+
+  /* —— Static Styles —— */
+  content: '';
+  position: absolute;
+  left: -13px; right: -13px; top: -13px; bottom: -13px; /* 外扩光带，受 contain:paint 裁剪 */
+  border-radius: var(--glow-radius);
+
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.00) 97.5%, rgba(220,220,220,0.6) 99%, rgba(245,245,245,0.25) 100%),
+    linear-gradient(115deg, #23b3fc 0%, #ffd93b 48%, #ff2a2a 95%),
+    linear-gradient(120deg,
+      #fffbe8cc 0%, #fffbe8bb 2%, #fffbe8bb 4%, #fffbe899 6%, #fffbe899 8%, #fffbe888 10%, #fffbe888 12%,
+      #fffbe866 14%, #fffbe866 16%, #fffbe844 18%, #fffbe844 20%, #fff8fa22 22%, #fff8fa22 24%, #fff8fa22 26%,
+      #fff8fa22 28%, #fff8fa11 30%, #fff8fa11 32%, #fff8fa11 34%, #fff8fa0c 36%, #fff8fa0c 38%, #fff8fa0a 40%,
+      #fff8fa0a 42%, #fff8fa08 44%, #fff8fa08 46%, #fff8fa06 48%, #fff8fa06 50%, #fff8fa05 52%, #fff8fa05 54%,
+      #fff8fa04 56%, #fff8fa04 58%, #fff8fa03 60%, #fff8fa03 62%, #fff8fa02 64%, #fff8fa02 66%, #fff8fa02 68%,
+      #fff8fa02 70%, #fff8fa01 72%, #fff8fa01 74%, #fff8fa01 76%, #fff8fa01 78%, #fff8fa01 80%, #fff8fa01 82%,
+      #fff8fa01 84%, #fff8fa01 86%, #fff8fa01 88%, #fff8fa01 90%, transparent 92%, transparent 94%, transparent 96%, transparent 98%, transparent 100%
+    );
+
+  opacity: var(--glow-opacity);
+  filter: brightness(var(--br-init));
+
+  pointer-events: none;
+  z-index: 5;
+  animation: glassBreatheBr var(--br-dur) linear infinite alternate;
+  animation-play-state: paused; /* 默认暂停，由交互态激活 */
+}
+
+/* 动画：亮度插值 */
+@keyframes glassBreatheBr {
+  0%   { --br: var(--br-min); }
+  100% { --br: var(--br-max); }
+}
+
+/* 交互态：启动动画 */
+#write:is(:hover, :focus-within)::before {
+  animation-play-state: running;
+}
+
+/* 系统要求减少动态时：停用动画 */
+@media (prefers-reduced-motion: reduce) {
+  #write::before { animation: none; }
+}
+
+/* ========================================================================== */
+/* REGION C — SUN / BADGE CORE                                                */
+/* Scope: #write::after 伪元素                                                */
+/* Function: 太阳高光 + 角标；小面固定模糊，动画仅改不透明度与旋转              */
+/* Adjustable Params: 角标尺寸/偏移、角标图片、呼吸与旋转周期                   */
+/* Compatibility: 现代浏览器 / Typora(Electron)；降级回退为静态层               */
+/* ========================================================================== */
+
+/* 角标变量（本层内聚）；--corner-img 由触发区(D)覆盖 */
+#write::after{
+  --corner-size:96px;
+  --corner-offset-x:1.3rem;
+  --corner-offset-y:1.1rem;
+  --corner-img-transparent:url('../Logo/Write_Icon/帅气大王子透明版.png');
+  --corner-img-colored:url('../Logo/Write_Icon/帅气大王子.png');
+
+  /* 移除常驻 will-change，避免长期预留显存 */
+  /* will-change:opacity,transform,filter; */
+
+  content:'';
+  position:absolute;
+  top:var(--corner-offset-y);
+  right:var(--corner-offset-x);
+  width:var(--corner-size);
+  height:var(--corner-size);
+  pointer-events:none;
+  z-index:10;
+
+  background:
+    /* 默认使用透明版；若 D 设置了 --corner-img，则以其为准 */
+    var(--corner-img, var(--corner-img-transparent)) center/contain no-repeat,
+    radial-gradient(circle at 62% 38%, #fffbe8ee 0%, #fff7dcbb 40%, #ffe29f66 74%, #fff3a444 85%, transparent 100%),
+    conic-gradient(from 10deg,
+      #fffbe8cc 8deg, transparent 35deg, #ffe59488 55deg, transparent 90deg,
+      #fffbe8bb 140deg, transparent 190deg, #ffe59466 235deg, transparent 270deg,
+      #fffbe8aa 320deg, transparent 360deg);
+  border-radius:50%;
+  opacity:.74;
+  filter:blur(.12rem);                    /* 固定小模糊：小面成本极低 */
+  transform-origin:50% 50%;
+  animation:
+    sunBreathe 365s ease-in-out infinite alternate,
+    sunRotate 42s linear infinite;
+  animation-play-state:paused;            /* 默认暂停，由交互激活 */
+}
+
+/* 交互：仅在需要时启用动画与 will-change（且不包含 filter） */
+#write:is(:hover, :focus-within)::after{
+  animation-play-state:running;
+  will-change: opacity, transform;
+}
+
+/* 减动效：与 A/B 保持一致 */
+@media (prefers-reduced-motion: reduce){
+  #write::after{ animation: none; }
+}
+
+/* Keyframes — 参数不变 */
+@keyframes sunBreathe{ 0%{opacity:.50;} 100%{opacity:.1;} }
+@keyframes sunRotate{ 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
+
+
+/* ========================================================================== */
+/* REGION D — TRIGGERS                                                        */
+/* Scope: 文档根 html（作为 :has 判断载体） + #write::after（接收变量覆盖）     */
+/* Function: 彩蛋触发逻辑；仅通过设置变量 --corner-img 切换角标图片；提供 UX 提示 */
+/* Adjustable Params: 触发器选择器（:has / 属性选择器）、--corner-img、UX 高亮样式 */
+/* Compatibility: 现代浏览器；:has 受支持时启用宽松触发；不支持时回退为透明版角标 */
+/* ========================================================================== */
+
+/* （可选）宽松版 */
+@supports(selector(:has(*))){
+  html:has(.task-list-item input[type="checkbox"]:checked):has(a[href*="#egg-prince"]) #write::after{
+    --corner-img: var(--corner-img-colored);
+  }
+}
+
+/* UX 提示（仅 #write 内） */
+#write .task-list-item:has(a[href="#egg-prince"]),
+#write .task-list-item:has(span[data-egg="trigger"][data-text="帅气大王子"]),
+#write .task-list-item:has(img[alt="帅气大王子"]){
+  background:rgba(255,226,50,.10);
+  border-radius:8px;
+  padding:2px 6px;
+}
+
+
+/* ========================================================================== */
+/* REGION E — RESPONSIVE                                                      */
+/* Scope: 媒体查询作用于 #write / #write::before / #write::after               */
+/* Function: 自适应尺寸与圆角/角标参数；不修改配色与动效逻辑                     */
+/* Adjustable Params: 断点（min-width/max-width）、卡片最大宽度、圆角、角标尺寸与偏移 */
+/* Compatibility: 现代浏览器 / Typora(Electron)；旧内核忽略高级特性无功能性影响 */
+/* ========================================================================== */
+@media only screen and (min-width:1400px){
+  #write{ max-width:960px; border-radius:2.6rem; }
+  #write::before{ border-radius:2.7rem; }
+  #write::after{ top:1.5rem; right:2rem; width:7.2rem; height:7.2rem; }
+}
+@media only screen and (min-width:1800px){
+  #write{ max-width:1180px; border-radius:3.3rem; }
+  #write::before{ border-radius:3.3rem; }
+  #write::after{ top:1.8rem; right:2.7rem; width:8.6rem; height:8.6rem; }
+}
+/* 小屏微调：收窄玻璃层外扩，避免触边 */
+@media (max-width:1100px){
+  #write::before{ left:-8px; right:-8px; top:-8px; bottom:-8px; }
+}
+
+/* =============================== END OF PACKAGE ======================================== */

@@ -1,0 +1,283 @@
+/* =======================================================================================
+   Rhapsody · TOC Package（目录区整体样式 · 大海/航行/远方）
+   设计理念 / Design Concept
+   - 主题：以「大海/航行/远方」为叙事母题，目录区采用深海背景 + 轻玻璃质感卡片。
+   - 可读性优先：所有文字在背景图之上使用前景配色 + 细文本阴影，保证对比度。
+   - 轻交互：常态静止，仅在 Hover/Focus 时提供“波光与远方金光”反馈；尊重减少动态设置。
+   - 严格限域：作用域仅限 #write 内部的 .md-toc-* 节点，不影响侧栏/正文其他区域。
+   - 性能友好：不使用 :has 与复杂关系选择器；仅必要过渡；避免昂贵的滤镜叠加。
+   - 不改 HTML：完全遵循 Typora 编辑器限制，仅通过选择器与伪元素实现装饰。
+   - 变量维护：本包所有可调参数集中在 REGION A（包内变量），方便统一调色与风格切换。
+   Adjustable Params（集中入口，详见 REGION A）：
+   - 背景与卡片：--toc-bg-img / --toc-fg / --toc-text-shadow / --toc-shadow / --toc-radius
+   - 标题条：--toc-title-* / --toc-chip-* / --toc-btn-*
+   - 列表项：--toc-item-* / --toc-item-hover-* / --toc-emoji-h*
+   Compatibility：现代浏览器 / Typora(Electron)；无 :has 依赖，旧内核回退为静态风格。
+   ======================================================================================= */
+
+
+/* =======================================================================================
+   REGION A — ROOT VARS（变量集中维护 · 仅本包使用 / Package-local）
+   Scope: #write（仅正文写作区域生效，避免跨区污染）
+   Function:
+   - 统一管理 TOC 包的主题色、间距、阴影、交互与工具条参数；
+   - 所有后续 REGION 仅消费这些变量，不直接写死数值，便于主题级切换。
+   Maintenance:
+   - 若需做“海面 → 星空 / 山林”等主题切换，仅替换 --toc-bg-img 与若干前景变量即可。
+   ======================================================================================= */
+#write{
+  /* 容器与主题 */
+  --toc-pad: 1.2rem 1rem;
+  --toc-radius: 14px;
+  --toc-z: 6;
+  --toc-bg-img: url("../Assets/TOC/扬帆起航.png");
+  --toc-fg: #fff;
+  --toc-text-shadow: 0 1px 3px rgba(0,0,0,.65);
+  --toc-shadow: 0 6px 20px rgba(0,0,0,.25);
+
+  /* 标题（::before） */
+  --toc-title-fs: 1.9rem;
+  --toc-title-lh: 1.6;
+  --toc-title-border: 1px solid rgba(255,255,255,.45);
+  --toc-title-mb: .5rem;
+
+  /* 目录项 */
+  --toc-item-gap: .4rem;
+  --toc-item-pad: 0.45rem 0.8rem;
+  --toc-item-radius: 8px;
+  --toc-item-ff: 'GuDuYanHei','AliPuHuiTi',sans-serif;
+  --toc-item-fw: 500;
+  --toc-item-fg: #f0f8ff;
+  --toc-item-bg: rgba(7,47,72,.38);
+  --toc-trans: all .25s ease;
+
+  /* 悬停态（目录项） */
+  --toc-item-hover-fg: #fffbe8;
+  --toc-item-hover-bg: rgba(14,95,136,.55);
+  --toc-item-hover-shadow: 0 0 12px rgba(255,212,122,.55);
+  --toc-item-hover-translate: translateY(-1px);
+
+  /* Emoji 层级色（可按需统一调整） */
+  --toc-emoji-h2: #bfe6ff;
+  --toc-emoji-h3: #aee8ff;
+  --toc-emoji-h4: #ffd36e;
+  --toc-emoji-h5: #cfe3ff;
+  --toc-emoji-h6: #f2e6c8;
+
+  /* 工具条（标题分隔线与按钮） */
+  --toc-toolbar-inset-x: 12px;
+  --toc-toolbar-pad-y: 2px;
+  --toc-toolbar-fg: #ffffff;
+  --toc-toolbar-text-shadow: 0 1px 2px rgba(0,0,0,.42);
+  --toc-divider-alpha: .55;
+
+  /* 工具条：标题胶囊 */
+  --toc-chip-bg: rgba(7,47,72,.64);
+  --toc-chip-bd: 1px solid rgba(255,255,255,.28);
+  --toc-chip-shadow: 0 2px 8px rgba(0,0,0,.25);
+  --toc-chip-fs: .92rem;
+
+  /* 工具条：删除按钮 */
+  --toc-btn-bg: rgba(255,255,255,.08);
+  --toc-btn-bd: 1px solid rgba(255,255,255,.25);
+  --toc-btn-fg: #fbb500;
+  --toc-btn-bg-hover: linear-gradient(180deg, rgba(255,212,122,.22), rgba(255,255,255,.10));
+  --toc-btn-ring-hover: 0 0 0 1px rgba(255,212,122,.35), 0 6px 14px rgba(0,0,0,.25);
+  --toc-btn-fg-hover: #fffdf2;
+}
+
+/* ======================================================================================= 
+   REGION B — OCEAN BACKGROUND（目录背景 · 大海/航行/远方）
+   Scope: 仅 #write 内部的 .md-toc-content（不影响侧栏/正文其它区域）
+   Function:
+   - 整体背景图为海面航行主题（--toc-bg-img）
+   - 目录项前景保持清晰可读（--toc-fg + --toc-text-shadow）
+   - Hover 提供波光/远方高亮效果（--toc-item-hover-*）
+   Adjustable Params: --toc-bg-img / --toc-fg / --toc-text-shadow / --toc-shadow / --toc-radius
+   ======================================================================================= */
+
+#write .md-toc-content {
+  position: relative;
+  padding: var(--toc-pad);
+  border-radius: var(--toc-radius);
+  overflow: hidden;
+  z-index: var(--toc-z);
+
+  /* 背景图 */
+  background: var(--toc-bg-img) center/cover no-repeat;
+
+  /* 前景可读性 */
+  color: var(--toc-fg);
+  text-shadow: var(--toc-text-shadow);
+  box-shadow: var(--toc-shadow);
+}
+
+/* 目录项：卡片感 */
+#write .md-toc-content .md-toc-item {
+  display: block;
+  margin: var(--toc-item-gap) 0;
+}
+
+#write .md-toc-content .md-toc-inner {
+  display: block;
+  padding: var(--toc-item-pad);
+  border-radius: var(--toc-item-radius);
+  font-family: var(--toc-item-ff); /* 引用 prerequisite.css 中的字体 */
+  font-weight: var(--toc-item-fw);
+  color: var(--toc-item-fg);
+  background: var(--toc-item-bg); /* 半透明深海蓝衬底 */
+  transition: var(--toc-trans);
+}
+
+/* Hover / Focus：波光 + 远方金光 */
+#write .md-toc-content .md-toc-inner:hover,
+#write .md-toc-content .md-toc-inner:focus-visible {
+  color: var(--toc-item-hover-fg);
+  background: var(--toc-item-hover-bg);
+  box-shadow: var(--toc-item-hover-shadow);
+  transform: var(--toc-item-hover-translate);
+}
+
+/* H1 船只象征 */
+#write .md-toc-content .md-toc-h1 > .md-toc-inner::before {
+  content: "⛵ ";
+  margin-right: 0.3em;
+}
+
+/* H2 波浪象征 */
+#write .md-toc-content .md-toc-h2 > .md-toc-inner::before {
+  content: "≈ ";
+  margin-right: 0.3em;
+  color: var(--toc-emoji-h2);
+}
+
+/* H3 海浪 */
+#write .md-toc-content .md-toc-h3 > .md-toc-inner::before {
+  content: "🌊 ";
+  margin-right: 0.3em;
+  color: var(--toc-emoji-h3);
+}
+/* H4 罗盘 */
+#write .md-toc-content .md-toc-h4 > .md-toc-inner::before {
+  content: "🧭 ";
+  margin-right: 0.3em;
+  color: var(--toc-emoji-h4);
+}
+/* H5 锚 */
+#write .md-toc-content .md-toc-h5 > .md-toc-inner::before {
+  content: "⚓ ";
+  margin-right: 0.3em;
+  color: var(--toc-emoji-h5);
+}
+/* H6 远方地图 */
+#write .md-toc-content .md-toc-h6 > .md-toc-inner::before {
+  content: "🗺️ ";
+  margin-right: 0.3em;
+  color: var(--toc-emoji-h6);
+}
+
+/* 减少动态偏好：只保留静态高亮 */
+@media (prefers-reduced-motion: reduce) {
+  #write .md-toc-content .md-toc-inner {
+    transition: none;
+  }
+}
+
+/* =======================================================================================
+   REGION C-TOOLBAR — TITLE BAR（目录工具条 · 标题分隔线）
+   Scope: 仅 #write 内部的 .md-toc-tooltip（不影响其它 tooltip）
+   Function:
+   - 在 TOC 顶部绘制一条横向分隔线（--toc-divider-alpha）；居中放置文字（沿用 HTML <span>）
+   - 右侧保留删除按钮；工具条整体透明玻璃感（--toc-chip-* / --toc-btn-*）
+   - 不改 DOM；当 Typora 显示该节点时样式自动生效
+   ======================================================================================= */
+
+#write .md-toc-tooltip{
+  position: absolute;
+  /* 固定在 TOC 卡片内的顶部；左右各留 --toc-toolbar-inset-x */
+  top: 0;
+  left: var(--toc-toolbar-inset-x);
+  right: var(--toc-toolbar-inset-x);
+  z-index: 3;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  padding: var(--toc-toolbar-pad-y) 0;
+  background: transparent;
+  border: none;
+  pointer-events: none;            /* 仅按钮可点，其他透穿 */
+  font-family: 'AliPuHuiTi','GuDuYanHei',sans-serif;
+  color: var(--toc-toolbar-fg);
+  text-shadow: var(--toc-toolbar-text-shadow);
+}
+
+/* 横向分隔线：用伪元素画一条从左到右的渐变线 */
+#write .md-toc-tooltip::before{
+  content:"";
+  position: absolute; left: 0; right: 0; top: 50%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,var(--toc-divider-alpha)), transparent);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* 中间标题胶囊：使用原 <span> 文本（如“Table of Contents”/“目录”） */
+#write .md-toc-tooltip > span{
+  position: relative;
+  margin-left: 0.2rem;
+  padding: 0.1rem 0.6rem;
+  border-radius: 6px;
+  background: var(--toc-chip-bg);     /* 深海蓝玻璃片 */
+  border: var(--toc-chip-bd);
+  box-shadow: var(--toc-chip-shadow);
+  font-weight: 600;
+  font-size: var(--toc-chip-fs);
+  letter-spacing: .02em;
+  line-height: 1.2;
+  pointer-events: auto;               /* 允许选中文本 */
+}
+
+/* 删除按钮：右侧小圆角按钮（只给按钮开启交互） */
+#write .md-toc-tooltip .btn.md-delete-toc{
+  pointer-events: auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 26px; min-height: 26px; padding: 4px 6px;
+  border-radius: 8px;
+  background: var(--toc-btn-bg);
+  border: var(--toc-btn-bd);
+  color: var(--toc-btn-fg);           /* 远方金光色系 */
+  cursor: pointer;
+  transition: background .18s ease, box-shadow .18s ease, transform .12s ease;
+}
+#write .md-toc-tooltip .btn.md-delete-toc:hover{
+  background: var(--toc-btn-bg-hover);
+  box-shadow: var(--toc-btn-ring-hover);
+  color: var(--toc-btn-fg-hover);
+  transform: translateY(-1px);
+}
+#write .md-toc-tooltip .btn.md-delete-toc:active{ transform: none; }
+
+/* 减少动态：关闭过渡 */
+@media (prefers-reduced-motion: reduce){
+  #write .md-toc-tooltip .btn.md-delete-toc{ transition: none; }
+}
+
+/* 标题行（仅伪元素居中） */
+#write .md-toc-content::before {
+  content: "📑 目录（content）";
+  display: block;
+  font-family: 'GuDuYanHei','AliPuHuiTi',sans-serif;
+  font-weight: 800;
+  font-size: var(--toc-title-fs);
+  color: var(--toc-fg);
+  text-shadow: 0 1px 2px rgba(0,0,0,.45);
+
+  border-bottom: var(--toc-title-border);
+  line-height: var(--toc-title-lh);
+  margin: 0 auto var(--toc-title-mb) auto;   /* 居中 */
+  width: fit-content;                         /* 宽度随内容 */
+}
+/* =============================== END OF PACKAGE ============================ */

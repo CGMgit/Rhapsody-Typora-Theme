@@ -1,0 +1,461 @@
+/* =======================================================================================
+   Rhapsody · PREFERENCES · Files Pane — Rose Shadow（玫瑰暗影 · 无模糊 · 性能友好）
+   设计理念 / Design Concept
+   - 仅当“设置窗口 · 左侧导航中 Files（data-index=0）处于激活态”时启用整套视觉。
+   - 采用深玫瑰色系与轻薄层叠，不使用 blur/backdrop-filter，优先保证性能与清晰度。
+   - 所有色值集中变量化；滚动条、表单、按钮等控件统一在局部作用域内复用。
+   - 不更改任何 DOM 结构，严格以选择器限域；尊重 prefers-reduced-motion。
+   ======================================================================================= */
+
+
+/* ========================================================================== */
+/* REGION A — ROOT VARS（根变量，仅在 Files 激活时挂载）                        */
+/* Scope: body:has(.ty-preferences ... data-index="0") .ty-preferences        */
+/* Function: 集中维护玫瑰系色板/阴影/描边/文字阶和字体族；供后续各区复用           */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="0"]) .ty-preferences {
+    /* 文字阶（Ink） */
+    --rose-ink:         #FFECEF;
+    --rose-ink-weak:    #FFD6DD;
+    --rose-ink-hint:    #FFC9D0;
+
+    /* 边框/高亮 */
+    --rose-border:        rgba(255, 90, 102, .28);
+    --rose-border-strong: rgba(255, 90, 102, .36);
+    --rose-accent:        #ff3b58;
+
+    /* 背景层（深/浅） */
+    --rose-bg-deep:    rgba(20, 6, 10, .60);
+    --rose-bg-soft:    rgba(20, 6, 10, .40);
+
+    /* 中性基底与阴影 */
+    --rose-base:       #14060A;
+    --rose-elev-1:     rgba(255, 255, 255, .03);
+    --rose-elev-2:     rgba(255, 255, 255, .06);
+    --rose-elev-3:     rgba(255, 255, 255, .10);
+
+    /* 字体（Files 激活时的 UI 统一） */
+    --rose-ff-ui: 'AliPuHuiTi','Microsoft YaHei',sans-serif;
+
+    /* 圆角与尺寸 */
+    --rose-radius-s: 8px;
+    --rose-radius-m: 10px;
+    --rose-radius-l: 12px;
+    --rose-radius-xl:14px;
+
+    /* 阴影与描边复用 */
+    --rose-inset-1: inset 0 0 0 1px rgba(0,0,0,.15);
+    --rose-focus:   0 0 0 2px rgba(255,59,88,.30);
+
+    /* 滚动条 */
+    --rose-scroll-thumb-1: rgba(255,236,239,.85);
+    --rose-scroll-thumb-2: rgba(255,214,221,.85);
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION B — FONT UNIFY（字体统一 · 仅 Files 激活时）                          */
+/* Scope: Files 激活态下的设置窗各常见文本与控件                               */
+/* Function: 统一字体族与权重，避免跨区不一致                                   */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="0"]) {
+    .ty-preferences .pane-sm.sidebar,
+    .ty-preferences .pane-sm.sidebar .nav-group-item,
+    .ty-preferences .pane-sm.sidebar .search-input,
+    .ty-preferences .pane .content,
+    .ty-preferences .pane .content h3,
+    .ty-preferences .pane .content label,
+    .ty-preferences .pane .content td,
+    .ty-preferences .pane .content span,
+    .ty-preferences .pane .content a,
+    .ty-preferences .pane .content input,
+    .ty-preferences .pane .content select,
+    .ty-preferences .pane .content button {
+      font-family: var(--rose-ff-ui);
+      font-weight: 600;
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION C — WINDOW BACKDROP（整窗背景挂载）                                   */
+/* Scope: .ty-preferences .window                                             */
+/* Function: 深色基底 + 玫瑰暗影背景图                                         */
+/* ========================================================================== */
+body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="0"]) .ty-preferences .window {
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+  background: none;
+}
+body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="0"]) .ty-preferences .window::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--rose-base) url("../../assets/Preference/玫瑰暗影.png") center/cover no-repeat;
+}
+
+
+/* ========================================================================== */
+/* REGION D — HEADER（顶栏）                                                   */
+/* Scope: .window-header                                                      */
+/* Function: 渐变基底/描边/图标 hover 轻动效                                   */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="0"]) {
+    .ty-preferences .window-header {
+      background: linear-gradient(to bottom, rgba(20,6,10,.82), rgba(20,6,10,.55));
+      border-bottom: 1px solid var(--rose-border);
+    }
+    .ty-preferences .window-header h2 { color: var(--rose-ink); }
+    .ty-preferences .window-header .window-header-back .icon svg path,
+    .ty-preferences .window-header .header-close .icon svg path {
+      fill: var(--rose-ink);
+      opacity: .9;
+      transition: opacity .15s ease, transform .12s ease;
+    }
+    .ty-preferences .window-header button:hover .icon svg path {
+      opacity: 1; transform: translateY(-1px);
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION E — SIDEBAR（左侧导航）                                              */
+/* Scope: .pane-sm.sidebar 及其内控件                                          */
+/* Function: 渐变底/描边/搜索框/列表交互                                       */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="0"]) {
+    .ty-preferences .pane-sm.sidebar {
+      background: linear-gradient(180deg, rgba(26,8,12,.70), rgba(26,8,12,.30));
+      border-right: 1px solid var(--rose-border);
+      contain: paint; /* 性能隔离 */
+    }
+    .ty-preferences .pane-sm.sidebar .search-input {
+      background: var(--rose-elev-2);
+      color: var(--rose-ink);
+      border: 1px solid var(--rose-border-strong);
+      box-shadow: var(--rose-inset-1);
+    }
+    .ty-preferences .pane-sm.sidebar .search-input::placeholder { color: rgba(255,214,221,.80); }
+    .ty-preferences .pane-sm.sidebar .search-input:focus {
+      border-color: var(--rose-accent);
+      box-shadow: var(--rose-focus);
+      outline: none;
+    }
+    .ty-preferences .pane-sm.sidebar .nav-group-item {
+      display: block;
+      padding: 8px 10px;
+      border-radius: var(--rose-radius-s);
+      color: rgba(255,214,221,.85);
+      background: transparent;
+      transition-property: transform, color, background-color;
+      transition-duration: .15s;
+      transition-timing-function: ease;
+    }
+    .ty-preferences .pane-sm.sidebar .nav-group-item:hover {
+      background: rgba(40,10,15,.45);
+      color: var(--rose-ink);
+      will-change: transform;
+    }
+    .ty-preferences .pane-sm.sidebar .nav-group-item.active {
+      background: linear-gradient(180deg, rgba(255,59,88,.16), rgba(255,59,88,.08));
+      box-shadow: 0 0 0 1px var(--rose-border) inset;
+      color: #fff;
+      transform: translateY(-1px);
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION F — MAIN PANE（右侧主体面板）                                         */
+/* Scope: .ty-preferences .pane                                               */
+/* Function: 深浅层叠/描边/性能隔离                                            */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="0"]) {
+    .ty-preferences .pane {
+      background: linear-gradient(180deg, var(--rose-bg-deep), var(--rose-bg-soft));
+      border-left: 1px solid var(--rose-border);
+      contain: paint; /* 性能隔离 */
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION G — TYPOGRAPHY（文本色阶与标题）                                      */
+/* Scope: .pane .content 内的常见文本元素                                      */
+/* Function: 统一文字层次、标题加粗                                            */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="0"]) {
+    .ty-preferences .pane .content,
+    .ty-preferences .pane .content h3.panel-header,
+    .ty-preferences .pane .content .input-group-header-title,
+    .ty-preferences .pane .content label,
+    .ty-preferences .pane .content td,
+    .ty-preferences .pane .content span,
+    .ty-preferences .pane .content a {
+      color: var(--rose-ink);
+      text-shadow: none;
+    }
+    .ty-preferences .pane .content .panel-content-hint,
+    .ty-preferences .pane .content .input-group-header-hint,
+    .ty-preferences .pane .content .label-hint,
+    .ty-preferences .pane .content .row[style*="opacity"] {
+      color: var(--rose-ink-hint) !important;
+    }
+    .ty-preferences .pane .content h3.panel-header {
+      letter-spacing: .2px; font-weight: 700; color: #fff;
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION H — FORMS（表单控件：输入/选择）                                      */
+/* Scope: input/select 等                                                      */
+/* Function: 深色适配/描边/hover/focus                                         */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="0"]) {
+    .ty-preferences .pane .content select,
+    .ty-preferences .pane .content input[type="text"],
+    .ty-preferences .pane .content input[type="number"],
+    .ty-preferences .pane .content .ty-text-input input,
+    .ty-preferences .pane .content .file-input input {
+      background: var(--rose-elev-2);
+      color: var(--rose-ink);
+      border: 1px solid var(--rose-border-strong);
+      border-radius: var(--rose-radius-m);
+      padding: 6px 8px;
+      transition-property: background-color, border-color, box-shadow;
+      transition-duration: .15s;
+      transition-timing-function: ease;
+    }
+    .ty-preferences .pane .content select:hover,
+    .ty-preferences .pane .content input:hover {
+      background: var(--rose-elev-3);
+      border-color: rgba(255,90,102,.48);
+    }
+    .ty-preferences .pane .content select:focus,
+    .ty-preferences .pane .content input:focus {
+      border-color: var(--rose-accent);
+      box-shadow: var(--rose-focus);
+      outline: none;
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION I — BUTTONS（按钮）                                                  */
+/* Scope: .btn.btn-default                                                    */
+/* Function: 渐变基底/描边/hover 阴影&位移                                     */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="0"]) {
+    .ty-preferences .pane .content .btn.btn-default {
+      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+      color: var(--rose-ink);
+      border: 1px solid var(--rose-border-strong);
+      border-radius: var(--rose-radius-m);
+      padding: 6px 10px;
+      transition-property: transform, box-shadow, background-color, border-color;
+      transition-duration: .15s;
+      transition-timing-function: ease;
+    }
+    .ty-preferences .pane .content .btn.btn-default:hover {
+      background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.10));
+      border-color: rgba(255,90,102,.50);
+      box-shadow: 0 4px 12px rgba(0,0,0,.22);
+      transform: translateY(-1px);
+      will-change: transform, box-shadow;
+    }
+    .ty-preferences .pane .content .btn.btn-default:active {
+      transform: translateY(0);
+      box-shadow: inset 0 2px 8px rgba(0,0,0,.20);
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION J — CHECKS（复选/单选）                                              */
+/* Scope: input[type=checkbox|radio]                                          */
+/* Function: 统一强调色与描边                                                  */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="0"]) {
+    .ty-preferences .pane .content input[type="checkbox"],
+    .ty-preferences .pane .content input[type="radio"] {
+      accent-color: var(--rose-accent);
+      border-color: var(--rose-border-strong);
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION K — TABLES & GROUPS（表格/分组）                                      */
+/* Scope: table.label-input-group / .input-group                               */
+/* Function: 基础提升层/描边/内容可见性优化                                    */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="0"]) {
+    .ty-preferences .pane .content table.label-input-group {
+      background: var(--rose-elev-1);
+      border: 1px solid var(--rose-border);
+      border-radius: var(--rose-radius-l);
+      overflow: hidden;
+    }
+    .ty-preferences .pane .content table.label-input-group td {
+      border-top: 1px dashed rgba(255,255,255,.08);
+    }
+    .ty-preferences .pane .content .input-group {
+      margin-bottom: 18px;
+      padding: 10px 12px;
+      border-radius: var(--rose-radius-xl);
+      background: linear-gradient(180deg, var(--rose-elev-1), rgba(255,255,255,.02));
+      border: 1px solid rgba(255,255,255,.06);
+      content-visibility: auto;          /* 不可见不绘制 */
+      contain-intrinsic-size: 600px;     /* 估高避免跳动 */
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION L — LINKS & HINT ICONS（链接与提示图标）                              */
+/* Scope: a / .label-hint svg path                                            */
+/* Function: 链接色与装饰线统一；提示图标着色                                  */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="0"]) {
+    .ty-preferences .pane .content a {
+      color: var(--rose-ink-weak);
+      text-decoration-color: rgba(255,214,221,.55);
+    }
+    .ty-preferences .pane .content a:hover {
+      color: var(--rose-ink);
+      text-decoration-color: rgba(255,214,221,.9);
+    }
+    .ty-preferences .pane .content .label-hint svg path {
+      fill: rgba(255,214,221,.85);
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION M — CODE BLOCKS（代码块）                                             */
+/* Scope: pre                                                                 */
+/* Function: 深色面板/描边/圆角/文字色                                         */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="0"]) {
+    .ty-preferences .pane .content pre {
+      background: rgba(0,0,0,.22);
+      border: 1px solid var(--rose-border-strong);
+      border-radius: var(--rose-radius-m);
+      color: var(--rose-ink);
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION N — SCROLLBARS（滚动条 · 仅 Preferences 内）                           */
+/* Scope: .window / .pane / .pane-sm.sidebar                                  */
+/* Function: 细滚动条 + 渐变色拇指 + 轻描边                                    */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="0"]) {
+    .ty-preferences .window,
+    .ty-preferences .pane,
+    .ty-preferences .pane-sm.sidebar {
+      scrollbar-width: thin;
+      scrollbar-color: var(--rose-scroll-thumb-1) transparent;
+    }
+    .ty-preferences .window::-webkit-scrollbar,
+    .ty-preferences .pane::-webkit-scrollbar,
+    .ty-preferences .pane-sm.sidebar::-webkit-scrollbar { width:10px; height:10px; }
+
+    .ty-preferences .window::-webkit-scrollbar-thumb,
+    .ty-preferences .pane::-webkit-scrollbar-thumb,
+    .ty-preferences .pane-sm.sidebar::-webkit-scrollbar-thumb {
+      border-radius: 10px;
+      background: linear-gradient(180deg, var(--rose-scroll-thumb-1), var(--rose-scroll-thumb-2));
+      border: 2px solid transparent;
+      background-clip: padding-box;
+      box-shadow: inset 0 0 0 1px rgba(255,90,102,.18);
+      transition: background-color .12s ease, box-shadow .12s ease;
+    }
+    .ty-preferences .window::-webkit-scrollbar-thumb:hover,
+    .ty-preferences .pane::-webkit-scrollbar-thumb:hover,
+    .ty-preferences .pane-sm.sidebar::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, rgba(255,236,239,1), rgba(255,214,221,1));
+      box-shadow: inset 0 0 0 1px rgba(255,90,102,.28);
+    }
+    .ty-preferences .window::-webkit-scrollbar-track,
+    .ty-preferences .pane::-webkit-scrollbar-track,
+    .ty-preferences .pane-sm.sidebar::-webkit-scrollbar-track {
+      background: linear-gradient(180deg, rgba(20,6,10,.12), rgba(20,6,10,0));
+      border-radius: 10px;
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION O — SELECT ARROW（Select 箭头深色适配）                                */
+/* Scope: select                                                              */
+/* Function: 自绘箭头 + 深色选项面板                                           */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="0"]) {
+    .ty-preferences .pane .content select {
+      -webkit-appearance: none; appearance: none;
+      background: var(--rose-elev-2) no-repeat right 10px center/14px;
+      background-image: url('data:image/svg+xml;utf8,\
+<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24">\
+<path fill="none" stroke="rgba(255,236,239,0.92)" stroke-width="2" d="M6 9l6 6 6-6"/></svg>');
+      padding-right: 36px;
+      color-scheme: dark;
+    }
+    .ty-preferences .pane .content select::-ms-expand { display: none; }
+    .ty-preferences .pane .content select option {
+      background-color: rgba(24,6,10,.96);
+      color: var(--rose-ink);
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION P — REDUCED MOTION（动效降级）                                        */
+/* Scope: .ty-preferences .window *                                           */
+/* Function: 遵循系统“减少动态”偏好，关闭过渡/动画                              */
+/* ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  @supports(selector(:has(*))) {
+    body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="0"]) {
+      .ty-preferences .window * {
+        transition-duration: 0s !important;
+        animation: none !important;
+      }
+    }
+  }
+}
+
+/* =============================== END · PREFERENCES · FILES · ROSE SHADOW ==== */

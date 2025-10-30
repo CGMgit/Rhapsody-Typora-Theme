@@ -1,0 +1,281 @@
+/* =======================================================================================
+   Rhapsody · Print Export Patch  (PDF/Print Cleanup · Scoped A/B/C/D)
+   设计理念 / Design Concept
+   - 尊重 Typora 限制：不改 HTML 结构，仅用选择器与 @media print 精准收敛；
+   - 分区治理：
+     · A — 屏幕态 & 全局打印清理（统一底色、去蓝条、去阴影/白边）
+     · B — 表格专用补丁（仅命中 #write 内表格与其后代，不影响 TOC/正文）
+     · C — 数学公式（MathJax SVG）行内/行间分治与不拆页护栏
+     · D — 预留：容器分页兜底/跨页控制（按需启用）
+   - 导出一致性：使用 print-color-adjust、table header/footer 组保证跨页稳定；
+   - 性能优先：避免重滤镜/重动画；仅在打印上下文最小改动，减少重排与覆盖面。
+   ======================================================================================= */
+   
+/* ========================================================================== */
+/* REGION A — SCREEN & GLOBAL PRINT CLEANUP                                   */
+/* Scope: 屏幕态（正常主题逻辑）+ 打印导出全局底色/蓝条清理                   */
+/* Function: 提供打印 PDF 时的全局兜底背景，去掉外围蓝条与阴影，收敛白边       */
+/* Adjustable Params: 全局背景色、阴影开关、外边距                            */
+/* Compatibility: Typora 导出 / Electron 打印 / 现代浏览器                   */
+/* ========================================================================== */
+ /* 屏幕态：正常主题逻辑 */
+@media print {
+  /* 1) 彻底移除 html 层底色，杜绝与卡片层叠色 */
+  html {
+    background: none !important;
+    -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+  }
+
+  /* 2) 把全局底色下放到 body / typora-export（仅在外围可见） */
+  body,
+  .typora-export {
+    background: #d5eafd !important;      /* 你的全局底色，仅在 #write 外可见 */
+    box-shadow: none !important;
+    margin: 0 !important;                 /* 防默认白边 */
+  }
+
+  /* 3) 明确声明 #write 为不透明卡片底（阻断下层底色“透色”） */
+  #write {
+    background: var(--card-bg, #fff8fa) !important;  /* 你的卡片底色 */
+    box-shadow: none !important;          /* 如需：打印时去投影，避免黑边/糊影 */
+    isolation: isolate;                   /* 独立绘制层，避免混合意外 */
+    mix-blend-mode: normal !important;
+  }
+
+  /* 4) 可选：打印时收紧或关闭外扩光带，避免覆盖到外围底色的“交界脏边” */
+#write::before {
+  content: "";
+  position: absolute;
+  left: 0 !important; right: 0 !important;
+  top: 0 !important;  bottom: 0 !important;
+  border-radius: inherit !important;
+  border: 1.2pt solid rgba(0, 0, 0, 1);        /* ✅ 黑线 */
+  box-shadow:
+    0 0 1.2pt rgba(0,0,0,0.3) inset,             /* ✅ 内阴影：轻浮起 */
+    0 0 2pt rgba(255,255,255,0.5);               /* ✅ 外高光：柔和边缘 */
+  mix-blend-mode: normal !important;
+  pointer-events: none;
+}
+
+
+  /* 5) 角标层保持，但避免重滤镜以免打印糊（可选） */
+  #write::after {
+    filter: none !important;
+    mix-blend-mode: normal !important;
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION B — PRINT PATCH: TABLES ONLY                                        */
+/* Scope: #write 内的表格及其子元素                                            */
+/* Function: 打印导出时仅限定表格样式，避免影响 TOC/正文                       */
+/* Adjustable Params: 表格圆角、边框色、表头色、斑马纹色、链接色                */
+/* Compatibility: Typora 导出 PDF / Electron 打印 / 现代浏览器                 */
+/* ========================================================================== */
+@media print {
+
+  /* —— 0. 颜色/背景精确到表格 —— */
+  #write :is(.markdown-rendered table, .md-table, table) {
+    -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+  }
+  /* 如仍需全局文本缩放：保持这一行（可留可去） */
+  html, body { -webkit-text-size-adjust: 100% !important; }
+
+  /* —— 1. 变量兜底（可保留，也可删） —— */
+  body{
+    --tbl-body-radius: 1.4em;
+    --tbl-body-shadow: 0 0 0 1px rgba(0,0,0,.12);
+    --tbl-head-color:  #a35a1f;
+    --tbl-td-color:    #3b2e1e;
+    --tbl-link:        #168fcf;
+    --tbl-link-hover:  #ff2a2a;
+    --tbl-print-row:   #fff9e6;
+    --tbl-print-head:  #fff3cc;
+    --tbl-print-bd:    #e3d7b3;
+  }
+
+  /* —— 2. 仅隐藏“表格编辑工具条” —— */
+  #write .ty-table-edit,
+  #write .md-table-edit {
+    display: none !important;
+  }
+
+  /* —— 基础命中集合：只锁定表格自身 —— */
+  #write .markdown-rendered table,
+  #write .md-table,
+  #write table {
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    border: 1px solid var(--tbl-print-bd) !important;
+    border-radius: var(--tbl-body-radius) !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    position: relative !important;
+    z-index: 6 !important;
+    /* 新增：打印稳态与避免被裁/被遮 */
+    table-layout: fixed !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    mix-blend-mode: normal !important;
+    background-clip: padding-box !important;
+  }
+
+  /* —— 取消仅限“表格”的伪元素/hover —— */
+  #write .markdown-rendered table::before,
+  #write .markdown-rendered table::after,
+  #write .md-table::before,
+  #write .md-table::after,
+  #write table::before,
+  #write table::after {
+    content: none !important;
+  }
+  #write .markdown-rendered table tr:hover td,
+  #write .markdown-rendered table tr:hover th,
+  #write .md-table tr:hover td,
+  #write .md-table tr:hover th,
+  #write table tr:hover td,
+  #write table tr:hover th {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* —— 表头/表尾跨页复用 —— */
+  #write :is(.markdown-rendered table, .md-table, table) thead {
+    display: table-header-group !important;
+  }
+  #write :is(.markdown-rendered table, .md-table, table) tfoot {
+    display: table-footer-group !important;
+  }
+
+  /* —— 表头（仅限表格内 th） —— */
+  #write .markdown-rendered table th,
+  #write .md-table th,
+  #write table th {
+    color: var(--tbl-head-color) !important;
+    background: var(--tbl-print-head) !important;
+    border-bottom: 1px solid var(--tbl-print-bd) !important;
+    padding: 10pt 12pt !important;
+    font-weight: 700 !important;
+    text-shadow: none !important;
+  }
+
+  /* —— 单元格（仅限表格内 td） —— */
+  #write .markdown-rendered table td,
+  #write .md-table td,
+  #write table td {
+    color: var(--tbl-td-color) !important;
+    background: #fff !important;
+    border-top: 1px solid var(--tbl-print-bd) !important;
+    border-right: 1px solid var(--tbl-print-bd) !important;
+    padding: 9pt 12pt !important;
+  }
+
+  /* —— 文本换行策略（与正文语义一致，打印更稳） —— */
+  #write :is(.markdown-rendered th, .md-table th,
+             .markdown-rendered td, .md-table td,
+             th .td-span, td .td-span){
+    white-space: pre-wrap !important;     /* 保留手动换行，允许自动折行 */
+    overflow-wrap: anywhere !important;   /* 现代优选：任何点都可断开 */
+    word-break: break-word !important;    /* 兼容旧内核 */
+    hyphens: auto !important;             /* 拉丁文自动断字（如设置 lang） */
+    line-break: loose !important;         /* CJK 更宽松 */
+  }
+
+  /* —— 收口边框与圆角（仅限表格内首末单元格） —— */
+  #write .markdown-rendered table tr > :first-child,
+  #write .md-table tr > :first-child,
+  #write table tr > :first-child {
+    border-left: 1px solid var(--tbl-print-bd) !important;
+  }
+  #write .markdown-rendered table tr:first-child th:first-child,
+  #write .md-table tr:first-child th:first-child,
+  #write table tr:first-child th:first-child {
+    border-top-left-radius: 10pt !important;
+  }
+  #write .markdown-rendered table tr:first-child th:last-child,
+  #write .md-table tr:first-child th:last-child,
+  #write table tr:first-child th:last-child {
+    border-top-right-radius: 10pt !important;
+  }
+  #write .markdown-rendered table tr:last-child td:first-child,
+  #write .md-table tr:last-child td:first-child,
+  #write table tr:last-child td:first-child {
+    border-bottom-left-radius: 10pt !important;
+  }
+  #write .markdown-rendered table tr:last-child td:last-child,
+  #write .md-table tr:last-child td:last-child,
+  #write table tr:last-child td:last-child {
+    border-bottom-right-radius: 10pt !important;
+  }
+
+  /* —— 斑马纹（仅限表格内 tbody 行） —— */
+  #write .markdown-rendered table tbody tr:nth-child(even) td,
+  #write .md-table tbody tr:nth-child(even) td,
+  #write table tbody tr:nth-child(even) td {
+    background: var(--tbl-print-row) !important;
+  }
+
+  /* —— 链接（仅限表格内链接） —— */
+  #write .markdown-rendered table a,
+  #write .md-table a,
+  #write table a {
+    color: var(--tbl-link) !important;
+    text-decoration: underline !important;
+    border-bottom: none !important;
+  }
+
+  /* —— 行分页控制（尽量不把一行拆页） —— */
+  #write :is(.markdown-rendered table, .md-table, table) tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
+
+/* ========================================================================== */
+/* REGION C — PRINT: INLINE & BLOCK MATHJAX-SVG                               */
+/* Scope: #write 下的 MathJax SVG 容器（行内/行间分别收敛）                    */
+/* Function: 打印导出时修正行内公式基线/高度，行间公式独立占行与不拆页          */
+/* Adjustable Params: 主题色（#9916cf）、基线微调 translateY(0.03em)           */
+/* Compatibility: MathJax v3（SVG 引擎）/ Typora 导出 / 现代浏览器             */
+/* ========================================================================== */
+
+@media print {
+
+  /* 统一容器取色 */
+  #write mjx-container[jax="SVG"] {
+    color: #9916cf !important;
+    break-inside: avoid !important;      /* 行间公式不被拆页 */
+    page-break-inside: avoid !important;
+  }
+
+  /* 关键：SVG 不被裁剪 */
+  #write mjx-container[jax="SVG"] > svg {
+    overflow: visible !important;
+  }
+
+  /* 只给字形路径上色（字符大多是 <path>） */
+  #write mjx-container[jax="SVG"] svg path {
+    fill: currentColor !important;
+  }
+
+  /* 有描边的元素沿用容器色；保留原有描边宽度 */
+  #write mjx-container[jax="SVG"] svg [stroke] {
+    stroke: currentColor !important;
+    stroke-width: inherit !important;    /* ← 不要清零 */
+  }
+
+  /* 几何元素保持透明填充：\boxed 的 <rect> 只走描边 */
+  #write mjx-container[jax="SVG"] svg rect,
+  #write mjx-container[jax="SVG"] svg line,
+  #write mjx-container[jax="SVG"] svg polyline,
+  #write mjx-container[jax="SVG"] svg polygon,
+  #write mjx-container[jax="SVG"] svg circle,
+  #write mjx-container[jax="SVG"] svg ellipse {
+    fill: none !important;
+  }
+}

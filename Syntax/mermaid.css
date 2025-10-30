@@ -1,0 +1,301 @@
+/* =======================================================================================
+   Rhapsody · Mermaid Diagram Preview  （春意盎然 · Markdown 图表美化）
+   设计理念 / Design Concept
+   - 专属 Mermaid 预览容器（.md-diagram-panel），与代码块（霓虹风格）区隔，避免视觉冲突。
+   - 采用静态配色 + 渐变背景 + 平铺纹理，突出“春意盎然”的轻盈氛围。
+   - SVG 内部节点/连线统一变量化，保证 flowchart / sequence / gantt / classDiagram 等一致。
+   - 性能优先：常态静止，Hover 仅调整阴影；无动画/滤镜，避免 GPU 常驻负载。
+   - 打印与高对比模式提供兜底样式，确保跨平台与长文档场景下的可读性。
+   ======================================================================================= */
+
+/* ======================================================================================= */
+/* REGION A — MERMAID · 春意盎然（仅预览容器 | 不影响霓虹代码块）                     */
+/* Scope: #write 内，仅对 mermaid 的预览面板生效（.md-diagram-panel.md-fences-adv-panel）   */
+/* 兼容：子节点结构（pre > panel）与兄弟结构（pre + panel）                                */
+/* Function:                                                                               */
+/* - 清空 mermaid 代码块外层 pre 的“霓虹壳”，把视觉放到预览容器                           */
+/* - 统一卡片底/圆角/阴影/背景纹理；细化节点/连线/网格等                                   */
+/* ======================================================================================= */
+
+/* ── Vars（仅本区使用 / Region-local vars） ── */
+#write {
+  --spring-bg:       #f6fbf4;  /* 卡片底色 / Card background */
+  --spring-fg:       #2e3b2f;  /* 前景文字 / Foreground text */
+  --spring-accent:   #55b36b;  /* 描边/连线强调 / Accent stroke */
+  --spring-border:   1px solid rgba(46,59,47,.16);
+  --spring-radius:   14px;
+  --spring-shadow:   0 10px 28px rgba(34,63,42,.12);
+  --spring-padding:  1.0rem 1.1rem;
+  --spring-gap:      0.65rem;
+  --spring-maxw:     100%;
+  --spring-grad:     radial-gradient(120% 80% at 10% 0%, #fcfcfc 0%, #f6fbf4 40%, #ffffff 100%);
+  --spring-bg-img:   url("../Assets/Mermaid/欣欣向荣.png"); /* 平铺纹理 / Tiling texture */
+}
+
+/* ① 外层 pre 清空霓虹壳（仅 mermaid，不动其它语言） */
+#write pre.md-fences.md-diagram[lang="mermaid"] {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  padding: 0 !important;  /* 留白交给预览容器 */
+  margin: var(--spring-gap) 0 !important;
+}
+
+/* ② 预览容器壳（子节点 & 兄弟结构） */
+#write pre.md-fences.md-diagram.md-fences-advanced[lang="mermaid"] > .md-diagram-panel.md-fences-adv-panel,
+#write pre.md-fences.md-diagram.md-fences-advanced[lang="mermaid"] + .md-diagram-panel.md-fences-adv-panel {
+  background: var(--spring-grad), var(--spring-bg-img);
+  background-size: cover, 420px;
+  background-repeat: no-repeat, repeat;
+  color: var(--spring-fg);
+  border: var(--spring-border);
+  border-radius: var(--spring-radius);
+  box-shadow: var(--spring-shadow);
+  padding: var(--spring-padding);
+  margin: var(--spring-gap) 0;
+  position: relative;
+  z-index: 7; /* 低于霓虹代码块 z=6 */
+  overflow: auto;
+}
+
+/* ====== A) 整体背景增强（容器 + 预览层） ====== */
+#write pre[lang="mermaid"] .md-diagram-panel-preview {
+  background: var(--spring-grad), var(--spring-bg-img);
+  background-size: cover, 420px;
+  background-repeat: no-repeat, repeat;
+  background-position: center, 0 0;
+  background-blend-mode: soft-light, normal;
+  border-radius: var(--spring-radius);
+}
+
+/* ③ 内部绘图区外壳 */
+#write pre[lang="mermaid"] .md-diagram-panel {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+/* ④ SVG 自适应（不溢出，保持矢量清晰） */
+#write pre[lang="mermaid"] .mermaid-svg {
+  max-width: var(--spring-maxw);
+  height: auto !important;
+}
+
+/* ⑤ 文本/颜色（优先 currentColor，减少冲突） */
+#write pre[lang="mermaid"] .mermaid-svg * {
+  color: var(--spring-fg);
+  fill: currentColor;
+}
+
+/* ⑥ 节点（矩形/菱形/路径等） */
+#write pre[lang="mermaid"] .mermaid-svg .node rect,
+#write pre[lang="mermaid"] .mermaid-svg .node polygon,
+#write pre[lang="mermaid"] .mermaid-svg .node path {
+  fill: rgba(255,255,255,.88);
+  stroke: var(--spring-accent);
+  stroke-width: 1.2px;
+  rx: 8; ry: 8;
+}
+
+/* ⑦ 连线与箭头 */
+#write pre[lang="mermaid"] .mermaid-svg .edgePath .path,
+#write pre[lang="mermaid"] .mermaid-svg .flowchart-link {
+  stroke: var(--spring-accent) !important;
+  stroke-width: 1.25px;
+}
+#write pre[lang="mermaid"] .mermaid-svg .arrowheadPath,
+#write pre[lang="mermaid"] .mermaid-svg .marker {
+  fill: var(--spring-accent) !important;
+  stroke: var(--spring-accent) !important;
+}
+
+/* ⑧ 边标签底 */
+#write pre[lang="mermaid"] .mermaid-svg .edgeLabel rect {
+  fill: rgba(232,232,232,.72);
+  opacity: .9;
+}
+
+/* ⑨ cluster 分组 */
+#write pre[lang="mermaid"] .mermaid-svg .cluster rect {
+  fill: rgba(134,214,163,.10);
+  stroke: rgba(85,179,107,.65);
+  stroke-width: 1.2px;
+  rx: 12; ry: 12;
+}
+
+/* ⑩ 时序图消息线 */
+#write pre[lang="mermaid"] .mermaid-svg .messageLine0,
+#write pre[lang="mermaid"] .mermaid-svg .messageLine1 {
+  stroke: var(--spring-accent);
+}
+
+/* ⑪ 甘特图任务条与网格 */
+#write pre[lang="mermaid"] .mermaid-svg .task {
+  fill: rgba(85,179,107,.88);
+  stroke: rgba(46,59,47,.25);
+}
+#write pre[lang="mermaid"] .mermaid-svg .grid .tick line {
+  stroke: rgba(46,59,47,.18);
+}
+
+/* ⑫ Hover 提亮（预览壳） */
+#write pre[lang="mermaid"] > .md-diagram-panel.md-fences-adv-panel:hover,
+#write pre[lang="mermaid"] + .md-diagram-panel.md-fences-adv-panel:hover {
+  box-shadow: 0 12px 32px rgba(34,63,42,.16);
+}
+
+/* ⑬ 打印（去阴影与纹理，保留边框） */
+@media print {
+  #write pre[lang="mermaid"] > .md-diagram-panel.md-fences-adv-panel,
+  #write pre[lang="mermaid"] + .md-diagram-panel.md-fences-adv-panel {
+    box-shadow: none !important;
+    background-image: none !important;
+    border: 1px solid rgba(0,0,0,.35);
+  }
+}
+
+/* ⑭ flowchart-v2 菱形强调 */
+#write pre[lang="mermaid"][mermaid-type="flowchart-v2"] .mermaid-svg .node polygon {
+  stroke-width: 1.6px;
+}
+
+/* ⑮ 标题文字 */
+#write pre[lang="mermaid"] .mermaid-svg .flowchartTitleText,
+#write pre[lang="mermaid"] .mermaid-svg .title,
+#write pre[lang="mermaid"] .mermaid-svg .cluster-label text,
+#write pre[lang="mermaid"] .mermaid-svg .cluster-label span {
+  fill: var(--spring-fg) !important;
+  color: var(--spring-fg) !important;
+  font-weight: 600;
+}
+
+/* ⑯ 起点/终点 */
+#write pre[lang="mermaid"] .mermaid-svg .start-state,
+#write pre[lang="mermaid"] .mermaid-svg .end-state,
+#write pre[lang="mermaid"] .mermaid-svg .stateStart,
+#write pre[lang="mermaid"] .mermaid-svg .stateEnd,
+#write pre[lang="mermaid"] .mermaid-svg .node circle {
+  fill: #fff !important;
+  stroke: var(--spring-accent) !important;
+  stroke-width: 1.4px !important;
+}
+
+/* ⑰ 注释框（notes） */
+#write pre[lang="mermaid"] .mermaid-svg .note,
+#write pre[lang="mermaid"] .mermaid-svg .note rect {
+  fill: rgba(255,255,255,.9) !important;
+  stroke: rgba(85,179,107,.55) !important;
+  stroke-width: 1.1px !important;
+  rx: 10; ry: 10;
+}
+
+/* ⑱ Tooltip */
+#write pre[lang="mermaid"] .mermaidTooltip {
+  background: #f8fff9 !important;
+  border: 1px solid rgba(85,179,107,.55) !important;
+  color: var(--spring-fg) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 6px 18px rgba(34,63,42,.15) !important;
+}
+
+/* ⑲ 时序图（sequenceDiagram） */
+#write pre[lang="mermaid"] .mermaid-svg .actor,
+#write pre[lang="mermaid"] .mermaid-svg .actor rect {
+  fill: rgba(255,255,255,.92) !important;
+  stroke: var(--spring-accent) !important;
+  stroke-width: 1.2px !important;
+  rx: 8; ry: 8;
+}
+#write pre[lang="mermaid"] .mermaid-svg .lifeline,
+#write pre[lang="mermaid"] .mermaid-svg .messageLine0,
+#write pre[lang="mermaid"] .mermaid-svg .messageLine1 {
+  stroke: var(--spring-accent) !important;
+  stroke-width: 1.2px !important;
+}
+#write pre[lang="mermaid"] .mermaid-svg .activation0,
+#write pre[lang="mermaid"] .mermaid-svg .activation1,
+#write pre[lang="mermaid"] .mermaid-svg .activation2 {
+  fill: rgba(85,179,107,.18) !important;
+  stroke: var(--spring-accent) !important;
+}
+#write pre[lang="mermaid"] .mermaid-svg .labelBox,
+#write pre[lang="mermaid"] .mermaid-svg .loopLine,
+#write pre[lang="mermaid"] .mermaid-svg .loopText {
+  stroke: rgba(85,179,107,.55) !important;
+  fill: rgba(134,214,163,.10) !important;
+}
+#write pre[lang="mermaid"] .mermaid-svg .loopText,
+#write pre[lang="mermaid"] .mermaid-svg .labelText {
+  fill: var(--spring-fg) !important;
+}
+
+/* ⑳ 甘特图（gantt） */
+#write pre[lang="mermaid"] .mermaid-svg .axis path,
+#write pre[lang="mermaid"] .mermaid-svg .axis line {
+  stroke: rgba(46,59,47,.28) !important;
+}
+#write pre[lang="mermaid"] .mermaid-svg .axis text,
+#write pre[lang="mermaid"] .mermaid-svg .tick text {
+  fill: var(--spring-fg) !important;
+}
+#write pre[lang="mermaid"] .mermaid-svg .today {
+  stroke: #ff6a00 !important;
+  stroke-width: 2px !important;
+  opacity: .8;
+}
+#write pre[lang="mermaid"] .mermaid-svg .sectionTitle,
+#write pre[lang="mermaid"] .mermaid-svg .sectionTitle text {
+  fill: var(--spring-fg) !important;
+  font-weight: 600;
+}
+
+/* ㉑ 类图（classDiagram） */
+#write pre[lang="mermaid"] .mermaid-svg .classGroup rect,
+#write pre[lang="mermaid"] .mermaid-svg .classGroup polygon {
+  fill: rgba(255,255,255,.9) !important;
+  stroke: var(--spring-accent) !important;
+  stroke-width: 1.2px !important;
+  rx: 10; ry: 10;
+}
+#write pre[lang="mermaid"] .mermaid-svg .classTitle {
+  fill: var(--spring-fg) !important;
+  font-weight: 700 !important;
+}
+
+/* ㉒ ER 图（erDiagram） */
+#write pre[lang="mermaid"] .mermaid-svg .er entity rect,
+#write pre[lang="mermaid"] .mermaid-svg .er .entityBox,
+#write pre[lang="mermaid"] .mermaid-svg .er .label rect {
+  fill: rgba(255,255,255,.9) !important;
+  stroke: var(--spring-accent) !important;
+}
+#write pre[lang="mermaid"] .mermaid-svg .er .relationshipLabel text {
+  fill: var(--spring-fg) !important;
+}
+
+/* ㉓ 用户旅程（journey） */
+#write pre[lang="mermaid"] .mermaid-svg .journey-section,
+#write pre[lang="mermaid"] .mermaid-svg .section {
+  fill: rgba(134,214,163,.12) !important;
+  stroke: rgba(85,179,107,.55) !important;
+}
+#write pre[lang="mermaid"] .mermaid-svg .actorTitle,
+#write pre[lang="mermaid"] .mermaid-svg .taskText {
+  fill: var(--spring-fg) !important;
+}
+
+/* ㉔ 辅助功能：线端圆润 + 高对比模式/打印 */
+#write pre[lang="mermaid"] .mermaid-svg .edgePath .path {
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+@media print {
+  #write pre[lang="mermaid"] .mermaid-svg .edgeLabel rect { fill:#eee !important; }
+}
+@media (prefers-contrast: more) {
+  #write pre[lang="mermaid"] .mermaid-svg .edgeLabel rect { fill:#eaeaea !important; }
+}
+
+/* =============================== END OF PACKAGE ============================ */

@@ -1,0 +1,491 @@
+/* =======================================================================================
+   Rhapsody · MegaMenu · EXPORT — Black & White Piano Blocks（黑白钢琴块 · 区域化重排）
+   设计理念 / Design Concept
+   - 主题灵感：以“黑白钢琴键”构成强对比的像素秩序感，辅以浅灰层次，营造理性/冷静的导出面板氛围。
+   - 视觉策略：右侧主区（Export 面板）→ 白底卡片 + 扫描式钢琴键动画；Header 门闩 → 横向像素钢琴条；
+     左侧 Sidebar → 纵向像素纸感与黑白条纹；三者统一在“像素描边 + 阶梯动效”语汇下。
+   - 交互反馈：卡片与按钮 hover 使用 steps() 阶跃位移 + 阴影加深，模拟琴键按下的物理感；
+     Saved 项采用对勾右对齐，避免与文字重叠，突出导出结果的状态感。
+   - 性能与约束：不改 DOM，仅用局部变量（--exp-* / --hdr-* / --sb-*）集中管理色彩与动效；
+     所有动画尊重 prefers-reduced-motion；滚动条风格统一在单门闩 :has 下实现。
+   - 维护与扩展：图标统一挂载在 ::before + FontAwesome，保证兼容性；Save As 双 ID (#m-save-as / #m-saveas)
+     做兜底映射；滚动条与背景纹理参数可通过变量全局联动调整。
+   ======================================================================================= */
+
+
+/* ========================================================================== */
+/* REGION A — FONT & ICON BASE（字体与图标基线 · Export 激活态专用）            */
+/* Scope : #megamenu-section-export / 左侧菜单（Export 激活）/ Header（联动）   */
+/* Function : 绑定黑白钢琴块的衬线字体；统一图标槽为 FontAwesome                */
+/* ========================================================================== */
+
+/* Export 主区 + 标题 + 长按钮 + 提示 */
+#megamenu-section-export,
+#megamenu-section-export h1,
+#megamenu-section-export h2,
+#megamenu-section-export .long-btn,
+#megamenu-section-export .preference-item-hint {
+  font-family: 'Playfair_Display', 'SourceHanSerifSC', serif;
+}
+
+/* 左侧菜单（Export 激活态）标题 & 列表项 */
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-header-title,
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a {
+  font-family: 'Playfair_Display', 'SourceHanSerifSC', serif;
+}
+
+/* Header 按钮和文字（Export 激活态） */
+body.megamenu-opened:has(#megamenu-menu-list #m-export.active) header,
+body.megamenu-opened:has(#m-export.active) header .btn {
+  font-family: 'Playfair_Display', 'SourceHanSerifSC', serif;
+}
+
+/* 统一图标槽：仍挂在 <a>::before（保持你原有逻辑） */
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a::before {
+  font-family: 'FontAwesome' !important;
+  font-style: normal;
+  font-weight: normal;
+  -webkit-font-smoothing: antialiased;
+  display: inline-block;
+  width: 1em;
+  margin-right: 6px;
+  line-height: 1;
+  color: currentColor;
+  content: "";
+}
+
+/* ========================================================================== */
+/* REGION B — EXPORT PANEL SURFACE（Export 主容器 + 卡片 + 标题 + 按钮 + 提示） */
+/* Scope: #megamenu-section-export（黑白钢琴块主题面板）                         */
+/* Function: 定义 Export 主区的容器背景、卡片样式、标题动画、按钮组与提示文本。  */
+/* Adjustable Params: 色彩（黑/白/灰）、描边/阴影色、扫描动画周期、hover 移动量 */
+/* Compatibility: 现代浏览器 / Typora(Electron)；尊重 prefers-reduced-motion   */
+/* ========================================================================== */
+
+/* 局部变量挂在容器上 */
+#megamenu-section-export {
+  /* 布局与容器 */
+  --exp-pad-y: 20px;
+  --exp-pad-x: 18px;
+
+  /* 色彩与描边 */
+  --exp-fg: #111;
+  --exp-bg-main: #fff;
+  --exp-bg-alt: #f5f5f5;
+  --exp-bd: 2px solid #111;
+
+  /* 阴影色阶 */
+  --exp-shadow-main: #9aa3ad;
+  --exp-shadow-hover: #7d8793;
+
+  /* 动画参数 */
+  --exp-scan-width: 160px;
+  --exp-scan-dur: 1.2s;
+  --exp-step-dur: .06s;
+
+  position: relative;
+  padding: var(--exp-pad-y) var(--exp-pad-x);
+  background:
+    linear-gradient(var(--exp-bg-main), var(--exp-bg-main)),
+    repeating-linear-gradient(90deg, #0001 0 2px, transparent 2px 6px),
+    repeating-linear-gradient(0deg, #0001 0 2px, transparent 2px 6px);
+  image-rendering: pixelated;
+  box-shadow: inset 0 0 0 2px var(--exp-fg);
+  color: var(--exp-fg);
+}
+
+/* 面板卡片 */
+#megamenu-section-export .megamenu-menu-panel {
+  border: var(--exp-bd);
+  margin: 0 0 16px;
+  padding: 14px 14px 16px;
+  background: linear-gradient(180deg, #ffffff 0%, var(--exp-bg-alt) 100%);
+  box-shadow: inset 0 0 0 2px #fff,
+              0 0 0 2px var(--exp-fg),
+              4px 4px 0 0 var(--exp-shadow-main);
+  transition:
+    transform var(--exp-step-dur) steps(2, end),
+    box-shadow var(--exp-step-dur) steps(2, end);
+}
+#megamenu-section-export .megamenu-menu-panel:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: inset 0 0 0 2px #fff,
+              0 0 0 2px var(--exp-fg),
+              6px 6px 0 0 var(--exp-shadow-hover);
+}
+
+/* 标题：钢琴键扫描动画 */
+#megamenu-section-export h1 {
+  display: inline-block;
+  margin: 0 0 10px;
+  padding: 3px 10px;
+  color: var(--exp-fg);
+  border: var(--exp-bd);
+  box-shadow: 2px 2px 0 0 var(--exp-shadow-main);
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f0f0f0 100%),
+    repeating-linear-gradient(90deg, #000 0 10px, #fff 10px 20px);
+  background-size: auto, var(--exp-scan-width) 100%;
+  animation: mmexport-piano-scan var(--exp-scan-dur) steps(8, end) infinite;
+}
+@keyframes mmexport-piano-scan {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 0 0, var(--exp-scan-width) 0; }
+}
+
+/* 按钮组布局 */
+#megamenu-section-export .long-btn-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 按钮样式 */
+#megamenu-section-export .long-btn {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  color: var(--exp-fg);
+  border: var(--exp-bd);
+  background: linear-gradient(180deg, #ffffff 0%, #f2f2f2 48%, #ebebeb 100%);
+  box-shadow: 3px 3px 0 0 var(--exp-shadow-main),
+              inset 0 0 0 2px #fff;
+  transition:
+    transform var(--exp-step-dur) steps(2, end),
+    color var(--exp-step-dur) steps(2, end),
+    background var(--exp-step-dur) steps(2, end);
+}
+#megamenu-section-export .long-btn i { color: currentColor; }
+#megamenu-section-export .long-btn:hover {
+  transform: translate(-1px, -1px);
+  background: #000;
+  color: #fff !important;
+}
+#megamenu-section-export .long-btn:active {
+  transform: translate(0, 0);
+  box-shadow: 2px 2px 0 0 var(--exp-shadow-hover),
+              inset 0 0 0 2px #fff;
+}
+
+/* 提示文本 */
+#megamenu-section-export .preference-item-hint {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 1px 6px;
+  border: var(--exp-bd);
+  background: linear-gradient(180deg, #ffffff 0%, var(--exp-bg-alt) 100%);
+  color: #333;
+  box-shadow: 2px 2px 0 0 var(--exp-shadow-main);
+}
+
+/* ========================================================================== */
+/* REGION C — HEADER LATCH（Header 门闩联动 · Export 激活态 · 变量化版）        */
+/* Scope: body.megamenu-opened:has(#m-export.active) header                   */
+/* Function: Header 像素钢琴带背景 + 底部描边/阴影 + 按钮反色 hover             */
+/* Adjustable Params: 渐变色、描边/阴影色、图标前景色、hover 反色               */
+/* ========================================================================== */
+
+/* 局部变量挂在 header 上 */
+body.megamenu-opened:has(#megamenu-menu-list #m-export.active) header {
+  /* 基础色彩 */
+  --hdr-fg: #111;
+  --hdr-bg1: #fff;
+  --hdr-bg2: #f5f5f5;
+  --hdr-bg3: #eee;
+
+  /* 边框与阴影 */
+  --hdr-bd: 2px solid #111;
+  --hdr-shadow: #9aa3ad;
+
+  /* 按钮 hover */
+  --hdr-btn-hover-bg: #000;
+  --hdr-btn-hover-fg: #fff;
+
+  background:
+    linear-gradient(90deg, var(--hdr-bg1), var(--hdr-bg2), var(--hdr-bg3)),
+    repeating-linear-gradient(90deg, #000 0 18px, #fff 18px 36px);
+  image-rendering: pixelated;
+  border-bottom: var(--hdr-bd);
+  box-shadow: 0 2px 0 0 var(--hdr-shadow);
+}
+
+/* Header 图标与按钮基态（黑色前景） */
+body.megamenu-opened:has(#megamenu-menu-list #m-export.active) header :is(
+  .btn, .toolbar-icon, .icon, [class*="icon"], [class^="ion-"], i, svg, svg use
+) {
+  color: var(--hdr-fg);
+  fill: var(--hdr-fg);
+  stroke: var(--hdr-fg);
+}
+
+/* Header 按钮样式 */
+body.megamenu-opened:has(#megamenu-menu-list #m-export.active) header .btn {
+  border-color: var(--hdr-fg);
+  box-shadow: 0 0 0 2px #00000022 inset;
+}
+
+/* Header 按钮 hover：反色 */
+body.megamenu-opened:has(#megamenu-menu-list #m-export.active) header .btn:hover {
+  background: var(--hdr-btn-hover-bg);
+  color: var(--hdr-btn-hover-fg);
+}
+
+/* ========================================================================== */
+/* REGION D — MENU SIDEBAR · Consolidated（左侧菜单 · Export 激活态 · 整合版）     */
+/* Scope : body.megamenu-opened:has(#m-export.active) #megamenu-menu-sidebar   */
+/* Function : 侧栏钢琴底 / Header 条幅 / 列表 hover 反色 / Saved 对勾 / 图标映射   */
+/* Notes : 仅一次 :has 门闩；内部全部后代选择；变量化钢琴纹理与阴影色阶            */
+/* ========================================================================== */
+
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-sidebar{
+  /* —— 局部变量 —— */
+  --sb-fg: #111;
+  --sb-bd: #111;
+  --sb-shadow: #9aa3ad;
+  --sb-shadow-hover: #7d8793;
+
+  /* 复用纹理 */
+  --piano-stripes-x: repeating-linear-gradient(90deg, #000 0 18px, #fff 18px 36px);
+  --piano-stripes-x-tight: repeating-linear-gradient(90deg, #000 0 10px, #fff 10px 20px);
+  --panel-grad: linear-gradient(180deg, #ffffff 0%, #f5f5f5 68%, #eee 100%);
+  --card-grad:  linear-gradient(180deg, #ffffff 0%, #f3f3f3 100%);
+  --item-grad:  linear-gradient(180deg, #ffffff 0%, #f2f2f2 48%, #ebebeb 100%);
+  --divider-grad: linear-gradient(180deg, #ffffff 0%, #f5f5f5 100%);
+
+  /* 自身外观 */
+  background:
+    var(--panel-grad),
+    var(--piano-stripes-x),
+    repeating-linear-gradient(0deg, #00000010 0 2px, transparent 2px 4px);
+  image-rendering: pixelated;
+  border-left: 2px solid var(--sb-bd);
+  box-shadow: inset 0 0 0 2px var(--sb-bd);
+  color: var(--sb-fg);
+}
+
+/* —— Header 条幅 —— */
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-sidebar .megamenu-menu-header{
+  padding: 12px 10px;
+  border-bottom: 2px solid var(--sb-bd);
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f0f0f0 100%),
+    var(--piano-stripes-x-tight);
+  box-shadow: 0 2px 0 0 var(--sb-shadow);
+  position: relative; /* 供右侧竖线定位 */
+}
+
+/* 右侧竖线（像素三段描边） */
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-sidebar .megamenu-menu-header::after{
+  content:"";
+  position:absolute; top:0; right:0; bottom:0; width:2px;
+  background: var(--sb-bd); /* 主黑线 */
+  box-shadow:
+    inset 0 0 0 2px #fff,   /* 内白描边 */
+    0 0 0 2px var(--sb-bd), /* 第二层黑线 */
+    2px 0 0 0 var(--sb-shadow); /* 外灰蓝阴影 */
+  pointer-events:none;
+  image-rendering:pixelated;
+}
+
+/* Header 标题片 */
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-header-title{
+  display: inline-block;
+  padding: 2px 8px;
+  border: 2px solid var(--sb-bd);
+  background: linear-gradient(180deg, #ffffff 0%, #f4f4f4 100%);
+  box-shadow: 2px 2px 0 0 var(--sb-shadow);
+  font-weight: 600;
+  color: var(--sb-fg);
+}
+
+/* —— 列表容器 —— */
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list{
+  margin: 10px 8px 12px;
+  padding: 6px 4px;
+  border: 2px solid var(--sb-bd);
+  background: var(--card-grad);
+  box-shadow: 3px 3px 0 0 var(--sb-shadow);
+}
+
+/* 分隔线 */
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li.divider{
+  height: 10px;
+  margin: 6px 8px;
+  border: 2px solid var(--sb-bd);
+  background:
+    var(--divider-grad),
+    var(--piano-stripes-x-tight);
+  box-shadow: 2px 2px 0 0 var(--sb-shadow);
+}
+
+/* —— 菜单项 —— */
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 6px;
+  padding: 10px 12px;
+  color: var(--sb-fg);
+  text-decoration: none;
+  border: 2px solid var(--sb-bd);
+  border-radius: 0;
+  background:
+    var(--item-grad),
+    repeating-linear-gradient(90deg, #fdfdfd 0 12px, #f3f3f3 12px 24px, #ececec 24px 36px);
+  box-shadow: 2px 2px 0 0 var(--sb-shadow), inset 0 0 0 2px #fff;
+  transition:
+    transform .06s steps(2, end),
+    box-shadow .06s steps(2, end),
+    color .06s steps(2, end),
+    background .06s steps(2, end);
+}
+
+/* Hover 反色（黑底白字、阴影加深） */
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a:hover{
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 0 var(--sb-shadow-hover), inset 0 0 0 2px #fff;
+  background: #000;
+  color: #fff;
+}
+
+/* —— Saved 对勾（右对齐·自绘，不依赖内部 <i>） —— */
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a#m-saved{
+  position: relative;
+  padding-right: 28px; /* 给右侧对勾留空间 */
+}
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a#m-saved::after{
+  content: "\f00c"; /* FontAwesome check */
+  font-family: 'FontAwesome' !important;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1em;
+  line-height: 1;
+  color: currentColor; /* 跟随反色 */
+}
+/* 如 DOM 内有自带对勾图标，禁用其 before，避免重影 */
+body.megamenu-opened:has(#m-export.active) #m-saved .fa-check-circle-o:before{ all: unset; }
+
+/* （可选）若想对齐文字列，可微调文字左移 */
+body.megamenu-opened:has(#m-export.active) #m-saved span{ margin-left: -30px; }
+
+/* —— 图标槽基线（统一 ::before） —— */
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a::before{
+  font-family: 'FontAwesome' !important;
+  font-style: normal;
+  font-weight: normal;
+  -webkit-font-smoothing: antialiased;
+  display: inline-block;
+  width: 1em;
+  margin-right: 6px;
+  line-height: 1;
+  color: currentColor;
+  content: ""; /* 具体码点由下方映射提供 */
+}
+
+/* —— 图标映射（ID 兜底组合，含 m-save-as/m-saveas 兼容） —— */
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a#m-new::before{        content:"\f15b"; } /* file-text-o */
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a#m-open::before{       content:"\f07c"; } /* folder-open  */
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a#m-save::before{       content:"\f0c7"; } /* save         */
+
+/* Save As：两种写法同时兜底 */
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a#m-save-as::before,
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a#m-saveas::before{      content:"\f0c7"; }
+
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a#m-saved::before{      content:"\f1c6"; } /* file-archive-o */
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a#m-export::before{     content:"\f045"; }
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a#m-print::before{      content:"\f02f"; }
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a#m-theme::before{      content:"\f1fc"; }
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a#m-preference::before{ content:"\f013"; }
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a#m-about::before{      content:"\f05a"; }
+body.megamenu-opened:has(#m-export.active) #megamenu-menu-list > li > a#m-close::before{      content:"\f011"; }
+
+/* 若你还需支持 .long-btn 的同一套图标槽，可在 Region E（按钮区）沿用相同 content 映射 */
+
+/* ========================================================================== */
+/* REGION E — SCROLLBARS · Consolidated（滚动条 · Export/Sidebar/页面右侧）     */
+/* Scope : 仅在 Export 激活态生效（单门闩），内部用分组选择器                   */
+/* Notes : 共享纹理/边框变量；必要处小范围覆盖；不改 DOM                        */
+/* ========================================================================== */
+
+body.megamenu-opened:has(#m-export.active){
+  /* —— 统一变量 —— */
+  --sb-w: 10px;
+  --sb-h: 10px;
+
+  /* 纹理：优先复用你在 Export 区声明过的变量；没有则兜底 */
+  --piano-stripes-x: var(--piano-stripes-x, repeating-linear-gradient(90deg,#000 0 18px,#fff 18px 36px));
+  --panel-grad:      var(--panel-grad, linear-gradient(180deg,#fff 0%,#f5f5f5 68%,#eee 100%));
+  --thumb-grad:      linear-gradient(180deg,#ffffff 0%,#eaeaea 100%);
+
+  /* 颜色/描边 */
+  --sb-bd: #111;
+  --sb-track-bd-left: 2px solid var(--sb-bd);
+  --sb-track-bd-top:  2px solid var(--sb-bd);
+  --sb-inset: inset 0 0 0 2px var(--sb-bd);
+
+  --sb-thumb-bd: 2px solid var(--sb-bd);
+  --sb-thumb-bg: var(--thumb-grad);
+  --sb-thumb-bg-hover: #000;
+}
+
+/* —— 统一入口：三类滚动区（Export 主区 / Sidebar / 页面右侧常见容器） —— */
+body.megamenu-opened:has(#m-export.active)
+:is(
+  #megamenu-section-export,
+  #megamenu-menu-sidebar,
+  html, body, .megamenu-section, .megamenu-menu-panel, .megamenu-content, #content, #write
+)::-webkit-scrollbar{
+  width: var(--sb-w);
+  height: var(--sb-h);
+}
+
+/* —— Track 基线：共享面板渐变 + 钢琴纹理 —— */
+body.megamenu-opened:has(#m-export.active)
+:is(
+  #megamenu-section-export,
+  #megamenu-menu-sidebar,
+  html, body, .megamenu-section, .megamenu-menu-panel, .megamenu-content, #content, #write
+)::-webkit-scrollbar-track{
+  background:
+    var(--panel-grad),
+    var(--piano-stripes-x);
+  image-rendering: pixelated;
+}
+
+/* —— Thumb 基线 —— */
+body.megamenu-opened:has(#m-export.active)
+:is(
+  #megamenu-section-export,
+  #megamenu-menu-sidebar,
+  html, body, .megamenu-section, .megamenu-menu-panel, .megamenu-content, #content, #write
+)::-webkit-scrollbar-thumb{
+  background: var(--sb-thumb-bg);
+  border: var(--sb-thumb-bd);
+}
+body.megamenu-opened:has(#m-export.active)
+:is(
+  #megamenu-section-export,
+  #megamenu-menu-sidebar,
+  html, body, .megamenu-section, .megamenu-menu-panel, .megamenu-content, #content, #write
+)::-webkit-scrollbar-thumb:hover{
+  background: var(--sb-thumb-bg-hover);
+}
+
+/* —— Export 主区差异：仅左边描边 —— */
+body.megamenu-opened:has(#m-export.active)
+#megamenu-section-export::-webkit-scrollbar-track{
+  border-left: var(--sb-track-bd-left);
+}
+
+/* —— Sidebar & 页面右侧差异：左+上描边 & 内侧像素框 —— */
+body.megamenu-opened:has(#m-export.active)
+:is(#megamenu-menu-sidebar, html, body, .megamenu-section, .megamenu-menu-panel, .megamenu-content, #content, #write)::-webkit-scrollbar-track{
+  border-left: var(--sb-track-bd-left);
+  border-top:  var(--sb-track-bd-top);
+  box-shadow:  var(--sb-inset);
+}
+/* =============================== END OF PACKAGE ============================ */

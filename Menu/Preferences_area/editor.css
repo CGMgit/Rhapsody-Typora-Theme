@@ -1,0 +1,528 @@
+/* =======================================================================================
+   Rhapsody · PREFERENCES · Editor Pane — Sunset Glow（落日余晖 · 无模糊 · 性能友好）
+   设计理念 / Design Concept
+   - 仅当“设置窗口 · 左侧导航中 Editor（data-index=1）处于激活态”时启用整套视觉。
+   - 深红棕落日氛围为基底；右侧内容“卡片化”承托；焦点/按钮轻微提亮；性能友好。
+   - 不更改任何 DOM 结构；仅做“分区域 + 区域内变量化”；选择器与属性值逻辑保持原样。
+   ======================================================================================= */
+
+
+/* ========================================================================== */
+/* REGION A — ROOT VARS（根变量，仅在 Editor 激活时挂载）                       */
+/* Scope: body:has(.ty-preferences ... data-index="1") .ty-preferences        */
+/* Function: 集中维护落日配色/文字阶/描边/圆角与通用尺寸；供各区复用              */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="1"]) .ty-preferences {
+    /* —— Ink / Text —— */
+    --sunset-ink: rgba(255,245,230,.92);
+    --sunset-ink-weak: rgba(255,245,230,.62);
+
+    /* —— Accent / Border —— */
+    --sunset-accent: #ff7a00;
+    --sunset-accent-2: #ffb347;
+    --sunset-border: rgba(255,140,64,.32);
+
+    /* —— Surfaces —— */
+    --sunset-bg-deep: rgba(34,12,0,.45);
+    --sunset-bg-soft: rgba(34,12,0,.12);
+
+    /* —— Radii / Sizes —— */
+    --ss-radius-s: 8px;
+    --ss-radius-m: 10px;
+    --ss-radius-l: 12px;
+    --ss-radius-xl: 14px;
+
+    /* —— Focus Ring（常用） —— */
+    --ss-focus-outer: 0 0 0 3px rgba(255,122,0,.35);
+
+    /* —— Scrollbar（默认） —— */
+    --ss-scroll-thumb: rgba(255,255,255,.18);
+    --ss-scroll-thumb-hover: rgba(255,255,255,.28);
+    --ss-scroll-ring: inset 0 0 0 1px rgba(255,140,64,.25);
+
+    /* —— Font（Editor 激活时的 UI 统一） —— */
+    --ss-ff-ui: 'AliPuHuiTi', 'Microsoft YaHei', sans-serif;
+    --ss-font-weight-strong: 600;
+
+    /* —— Window Backdrop —— */
+    --ss-window-base: #2b0e00;
+    --ss-window-img: url("../../assets/Preference/落日余晖.png");
+    --ss-window-fit: center/contain no-repeat;
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION B — FONT UNIFY（字体统一 · 仅 Editor 激活时）                         */
+/* Scope: 侧边栏 + 右侧 pane                                                   */
+/* Function: 统一字体族与权重（保持原值）                                       */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="1"]) {
+
+    /* 左侧 Sidebar 与搜索框 */
+    .ty-preferences .pane-sm.sidebar,
+    .ty-preferences .pane-sm.sidebar .nav-group-item,
+    .ty-preferences .pane-sm.sidebar .search-input {
+      font-family: var(--ss-ff-ui);
+      font-weight: var(--ss-font-weight-strong);
+    }
+
+    /* 右侧 Pane 主体与所有表单元素 */
+    .ty-preferences .pane .content,
+    .ty-preferences .pane .content h3,
+    .ty-preferences .pane .content label,
+    .ty-preferences .pane .content td,
+    .ty-preferences .pane .content span,
+    .ty-preferences .pane .content a,
+    .ty-preferences .pane .content input,
+    .ty-preferences .pane .content select,
+    .ty-preferences .pane .content button {
+      font-family: var(--ss-ff-ui);
+      font-weight: var(--ss-font-weight-strong);
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION C — WINDOW BACKDROP（整窗背景挂载）                                   */
+/* Scope: .ty-preferences .window                                             */
+/* Function: 挂载落日背景图；不改变布局                                         */
+/* ========================================================================== */
+body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="1"]) .ty-preferences .window{
+  /* —— 局部变量 —— */
+  --ss-window-min-h: 100vh;
+  --ss-window-bg: none;
+
+  position: relative;
+  overflow: hidden;
+  min-height: var(--ss-window-min-h);
+  background: var(--ss-window-bg);
+}
+body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="1"]) .ty-preferences .window::before{
+  content: "";
+  position: absolute; inset: 0;
+  z-index: 0; pointer-events: none;
+  background: var(--ss-window-base) var(--ss-window-img) var(--ss-window-fit);
+}
+
+
+/* ========================================================================== */
+/* REGION D — TYPOGRAPHY（全局文字色阶）                                        */
+/* Scope: header 标题 + pane 文本                                              */
+/* Function: 统一文字层次与阴影                                                 */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="1"]) {
+    .ty-preferences .window-header h2,
+    .ty-preferences .pane .content,
+    .ty-preferences .pane .content h3.panel-header,
+    .ty-preferences .pane .content .input-group-header-title,
+    .ty-preferences .pane .content label,
+    .ty-preferences .pane .content td,
+    .ty-preferences .pane .content span,
+    .ty-preferences .pane .content a{
+      /* —— 局部变量 —— */
+      --ss-ink-shadow: 0 1px 1px rgba(0,0,0,.25);
+
+      color: var(--sunset-ink);
+      text-shadow: var(--ss-ink-shadow);
+    }
+    .ty-preferences .pane .content .panel-content-hint,
+    .ty-preferences .pane .content .input-group-header-hint,
+    .ty-preferences .pane .content .label-hint,
+    .ty-preferences .pane .content .row[style*="opacity"]{
+      color: var(--sunset-ink-weak) !important;
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION E — HEADER（顶栏）                                                   */
+/* Scope: .window-header                                                      */
+/* Function: 渐变底/描边/图标 hover 轻动效                                      */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="1"]) {
+    .ty-preferences .window-header{
+      --ss-hdr-grad: linear-gradient(to bottom, rgba(44,16,0,.55), rgba(44,16,0,.22));
+      --ss-hdr-border: var(--sunset-border);
+
+      background: var(--ss-hdr-grad);
+      border-bottom: 1px solid var(--ss-hdr-border);
+    }
+    .ty-preferences .window-header .window-header-back .icon svg path,
+    .ty-preferences .window-header .header-close .icon svg path{
+      --ss-hdr-icon-fill: var(--sunset-ink);
+      fill: var(--ss-hdr-icon-fill);
+      opacity: .9;
+      transition: opacity .15s ease, transform .12s ease;
+    }
+    .ty-preferences .window-header button:hover .icon svg path{
+      opacity: 1; transform: translateY(-1px);
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION F — SIDEBAR（左侧导航）                                              */
+/* Scope: .pane-sm.sidebar 及其内控件                                          */
+/* Function: 渐变底/描边/搜索框/列表交互                                       */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="1"]) {
+
+    .ty-preferences .pane-sm.sidebar{
+      --ss-sd-grad: linear-gradient(180deg, rgba(34,12,0,.66), rgba(34,12,0,.28));
+      --ss-sd-border: var(--sunset-border);
+
+      background: var(--ss-sd-grad);
+      border-right: 1px solid var(--ss-sd-border);
+      contain: paint; /* 性能：大区块绘制隔离 */
+    }
+    .ty-preferences .pane-sm.sidebar .search-input{
+      --ss-sd-search-bg: rgba(255,255,255,.08);
+      --ss-sd-search-fg: var(--sunset-ink);
+      --ss-sd-search-bd: var(--sunset-border);
+      --ss-sd-search-inset: inset 0 0 0 1px rgba(0,0,0,.15);
+
+      background: var(--ss-sd-search-bg);
+      color: var(--ss-sd-search-fg);
+      border: 1px solid var(--ss-sd-search-bd);
+      box-shadow: var(--ss-sd-search-inset);
+    }
+    .ty-preferences .pane-sm.sidebar .search-input::placeholder{ color: var(--sunset-ink-weak); }
+    .ty-preferences .pane-sm.sidebar .search-input:focus{
+      border-color: var(--sunset-accent);
+      box-shadow: var(--ss-focus-outer);
+      outline: none;
+    }
+    .ty-preferences .pane-sm.sidebar .nav-group-item{
+      --ss-sd-item-pad: 8px 10px;
+      --ss-sd-item-radius: var(--ss-radius-s);
+      --ss-sd-item-fg: var(--sunset-ink-weak);
+      --ss-sd-item-bg: transparent;
+
+      display: block; padding: var(--ss-sd-item-pad); border-radius: var(--ss-sd-item-radius);
+      color: var(--ss-sd-item-fg); background: var(--ss-sd-item-bg);
+      transition-property: transform, color, background-color;
+      transition-duration: .15s; transition-timing-function: ease;
+    }
+    .ty-preferences .pane-sm.sidebar .nav-group-item:hover{
+      --ss-sd-item-hover-bg: rgba(60,20,0,.55);
+      background: var(--ss-sd-item-hover-bg); color: var(--sunset-ink);
+      will-change: transform;
+    }
+    .ty-preferences .pane-sm.sidebar .nav-group-item.active{
+      --ss-sd-item-act-bg: linear-gradient(180deg, rgba(255,122,0,.24), rgba(255,122,0,.14));
+      --ss-sd-item-act-shadow: 0 0 0 1px var(--sunset-border), 0 4px 12px rgba(255,122,0,.14) inset;
+
+      background: var(--ss-sd-item-act-bg);
+      box-shadow: var(--ss-sd-item-act-shadow);
+      color:#fff; transform: translateY(-1px);
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION G — MAIN PANE（右侧主体面板）                                         */
+/* Scope: .ty-preferences .pane                                               */
+/* Function: 深浅层叠/描边/性能隔离                                            */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="1"]) {
+    .ty-preferences .pane{
+      --ss-pane-grad: linear-gradient(180deg, rgba(34,12,0,.40), rgba(34,12,0,.16));
+      --ss-pane-border: var(--sunset-border);
+
+      background: var(--ss-pane-grad);
+      border-left: 1px solid var(--ss-pane-border);
+      contain: paint; /* 性能：大区块绘制隔离 */
+    }
+    .ty-preferences .pane .content h3.panel-header{
+      --ss-h3-weight: 600;
+      --ss-h3-trk: .2px;
+      font-weight: var(--ss-h3-weight); letter-spacing: var(--ss-h3-trk); color:#fff;
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION H — FORMS（表单控件：输入/选择）                                      */
+/* Scope: input/select 等                                                      */
+/* Function: 深色适配/描边/hover/focus                                         */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="1"]) {
+
+    .ty-preferences .pane .content select,
+    .ty-preferences .pane .content input[type="text"],
+    .ty-preferences .pane .content input[type="number"],
+    .ty-preferences .pane .content .ty-text-input input,
+    .ty-preferences .pane .content .file-input input{
+      --ss-form-bg: rgba(255,255,255,.08);
+      --ss-form-fg: var(--sunset-ink);
+      --ss-form-bd: var(--sunset-border);
+      --ss-form-radius: var(--ss-radius-xl); /* 12px */
+      --ss-form-pad: 6px 8px;
+
+      background: var(--ss-form-bg);
+      color: var(--ss-form-fg);
+      border: 1px solid var(--ss-form-bd);
+      border-radius: var(--ss-form-radius);
+      padding: var(--ss-form-pad);
+      transition-property: background-color, border-color, box-shadow;
+      transition-duration: .15s; transition-timing-function: ease;
+    }
+    .ty-preferences .pane .content select:hover,
+    .ty-preferences .pane .content input:hover{ background: rgba(255,255,255,.12); }
+    .ty-preferences .pane .content select:focus,
+    .ty-preferences .pane .content input:focus{
+      border-color: var(--sunset-accent);
+      box-shadow: var(--ss-focus-outer);
+      outline: none;
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION I — BUTTONS（按钮）                                                  */
+/* Scope: .btn.btn-default                                                    */
+/* Function: 渐变底/描边/hover 阴影&位移                                        */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="1"]) {
+    .ty-preferences .pane .content .btn.btn-default{
+      --ss-btn-grad: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.10));
+      --ss-btn-fg: var(--sunset-ink);
+      --ss-btn-bd: var(--sunset-border);
+      --ss-btn-rad: var(--ss-radius-xl); /* 12px */
+      --ss-btn-pad: 6px 12px;
+
+      background: var(--ss-btn-grad);
+      color: var(--ss-btn-fg);
+      border: 1px solid var(--ss-btn-bd);
+      border-radius: var(--ss-btn-rad);
+      padding: var(--ss-btn-pad);
+      transition-property: transform, box-shadow, background-color, border-color;
+      transition-duration: .15s; transition-timing-function: ease;
+    }
+    .ty-preferences .pane .content .btn.btn-default:hover{
+      --ss-btn-hover-grad: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.14));
+      --ss-btn-hover-shadow: 0 4px 12px rgba(0,0,0,.22);
+
+      background: var(--ss-btn-hover-grad);
+      box-shadow: var(--ss-btn-hover-shadow);
+      transform: translateY(-1px);
+      will-change: transform, box-shadow;
+    }
+    .ty-preferences .pane .content .btn.btn-default:active{
+      --ss-btn-active-shadow: 0 2px 8px rgba(0,0,0,.25) inset;
+      transform: translateY(0);
+      box-shadow: var(--ss-btn-active-shadow);
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION J — CHECKS（复选/单选）                                               */
+/* Scope: input[type=checkbox|radio]                                          */
+/* Function: 强调色与描边统一                                                   */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="1"]) {
+    .ty-preferences .pane .content input[type="checkbox"],
+    .ty-preferences .pane .content input[type="radio"]{
+      accent-color: var(--sunset-accent);
+      border-color: var(--sunset-border);
+    }
+    .ty-preferences .pane .content .disabled label{
+      color: rgba(255,255,255,.28) !important; opacity:.7;
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION K — TABLES & GROUPS（表格/分组）                                      */
+/* Scope: table.label-input-group / .input-group                               */
+/* Function: 基础提升层/描边/内容可见性优化                                    */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="1"]) {
+
+    .ty-preferences .pane .content table.label-input-group{
+      --ss-table-bg: rgba(255,255,255,.05);
+      --ss-table-bd: var(--sunset-border);
+      --ss-table-rad: var(--ss-radius-xl); /* 12px */
+
+      background: var(--ss-table-bg);
+      border: 1px solid var(--ss-table-bd);
+      border-radius: var(--ss-table-rad); overflow: hidden;
+    }
+    .ty-preferences .pane .content table.label-input-group td{
+      --ss-table-row-sep: 1px dashed rgba(255,255,255,.10);
+      border-top: var(--ss-table-row-sep);
+    }
+    .ty-preferences .pane .content .input-group{
+      --ss-igap: 18px;
+      --ss-ipad: 10px 12px;
+      --ss-irad: 14px;
+      --ss-igrad: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
+      --ss-ibd: 1px solid rgba(255,255,255,.08);
+
+      margin-bottom: var(--ss-igap); padding: var(--ss-ipad); border-radius: var(--ss-irad);
+      background: var(--ss-igrad);
+      border: var(--ss-ibd);
+      content-visibility: auto;              /* 性能：不可见时不绘制 */
+      contain-intrinsic-size: 600px;         /* 预估高度，避免滚动跳动 */
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION L — CODE BLOCKS（代码块）                                             */
+/* Scope: pre                                                                 */
+/* Function: 深色面板/描边/圆角/文字色                                         */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="1"]) {
+    .ty-preferences .pane .content pre{
+      --ss-pre-bg: rgba(0,0,0,.28);
+      --ss-pre-bd: var(--sunset-border);
+      --ss-pre-rad: 10px;
+
+      background: var(--ss-pre-bg);
+      border: 1px solid var(--ss-pre-bd);
+      border-radius: var(--ss-pre-rad);
+      color: var(--sunset-ink);
+    }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION M — LINKS & HINT ICONS（链接与提示图标）                              */
+/* Scope: a / .label-hint svg path                                            */
+/* Function: 链接色与装饰线统一；提示图标着色                                  */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="1"]) {
+    .ty-preferences .pane .content a{
+      --ss-link: var(--sunset-accent-2);
+      --ss-link-dec: color-mix(in srgb, var(--sunset-accent-2) 60%, transparent);
+
+      color: var(--ss-link);
+      text-decoration-color: var(--ss-link-dec);
+    }
+    .ty-preferences .pane .content a:hover{
+      color: #ffe2b3; text-decoration-color: rgba(255,227,179,.9);
+    }
+    .ty-preferences .pane .content .label-hint svg path{ fill: var(--sunset-ink-weak); }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION N — SCROLLBARS（滚动条 · 仅 Preferences 内）                           */
+/* Scope: .window / .pane / .pane-sm.sidebar                                  */
+/* Function: 细滚动条 + 轻描边                                                 */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="1"]) {
+    .ty-preferences .window,
+    .ty-preferences .pane,
+    .ty-preferences .pane-sm.sidebar {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,220,180,.7) transparent;
+    }
+    .ty-preferences .window::-webkit-scrollbar,
+    .ty-preferences .pane::-webkit-scrollbar,
+    .ty-preferences .pane-sm.sidebar::-webkit-scrollbar { width:10px; height:10px; }
+    .ty-preferences .window::-webkit-scrollbar-thumb,
+    .ty-preferences .pane::-webkit-scrollbar-thumb,
+    .ty-preferences .pane-sm.sidebar::-webkit-scrollbar-thumb{
+      background: var(--ss-scroll-thumb);
+      border: 2px solid transparent; border-radius: 10px;
+      background-clip: padding-box;
+      box-shadow: var(--ss-scroll-ring);
+      transition: background-color .12s ease, box-shadow .12s ease;
+    }
+    .ty-preferences .window::-webkit-scrollbar-thumb:hover,
+    .ty-preferences .pane::-webkit-scrollbar-thumb:hover,
+    .ty-preferences .pane-sm.sidebar::-webkit-scrollbar-thumb:hover{
+      background: var(--ss-scroll-thumb-hover);
+    }
+    .ty-preferences .window::-webkit-scrollbar-track,
+    .ty-preferences .pane::-webkit-scrollbar-track,
+    .ty-preferences .pane-sm.sidebar::-webkit-scrollbar-track{ background: transparent; }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION O — SELECT ARROW（Select 箭头深色适配）                                */
+/* Scope: select                                                              */
+/* Function: 自绘箭头 + 深色选项面板                                           */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="1"]) {
+    .ty-preferences .pane .content select{
+      --ss-sel-bg: rgba(255,255,255,.08);
+      --ss-sel-icon-w: 14px;
+      --ss-sel-pad: 8px 36px 8px 10px;
+
+      -webkit-appearance: none; appearance: none;
+      background: var(--ss-sel-bg) no-repeat right 10px center/var(--ss-sel-icon-w);
+      background-image: url('data:image/svg+xml;utf8,\
+<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24">\
+<path fill="none" stroke="rgba(255,200,140,0.95)" stroke-width="2" d="M6 9l6 6 6-6"/></svg>');
+      color: var(--sunset-ink);
+      border: 1px solid var(--sunset-border);
+      border-radius: var(--ss-radius-xl);
+      padding: var(--ss-sel-pad);
+      line-height: 1.6;
+      transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+      cursor: pointer; color-scheme: dark;
+    }
+    .ty-preferences .pane .content select:hover{ background-color: rgba(255,255,255,.12); }
+    .ty-preferences .pane .content select:focus{
+      border-color: var(--sunset-accent);
+      box-shadow: var(--ss-focus-outer);
+      outline: none;
+    }
+    .ty-preferences .pane .content select:disabled{ opacity:.6; cursor:not-allowed; }
+    .ty-preferences .pane .content select option{
+      background-color: rgba(45,16,0,.94); color: var(--sunset-ink);
+    }
+    .ty-preferences .pane .content select option:hover{
+      background-color: rgba(255,122,0,.20);
+    }
+    .ty-preferences .pane .content select::-ms-expand{ display:none; }
+  }
+}
+
+
+/* ========================================================================== */
+/* REGION P — REDUCED MOTION（动效降级）                                        */
+/* Scope: .ty-preferences .window *                                           */
+/* Function: 遵循系统“减少动态”偏好，关闭过渡/动画                              */
+/* ========================================================================== */
+@supports(selector(:has(*))) {
+  body:has(.ty-preferences .pane-sm.sidebar .nav-group-item.active[data-index="1"]) {
+    @media (prefers-reduced-motion: reduce) {
+      .ty-preferences .window * { transition-duration: 0s !important; animation: none !important; }
+    }
+  }
+}
+
+/* =============================== END · PREFERENCES · EDITOR · SUNSET GLOW ==== */

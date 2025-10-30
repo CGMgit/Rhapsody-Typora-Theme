@@ -1,0 +1,143 @@
+/* =======================================================================================
+   Rhapsody · Spotlight Focus Mode（聚光灯专注模式 · 独立文件版）
+   设计理念 / Design Concept
+   ------------------------------------------------------------------
+   - 在专注与打字机模式下，通过轻度暗场与去饱和营造沉浸氛围；
+   - 使用 .md-focus 的伪元素形成“打孔光圈”，聚焦当前块；
+   - 焦点块获得柔光与浅底，维持 Rhapsody 的高饱和美学气质。
+   ------------------------------------------------------------------
+   兼容性 / Compatibility
+   - Typora 内置类名：.on-focus-mode / .on-typewriter-mode / .md-focus
+   - 无需使用 :has 选择器；
+   - 自动适配现代 Chromium / Electron 内核；
+   - 导出 PDF / HTML 时自动禁用暗场效果。
+   ======================================================================================= */
+
+/* =============================================================== */
+/* SECTION 1 — Core Parameters（参数区）                           */
+/* =============================================================== */
+#write {
+  /* 聚光灯开关（0/1），默认关闭 */
+  --spot-on: 0;
+
+  /* 暗场与光圈参数 */
+  --spot-dark: 0.52;            /* 暗场不透明度（0~1） */
+  --spot-blur: 0.6px;           /* 非焦点区轻模糊，>1 会明显糊 */
+  --spot-sat: 0.78;             /* 去饱和程度（全局） */
+  --spot-contrast: 1.03;        /* 微提升对比提高辨识度 */
+
+  /* 光圈形态（圆/椭圆）与柔边 */
+  --spot-radius: 14px;          /* 焦点块四角圆角 */
+  --spot-feather: 18px;         /* 光圈柔边（越大越柔） */
+
+  /* 焦点块视觉 */
+  --spot-focus-glow: 0 0 0 2px #ffd93b60, 0 12px 32px -10px #ffd93b66;
+  --spot-focus-bg: linear-gradient(0deg, #fffbe802, #fff8fa05);
+}
+
+/* =============================================================== */
+/* SECTION 2 — Global Activation（模式触发与全局去饱和）           */
+/* =============================================================== */
+.on-focus-mode #write,
+.on-typewriter-mode #write,
+body.focus-mode #write,
+html.focus-mode #write {
+  --spot-on: 1;
+  filter: saturate(var(--spot-sat)) contrast(var(--spot-contrast));
+}
+
+/* 全局轻度晕影 */
+.on-focus-mode #write::before,
+.on-typewriter-mode #write::before {
+  background-image:
+    radial-gradient(120% 100% at 50% 40%,
+      transparent 60%,
+      rgba(0,0,0, calc(var(--spot-on) * 0.08)) 100%),
+    var(--_existing-bg, transparent);
+}
+
+/* =============================================================== */
+/* SECTION 3 — Spotlight Construction（打孔式聚光灯核心）           */
+/* =============================================================== */
+.on-focus-mode #write .md-focus,
+.on-typewriter-mode #write .md-focus {
+  position: relative;
+  z-index: 2;
+  border-radius: var(--spot-radius);
+  background: var(--spot-focus-bg);
+  box-shadow: var(--spot-focus-glow);
+  transition: box-shadow .16s ease, background-color .16s ease;
+}
+
+/* 焦点块伪元素 · 打孔光圈 */
+.on-focus-mode #write .md-focus::after,
+.on-typewriter-mode #write .md-focus::after {
+  content: "";
+  position: absolute;
+  inset: -var(--spot-feather);
+  border-radius: calc(var(--spot-radius) + var(--spot-feather));
+  box-shadow:
+    0 0 0 200vmax rgba(0,0,0, calc(var(--spot-on) * var(--spot-dark)));
+  pointer-events: none;
+  z-index: -1; /* 在焦点块之下，兄弟块之上 */
+}
+
+/* =============================================================== */
+/* SECTION 4 — Non-focus Dimming（非焦点区降噪）                    */
+/* =============================================================== */
+.on-focus-mode #write .md-end-block:not(.md-focus),
+.on-typewriter-mode #write .md-end-block:not(.md-focus) {
+  opacity: calc(1 - var(--spot-on) * 0.35);
+  filter: blur(calc(var(--spot-on) * var(--spot-blur)));
+  transition: opacity .16s ease;
+}
+
+/* 焦点内数学/代码块增强可读性 */
+.on-focus-mode #write .md-focus pre,
+.on-typewriter-mode #write .md-focus pre,
+.on-focus-mode #write .md-focus mjx-container,
+.on-typewriter-mode #write .md-focus mjx-container {
+  filter: none;
+  backdrop-filter: saturate(1.06);
+}
+
+/* =============================================================== */
+/* SECTION 5 — Optional Circular Lens（可选圆形探照灯）             */
+/* =============================================================== */
+/*
+.on-focus-mode #write .md-focus::after,
+.on-typewriter-mode #write .md-focus::after {
+  background: radial-gradient(circle at 50% 45%,
+              transparent 0 260px,
+              rgba(0,0,0, calc(var(--spot-on) * var(--spot-dark))) 300px);
+  box-shadow: none;
+  inset: -400px;
+  border-radius: 999px;
+}
+*/
+
+/* =============================================================== */
+/* SECTION 6 — Export & Accessibility                              */
+/* =============================================================== */
+@media print {
+  .on-focus-mode #write .md-end-block:not(.md-focus),
+  .on-typewriter-mode #write .md-end-block:not(.md-focus) {
+    opacity: 1 !important;
+    filter: none !important;
+  }
+  .on-focus-mode #write .md-focus::after,
+  .on-typewriter-mode #write .md-focus::after {
+    box-shadow: none !important;
+    background: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .on-focus-mode #write::before,
+  .on-focus-mode #write::after,
+  .on-typewriter-mode #write::before,
+  .on-typewriter-mode #write::after {
+    animation: none !important;
+  }
+}
+/* =============================== END OF PACKAGE ============================ */
