@@ -1,7 +1,7 @@
 # 🍎 Rhapsody · Typora 专属皮肤主题
 
 [TOC]
-> 🌐 English version: [README.en.md](./README.en.md)
+> 🌐 English version: [README.EN.md](./README.EN.md)
 
 > “色彩，是思想的延伸；  
 > 写作，是秩序与灵感的交响。”
