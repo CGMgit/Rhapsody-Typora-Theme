@@ -1,0 +1,60 @@
+
+/*
+ * Name: Rhapsody Catalyst
+ * Author: 帅气大王子 CGM（The Radiant Prince）CGMgit
+ * Description: A modular Appleron-style Typora theme using CSS :has() and modern selectors.
+ * Version: 1.0.0
+ * License: MIT
+ * Typora-Version: >=1.7.0
+ */
+
+
+@import "Rhapsody/prerequisite.css";
+
+@import "Rhapsody/Main_Visual/background.css";
+@import "Rhapsody/Main_Visual/write.css";
+@import "Rhapsody/Main_Visual/sidebar_outline.css";
+@import "Rhapsody/Main_Visual/sidebar_file_list.css";
+@import "Rhapsody/Main_Visual/sidebar_file_tree.css";
+
+@import "Rhapsody/Syntax/paragraph.css";
+@import "Rhapsody/Syntax/headings.css";
+@import "Rhapsody/Syntax/horizontal_rule.css";
+@import "Rhapsody/Syntax/list.css";
+@import "Rhapsody/Syntax/bold_italic.css";
+@import "Rhapsody/Syntax/blockquote.css";
+@import "Rhapsody/Syntax/inline_code.css";
+@import "Rhapsody/Syntax/codeblock.css";
+@import "Rhapsody/Syntax/link.css";
+@import "Rhapsody/Syntax/footnote.css";
+@import "Rhapsody/Syntax/table.css";
+@import "Rhapsody/Syntax/lnline_math.css";
+@import "Rhapsody/Syntax/mathblock.css";
+@import "Rhapsody/Syntax/task.css";
+@import "Rhapsody/Syntax/toc.css";
+@import "Rhapsody/Syntax/mermaid.css";
+@import "Rhapsody/Syntax/yaml.css";
+@import "Rhapsody/Syntax/mark.css";
+
+
+@import "Rhapsody/Auxiliary/selection.css";
+@import "Rhapsody/Auxiliary/menu_ui.css";
+@import "Rhapsody/Auxiliary/spell_check_ui.css";
+@import "Rhapsody/Auxiliary/word_count_ui.css";
+@import "Rhapsody/Auxiliary/desktop_ui.css";
+@import "Rhapsody/Auxiliary/pdf_export.css";
+@import "Rhapsody/Auxiliary/focusmode.css";
+@import "Rhapsody/Auxiliary/html_export.css";
+
+
+@import "Rhapsody/Menu/open_area.css";
+@import "Rhapsody/Menu/export_area.css";
+@import "Rhapsody/Menu/themes_area.css";
+@import "Rhapsody/Menu/about_area.css";
+@import "Rhapsody/Menu/Preferences_area/appearance.css";
+@import "Rhapsody/Menu/Preferences_area/editor.css";
+@import "Rhapsody/Menu/Preferences_area/export.css";
+@import "Rhapsody/Menu/Preferences_area/files.css";
+@import "Rhapsody/Menu/Preferences_area/general.css";
+@import "Rhapsody/Menu/Preferences_area/image.css";
+@import "Rhapsody/Menu/Preferences_area/markdown.css";
