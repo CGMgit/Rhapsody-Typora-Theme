@@ -1,6 +1,7 @@
 # 🍎 Rhapsody · Typora Theme (Fully Modular)
 
 [TOC]
+> 🇨🇳 中文版请见：[README.md](./README.md)
 
 
 
@@ -385,4 +386,5 @@ When checked + anchor exists → colored corner badge & animation.
 
 ```
 <style>#write::after { --corner-img: var(--corner-img-colored); }</style>
+
 ```
