@@ -1,4 +1,4 @@
-# 🍎 Rhapsody · Typora Theme (Fully Modular)
+# 🍎 Rhapsody · Typora Theme 
 
 [TOC]
 > 🇨🇳 中文版请见：[README.md](./README.md)
@@ -420,6 +420,7 @@ Every bit of support
 becomes a new color, a new animation, a new idea —
 and keeps Rhapsody glowing in Typora’s world.
 ------
+
 
 
 
