@@ -378,7 +378,7 @@ Rhapsody is not only a skin – it’s a **writing experiment about order, light
 
 ## 🕓 Changelog
 
-### v1.0.0 — Initial Release · 2025-10-29
+### v1.0.0 — Initial Release 
 
 - full heading system (h1–h6) with icons & glow
 - energy-band writing area
@@ -420,6 +420,7 @@ Every bit of support
 becomes a new color, a new animation, a new idea —
 and keeps Rhapsody glowing in Typora’s world.
 ------
+
 
 
 
