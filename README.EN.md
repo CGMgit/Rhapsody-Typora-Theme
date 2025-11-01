@@ -37,7 +37,7 @@
   - [✒️ Author & Project Info](#️-author--project-info)
   - [🪶 To Users](#-to-users)
 - [🕓 Changelog](#-changelog)
-  - [v1.0.0 – Initial Release – 2025-10-29](#v100--initial-release--2025-10-29)
+  - [v1.0.0 – Initial Release](#v100--initial-release)
 - [🥚 Easter Eggs](#-easter-eggs)
 - [💖 Support & Sponsor](#-support--sponsor)
 
@@ -420,6 +420,7 @@ Every bit of support
 becomes a new color, a new animation, a new idea —
 and keeps Rhapsody glowing in Typora’s world.
 ------
+
 
 
 
