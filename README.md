@@ -438,11 +438,10 @@ Rhapsody 主题的样式体系由多个功能域组成，采用 **分区管理 +
 
 | 文件                            | 功能描述                                      |
 | ------------------------------- | --------------------------------------------- |
-| `Auxiliary/focus-spotlight.css` | 聚光灯专注模式（Spotlight Focus）             |
+| `Auxiliary/focusmode.css`       | 聚光灯专注模式（Spotlight Focus）             |
 | `Auxiliary/html_export.css`     | HTML 导出模式修正（强制底色、去除 UA margin） |
 | `Auxiliary/spell_check_ui.css`  | 拼写检查交互提示色优化                        |
 | `Auxiliary/menu_ui.css`         | Typora 顶部菜单栏能量条动画                   |
-| `Auxiliary/focusmode.css`       | 柔光版专注模式（旧版保留）                    |
 
 ------
 
