@@ -1,7 +1,8 @@
 # 🍎 Rhapsody · Typora 专属皮肤主题
 ![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC--BY--NC--SA%204.0-blue)
 ![Typora](https://img.shields.io/badge/Typora-Theme-orange)
-![帅气大王子 CGM](https://img.shields.io/badge/帅气大王子-CGM%20(🍎The%20Radiant%20Prince)-ff69b4)
+![作者 CGM](https://img.shields.io/badge/作者-帅气大王子🍎CGM%20·%20Rhapsody%20Theme-pink)
+
 
 
 [TOC]
