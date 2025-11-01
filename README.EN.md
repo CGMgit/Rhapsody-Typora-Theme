@@ -1,4 +1,8 @@
 # 🍎 Rhapsody · Typora Theme 
+![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC--BY--NC--SA%204.0-blue)
+![Typora](https://img.shields.io/badge/Typora-Theme-orange)
+![帅气大王子 CGM（The Radiant Prince）](https://img.shields.io/badge/作者-帅气大王子%20CGM（The%20Radiant%20Prince）-ff69b4?style=flat-square)
+
 
 [TOC]
 > 🇨🇳 中文版请见：[README.md](./README.md)
@@ -559,6 +563,7 @@ Every bit of support
 becomes a new color, a new animation, a new idea —
 and keeps Rhapsody glowing in Typora’s world.
 ------
+
 
 
 
