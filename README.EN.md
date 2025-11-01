@@ -3,8 +3,6 @@
 [TOC]
 > 🇨🇳 中文版请见：[README.md](./README.md)
 
-
-
 > “Color is the extension of thought,
 >  and writing is the symphony of order and inspiration.”
 
@@ -419,4 +417,5 @@ you can support the creator here 👇
 
 Every small support becomes new colors, new modules, and better export patches ✨
 ------
+
 
