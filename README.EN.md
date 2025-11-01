@@ -9,7 +9,7 @@
 >  and writing is the symphony of order and inspiration.”
 
 ## Contents
-
+- [📸 Theme Preview](#-theme-preview)
 - [🌈 Design Philosophy](#-design-philosophy)
 - [🧩 Technical Highlights](#-technical-highlights)
 - [✨ Theme Features](#-theme-features)
@@ -41,11 +41,30 @@
 - [🕓 Changelog](#-changelog)
   - [v1.0.0 – Initial Release – 2025-10-29](#v100--initial-release--2025-10-29)
 - [🥚 Easter Eggs](#-easter-eggs)
+- [💖 Support & Sponsor](#-support-&-sponsor)
 
 ------
 
 **Rhapsody** is a Typora theme built around **“colorful · dreamy · kinetic”** aesthetics.
  It is not just a single CSS file, but a **visual experiment** that lets Markdown writing grow in light and motion.
+
+ ## 📸 Theme Preview
+
+> “Let color flow. Let text shine.”
+
+Below are some snapshots of **🍎 Rhapsody Typora Theme**,  
+showing how light, gradients and layered visuals interact with Markdown.
+
+<p align="center">
+  <img src="./Rhapsody/Assets/Preview/Preview1.png" width="320" alt="Rhapsody Preview 1" style="margin:6px;">
+  <img src="./Rhapsody/Assets/Preview/Preview2.png" width="320" alt="Rhapsody Preview 2" style="margin:6px;">
+  <img src="./Rhapsody/Assets/Preview/Preview3.png" width="320" alt="Rhapsody Preview 3" style="margin:6px;">
+</p>
+
+> ✨ *Rhapsody* is a small visual experiment about “color × motion × cognition.”  
+> It tries to make Typora a place where writing grows in light instead of on a plain sheet.
+
+---
 
 ## 🌈 Design Philosophy
 
@@ -388,3 +407,15 @@ When checked + anchor exists → colored corner badge & animation.
 <style>#write::after { --corner-img: var(--corner-img-colored); }</style>
 
 ```
+------
+## 💖 Support & Sponsor
+
+If this theme helps you write better, or you simply like the “color × philosophy × Typora” aesthetic,
+you can support the creator here 👇
+
+🌍 International	🇨🇳 Mainland China
+☕ Ko-fi — The_Radiant_Prince
+	💎 Afdian — 帅气大王子66
+
+Every small support becomes new colors, new modules, and better export patches ✨
+------
