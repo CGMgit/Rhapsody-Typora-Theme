@@ -150,25 +150,164 @@ Rhapsody is a **visual philosophy practice**:
 
 ## 📁 Project Structure
 
-（This mirrors your Chinese tree – keep it as-is, just change file descriptions if you want. Since repo users often scan folder names first, keeping Chinese artwork names is totally fine.）
-
-```
+```bash
 Rhapsody/
-├── Assets/
-│   ├── Menu/ ...
-│   ├── Mermaid/ ...
-│   ├── Preference/ ...
-│   ├── Siderbar/ ...
-│   ├── TOC/ ...
-│   ├── Table/ ...
-│   └── UI/ ...
-├── Auxiliary/ ...
-├── Fix/
-├── Fonts/ ...
-├── Logo/ ...
-├── Main_Visual/ ...
-├── Menu/ ...
-├── Syntax/ ...
+├── Assets
+│   ├── Menu
+│   │   ├── 南屏晚风.png
+│   │   └── 纯净都市.png
+│   ├── Mermaid
+│   │   └── 欣欣向荣.png
+│   ├── Preference
+│   │   ├── 惊涛拍岸.png
+│   │   ├── 星河流彩.png
+│   │   ├── 月河童梦.png
+│   │   ├── 玫瑰暗影.png
+│   │   ├── 茶香氤氲.png
+│   │   ├── 落日余晖.png
+│   │   └── 风吹麦浪.png
+│   ├── Siderbar
+│   │   └── 阴阳鱼.png
+│   ├── TOC
+│   │   └── 扬帆起航.png
+│   ├── Table
+│   │   ├── datauri_bundle.css
+│   │   ├── 千里江山.png
+│   │   ├── 天上人间.png
+│   │   ├── 天上人间.png.datauri.txt
+│   │   ├── 江山如故.png
+│   │   └── 渔舟唱晚.png
+│   └── UI
+│       ├── 一口吃掉.png
+│       ├── 冬-独钓寒江.png
+│       ├── 夏-荷叶红花.png
+│       ├── 昏-万籁俱寂.png
+│       ├── 春-黄发垂髫.png
+│       ├── 晨-一日之计.png
+│       ├── 梦幻森林.jpg
+│       ├── 秋-鸿雁南飞.png
+│       └── 超级大肥橘.png
+├── Auxiliary
+│   ├── T
+│   ├── desktop_ui.css
+│   ├── focusmode.css
+│   ├── html_export.css
+│   ├── menu_ui.css
+│   ├── pdf_export.css
+│   ├── selection.css
+│   ├── spell_check_ui.css
+│   └── word_count_ui.css
+├── Fix
+├── Fonts
+│   ├── AlibabaPuHuiTi-3-75-SemiBold
+│   │   ├── AlibabaPuHuiTi-3-75-SemiBold.woff2
+│   │   └── AlibabaPuHuiTi-License.txt.txt
+│   ├── FontAwesome
+│   │   ├── FontAwesome.otf
+│   │   ├── LICENSE.txt
+│   │   ├── fontawesome-webfont.ttf
+│   │   ├── fontawesome-webfont.woff
+│   │   └── fontawesome-webfont.woff2
+│   ├── JetBrainsMono
+│   │   ├── AUTHORS.txt
+│   │   ├── JetBrainsMono-Italic[wght].ttf
+│   │   ├── JetBrainsMono[wght].ttf
+│   │   └── OFL.txt
+│   ├── Latinmodernmath
+│   │   ├── LICENSE-LatinModernMath.txt.txt
+│   │   └── LatinmodernmathRegular.woff2
+│   ├── LxgwWenKai-main
+│   │   ├── LXGWWenKai-Regular.woff2
+│   │   └── OFL.txt
+│   ├── Playfair_Display
+│   │   ├── OFL.txt
+│   │   ├── PlayfairDisplay-Italic-VariableFont_wght.ttf
+│   │   └── PlayfairDisplay-VariableFont_wght.ttf
+│   ├── PressStart2P-Regular
+│   │   ├── OFL.txt
+│   │   └── PressStart2P-Regular.ttf
+│   ├── ResourceHanRoundedCN
+│   │   ├── LICENSE-SourceHanSansCN.txt.txt
+│   │   └── ResourceHanRoundedCN-Regular.woff2
+│   ├── Roboto_Mono
+│   │   ├── OFL.txt
+│   │   ├── RobotoMono-Italic-VariableFont_wght.ttf
+│   │   └── RobotoMono-VariableFont_wght.ttf
+│   ├── SourceHanSans-Pixel-main
+│   │   ├── LICENSE
+│   │   ├── LICENSE.SourceHanSans
+│   │   └── SourceHanSansSC-VF.otf
+│   ├── SourceHanSerifSC
+│   │   ├── LICENSE.txt
+│   │   └── SourceHanSansSC-VF.woff2
+│   ├── ZCOOL - Addict Italic
+│   │   ├── ZCOOL Addict Italic 01.ttf
+│   │   ├── ZCOOL Addict Italic 02.ttf
+│   │   └── ZCOOL-AddictItalic-License.txt.txt
+│   ├── ZCoolGaoDuanHei
+│   │   ├── ZCOOL-HiBlack-License.txt.txt
+│   │   └── ZCoolGaoDuanHei.woff2
+│   └── ZhanKuWenYiTi
+│       ├── LICENSE.txt.txt
+│       ├── ZhanKuWenYiTi-2.woff2
+│       └── 字由客户端.url
+├── Logo
+│   ├── Background_Icon
+│   │   ├── Typora作业培根.ico
+│   │   ├── 冒险培根.ico
+│   │   ├── 厨师培根.ico
+│   │   └── 睡觉培根.ico
+│   ├── Headings_Icon
+│   │   ├── 兔子怀表.svg
+│   │   ├── 帅气大王子.webp
+│   │   ├── 狐狸面具.png
+│   │   ├── 金箍棒.svg
+│   │   ├── 雷神之锤.png
+│   │   └── 魔法苹果.svg
+│   └── Write_Icon
+│       ├── 帅气大王子.png
+│       └── 帅气大王子透明版.png
+├── Main_Visual
+│   ├── background.css
+│   ├── sidebar_file_list.css
+│   ├── sidebar_file_tree.css
+│   ├── sidebar_outline.css
+│   ├── write.css
+│   └── 备份
+│       ├── background.css
+│       └── write.css
+├── Menu
+│   ├── Preferences_area
+│   │   ├── appearance.css
+│   │   ├── editor.css
+│   │   ├── export.css
+│   │   ├── files.css
+│   │   ├── general.css
+│   │   ├── image.css
+│   │   └── markdown.css
+│   ├── about_area.css
+│   ├── export_area.css
+│   ├── open_area.css
+│   └── themes_area.css
+├── Syntax
+│   ├── blockquote.css
+│   ├── bold_italic.css
+│   ├── codeblock.css
+│   ├── footnote.css
+│   ├── headings.css
+│   ├── horizontal_rule.css
+│   ├── inline_code.css
+│   ├── link.css
+│   ├── list.css
+│   ├── lnline_math.css
+│   ├── mark.css
+│   ├── mathblock.css
+│   ├── mermaid.css
+│   ├── paragraph.css
+│   ├── table.css
+│   ├── task.css
+│   ├── toc.css
+│   └── yaml.css
 ├── prerequisite.css
 ├── tree.md
 └── tree.txt
@@ -288,7 +427,7 @@ Covers all Markdown visual components.
 
 | File                            | Description                      |
 | ------------------------------- | -------------------------------- |
-| `Auxiliary/focus-spotlight.css` | spotlight focus mode             |
+| `Auxiliary/focusmode.css`       | spotlight focus mode             |
 | `Auxiliary/html_export.css`     | force background for HTML export |
 | `Auxiliary/spell_check_ui.css`  | spell-check highlight tuning     |
 | `Auxiliary/menu_ui.css`         | animated top menu                |
@@ -420,6 +559,7 @@ Every bit of support
 becomes a new color, a new animation, a new idea —
 and keeps Rhapsody glowing in Typora’s world.
 ------
+
 
 
 
