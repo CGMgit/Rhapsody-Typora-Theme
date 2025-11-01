@@ -408,14 +408,18 @@ When checked + anchor exists → colored corner badge & animation.
 ------
 ## 💖 Support & Sponsor
 
-If this theme helps you write better, or you simply like the “color × philosophy × Typora” aesthetic,
-you can support the creator here 👇
+If you like Rhapsody Typora Theme,
+and want me to keep polishing it, adding variants, or releasing “dark / festival / lecture” editions,
+you can support the project here 🌈
 
 🌍 International	🇨🇳 Mainland China
-☕ Ko-fi — The_Radiant_Prince
-	💎 Afdian — 帅气大王子66
+☕ Ko-fi — gongmingcao
+	💎 爱发电 — 帅气大王子66
 
-Every small support becomes new colors, new modules, and better export patches ✨
+Every bit of support
+becomes a new color, a new animation, a new idea —
+and keeps Rhapsody glowing in Typora’s world.
 ------
+
 
 
