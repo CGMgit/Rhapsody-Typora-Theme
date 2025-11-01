@@ -1,5 +1,43 @@
 # 🍎 Rhapsody · Typora 专属皮肤主题
 
+## 📸 主题预览
+
+> “让色彩流动，让文字发光。”
+
+下列截图展示了 **🍎 Rhapsody Typora Theme** 的部分视觉界面，  
+每一束光带、每一个渐变，都记录着它对 **秩序与灵感** 的理解。
+
+<p align="center">
+  <img src="./Rhapsody/Assets/Preview/Preview1.png" width="320" alt="Rhapsody 预览图 1" style="margin:6px;">
+  <img src="./Rhapsody/Assets/Preview/Preview2.png" width="320" alt="Rhapsody 预览图 2" style="margin:6px;">
+  <img src="./Rhapsody/Assets/Preview/Preview3.png" width="320" alt="Rhapsody 预览图 3" style="margin:6px;">
+</p>
+
+> ✨ *Rhapsody* 是一场“色彩与思维的实验”，  
+> 让 Markdown 写作在光影与哲学之间生长出新的秩序。
+
+---
+
+## 💖 支持与赞助
+
+如果你喜欢 **Rhapsody Typora Theme**，  
+并希望我能持续更新、扩展与完善，  
+欢迎通过以下方式支持这份创作 🌈
+
+| 🌍 国际支持 | 🇨🇳 中国大陆 |
+|--------------|----------------|
+| [☕ Ko-fi — The_Radiant_Prince](https://ko-fi.com/gongmingcao) | [💎 爱发电 — 帅气大王子66](https://afdian.com/a/shuaiqidawangzi66) |
+
+> 你的每一份支持，  
+> 都将化为新的色彩、新的想法，  
+> 让 **Rhapsody** 在 Typora 的世界中持续发光。
+
+---
+
+
+
+
+
 [TOC]
 > 🌐 English version: [README.EN.md](./README.EN.md)
 
