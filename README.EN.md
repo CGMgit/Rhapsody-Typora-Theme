@@ -41,7 +41,7 @@
 - [🕓 Changelog](#-changelog)
   - [v1.0.0 – Initial Release – 2025-10-29](#v100--initial-release--2025-10-29)
 - [🥚 Easter Eggs](#-easter-eggs)
-- [💖 Support & Sponsor](#-support-&-sponsor)
+- [💖 Support & Sponsor](#-support--sponsor)
 
 ------
 
@@ -419,3 +419,4 @@ you can support the creator here 👇
 
 Every small support becomes new colors, new modules, and better export patches ✨
 ------
+
