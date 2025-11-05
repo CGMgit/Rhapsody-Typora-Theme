@@ -10,8 +10,8 @@
 /* —— Region Root Vars —— */
 #write{
   /* A 区：块容器与 SVG 基本 */
-  --dm-block-margin-top: 2.2rem;
-  --dm-block-margin-bottom: 2rem;
+  --dm-block-margin-top: 0.2rem;
+  --dm-block-margin-bottom: 0.2rem;
   --dm-block-pad-y: 0.4rem;
   --dm-block-pad-x: 0.2rem;
   --dm-block-z: 3;
