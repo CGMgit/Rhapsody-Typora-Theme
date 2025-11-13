@@ -58,6 +58,7 @@ Below are some snapshots of **🍎 Rhapsody Typora Theme**,
 showing how light, gradients and layered visuals interact with Markdown.
 
 <p align="center">
+  <img src="./Rhapsody/Assets/Preview/dy-show.gif" width="320" alt="Rhapsody 预览动图 3" style="margin:6px;">
   <img src="./Rhapsody/Assets/Preview/Preview1.png" width="320" alt="Rhapsody Preview 1" style="margin:6px;">
   <img src="./Rhapsody/Assets/Preview/Preview2.png" width="320" alt="Rhapsody Preview 2" style="margin:6px;">
   <img src="./Rhapsody/Assets/Preview/Preview3.png" width="320" alt="Rhapsody Preview 3" style="margin:6px;">
@@ -563,6 +564,7 @@ Every bit of support
 becomes a new color, a new animation, a new idea —
 and keeps Rhapsody glowing in Typora’s world.
 ------
+
 
 
 
