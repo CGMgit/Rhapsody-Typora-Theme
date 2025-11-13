@@ -63,6 +63,7 @@
 每一束光带、每一个渐变，都记录着它对 **秩序与灵感** 的理解。
 
 <p align="center">
+  <img src="./Rhapsody/Assets/Preview/dy-show.gif" width="320" alt="Rhapsody 预览动图 3" style="margin:6px;">
   <img src="./Rhapsody/Assets/Preview/Preview1.png" width="320" alt="Rhapsody 预览图 1" style="margin:6px;">
   <img src="./Rhapsody/Assets/Preview/Preview2.png" width="320" alt="Rhapsody 预览图 2" style="margin:6px;">
   <img src="./Rhapsody/Assets/Preview/Preview3.png" width="320" alt="Rhapsody 预览图 3" style="margin:6px;">
